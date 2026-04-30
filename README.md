@@ -84,6 +84,7 @@ Windows 桌面伴随程序。
 - `Windows-Test/generate-teaching-brief-from-sb3.mjs`
 - `Windows-Test/sb3-teaching-draft.mjs`
 - `Windows-Test/deepseek-workflow/`
+- `Windows-Test/fixtures/projects/cat-and-a-mouse/`
 - `Windows-Test/fixtures/cat-and-mouse-flow-sample/`
 
 如果你要继续接 AI 服务，优先看这些文件：

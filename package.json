@@ -9,5 +9,8 @@
     "desktop:test": "npm --prefix apps/desktop-companion run test",
     "desktop:package:portable": "npm --prefix apps/desktop-companion run package:win:single",
     "desktop:package:installer": "npm --prefix apps/desktop-companion run package:win:installer"
+  },
+  "dependencies": {
+    "yauzl": "^3.3.0"
   }
 }

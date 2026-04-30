@@ -17,6 +17,10 @@
 - `02-role-*.json`
 - `03-student-hints.json`
 - `04-debug-pack.json`
+- `Source fixture in this repo`
+- `../projects/cat-and-a-mouse/source/Cat and a Mouse.sb3`
+- `../projects/cat-and-a-mouse/extracted/project.json`
+- `../projects/cat-and-a-mouse/analysis/project-summary.json`
 
 这份样本保留了项目中的真实角色名、变量名和广播名：
 
