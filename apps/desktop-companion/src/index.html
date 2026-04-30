@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Scratch AI 教练</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f0e1;
+        --panel: rgba(255, 252, 247, 0.94);
+        --panel-strong: #ffffff;
+        --ink: #16332d;
+        --muted: #61726d;
+        --accent: #0c8e68;
+        --accent-soft: rgba(12, 142, 104, 0.1);
+        --accent-strong: #0b6f53;
+        --warning: #b45834;
+        --warning-soft: rgba(180, 88, 52, 0.1);
+        --border: rgba(22, 51, 45, 0.12);
+        --shadow: 0 28px 70px rgba(22, 51, 45, 0.14);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        min-height: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top right, rgba(12, 142, 104, 0.2), transparent 34%),
+          radial-gradient(circle at bottom left, rgba(194, 111, 64, 0.16), transparent 30%),
+          linear-gradient(180deg, #fffaf1 0%, var(--bg) 100%);
+        padding: 16px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p,
+      ul {
+        margin: 0;
+      }
+
+      ul {
+        padding: 0;
+        list-style: none;
+      }
+
+      .shell {
+        min-height: calc(100vh - 32px);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+        animation: shell-in 260ms ease-out;
+      }
+
+      @keyframes shell-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .hero {
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+        border-radius: 24px;
+        background:
+          linear-gradient(140deg, rgba(12, 142, 104, 0.14), rgba(255, 255, 255, 0.8)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.72));
+        border: 1px solid rgba(12, 142, 104, 0.12);
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .hero-top {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hero-copy {
+        display: grid;
+        gap: 8px;
+      }
+
+      h1 {
+        font-size: 28px;
+        line-height: 1.14;
+      }
+
+      .hero-copy p {
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      #status {
+        width: fit-content;
+        max-width: 100%;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      #status[data-status="error"],
+      #status[data-status="unsupported"] {
+        background: var(--warning-soft);
+        color: var(--warning);
+      }
+
+      .action-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .action-button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 14px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          opacity 180ms ease;
+      }
+
+      .action-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .action-button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+        transform: none;
+      }
+
+      .action-button.primary {
+        color: #fff;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+        box-shadow: 0 14px 32px rgba(12, 142, 104, 0.22);
+      }
+
+      .action-button.secondary {
+        color: var(--ink);
+        background: rgba(22, 51, 45, 0.08);
+      }
+
+      .summary-grid,
+      .workspace-grid,
+      .coach-grid {
+        display: grid;
+        gap: 14px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .summary-card,
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--panel-strong);
+      }
+
+      .summary-card {
+        padding: 14px 16px;
+        min-height: 112px;
+        display: grid;
+        gap: 8px;
+      }
+
+      .summary-card span {
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.03em;
+      }
+
+      .summary-card strong {
+        font-size: 15px;
+        line-height: 1.5;
+        word-break: break-word;
+      }
+
+      .summary-card small {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .workspace-grid {
+        grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.9fr);
+        align-items: start;
+      }
+
+      .panel {
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .panel-heading {
+        display: grid;
+        gap: 4px;
+      }
+
+      .panel-heading h2 {
+        font-size: 18px;
+      }
+
+      .panel-heading p {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .sidebar-stack {
+        display: grid;
+        gap: 14px;
+      }
+
+      #program-area-modules,
+      #current-target-programs,
+      #ai-recommended-blocks,
+      #ai-detected-issues {
+        display: grid;
+        gap: 10px;
+      }
+
+      #program-area-modules li {
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(22, 51, 45, 0.05);
+        border: 1px solid rgba(22, 51, 45, 0.08);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      #program-area-modules li.empty,
+      #current-target-programs li.empty,
+      #ai-recommended-blocks li.empty,
+      #ai-detected-issues li.empty {
+        color: var(--muted);
+      }
+
+      #current-target-programs li,
+      #ai-recommended-blocks li,
+      #ai-detected-issues li {
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(12, 142, 104, 0.08), rgba(12, 142, 104, 0.04));
+        border: 1px solid rgba(12, 142, 104, 0.12);
+        font-size: 13px;
+        line-height: 1.65;
+        white-space: normal;
+        word-break: break-word;
+      }
+
+      .coach-panel {
+        gap: 14px;
+      }
+
+      .coach-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .coach-copy {
+        display: grid;
+        gap: 6px;
+      }
+
+      .coach-copy h2 {
+        font-size: 20px;
+      }
+
+      .coach-copy p,
+      #ai-status,
+      #ai-answer,
+      #ai-follow-up-question {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 86px;
+        resize: vertical;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 12px 14px;
+        font: inherit;
+        font-size: 13px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      .ai-highlight {
+        padding: 14px 16px;
+        border-radius: 18px;
+        background: linear-gradient(145deg, rgba(12, 142, 104, 0.1), rgba(255, 255, 255, 0.7));
+        border: 1px solid rgba(12, 142, 104, 0.12);
+      }
+
+      #ai-next-step {
+        font-size: 14px;
+        line-height: 1.7;
+        font-weight: 700;
+      }
+
+      .coach-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .sub-panel {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(22, 51, 45, 0.03);
+        border: 1px solid rgba(22, 51, 45, 0.08);
+        display: grid;
+        gap: 10px;
+      }
+
+      .sub-panel h3 {
+        font-size: 14px;
+      }
+
+      .config-card {
+        display: grid;
+        gap: 10px;
+      }
+
+      .config-card p {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      #error {
+        min-height: 18px;
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--warning);
+      }
+
+      @media (max-width: 860px) {
+        .summary-grid,
+        .workspace-grid,
+        .coach-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .coach-top {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="hero-top">
+          <div class="hero-copy">
+            <p class="eyebrow">Scratch AI Coach</p>
+            <h1>把 Scratch 当前角色整理清楚，再给学生下一步建议。</h1>
+            <p>
+              主窗口只保留连接、角色程序和 AI 教练结果。DeepSeek Key 已拆到单独设置窗口，减少干扰。
+            </p>
+          </div>
+          <p id="status">桌面伴随程序正在启动…</p>
+        </div>
+        <div class="action-bar">
+          <button id="choose-scratch-button" class="action-button secondary" type="button">
+            选择 Scratch
+          </button>
+          <button id="launch-button" class="action-button primary" type="button">
+            打开 Scratch
+          </button>
+          <button id="retry-button" class="action-button secondary" type="button">
+            重新连接
+          </button>
+          <button id="settings-button" class="action-button secondary" type="button">
+            DeepSeek 设置
+          </button>
+        </div>
+      </section>
+
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span>当前编辑角色</span>
+          <strong id="current-target">未识别</strong>
+          <small>伴随程序会跟随 Scratch 当前正在编辑的角色刷新。</small>
+        </article>
+        <article class="summary-card">
+          <span>Scratch 程序</span>
+          <strong id="scratch-path">还没有选择</strong>
+          <small id="detail">请先选择 Scratch 可执行文件（Scratch.exe 或 Scratch 3.exe）。</small>
+        </article>
+        <article class="summary-card">
+          <span>最近更新时间</span>
+          <strong id="updated-at">还没有收到数据</strong>
+          <small>连接后会显示最近一次从 Scratch 收到状态的时间。</small>
+        </article>
+      </section>
+
+      <section class="workspace-grid">
+        <article class="panel">
+          <div class="panel-heading">
+            <h2>当前角色程序</h2>
+            <p>自动从当前角色脚本序列提取，方便老师快速判断学生已经做到哪一步。</p>
+          </div>
+          <ul id="current-target-programs"></ul>
+        </article>
+
+        <div class="sidebar-stack">
+          <article class="panel">
+            <div class="panel-heading">
+              <h2>模块概览</h2>
+              <p>当前角色程序区域里已使用到的模块。</p>
+            </div>
+            <ul id="program-area-modules"></ul>
+          </article>
+
+          <article class="panel config-card">
+            <div class="panel-heading">
+              <h2>DeepSeek 配置</h2>
+              <p id="ai-config-summary">当前还没有可用的 DeepSeek Key。</p>
+            </div>
+            <button id="secondary-settings-button" class="action-button secondary" type="button">
+              打开独立设置
+            </button>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel coach-panel">
+        <div class="coach-top">
+          <div class="coach-copy">
+            <h2>AI 开发提示</h2>
+            <p>输入学生想实现的目标后，按当前角色程序生成下一步建议、推荐积木和风险提醒。</p>
+          </div>
+          <button id="generate-ai-button" class="action-button primary" type="button">
+            生成 AI 提示
+          </button>
+        </div>
+
+        <textarea
+          id="goal-input"
+          placeholder="可选：学生接下来想实现什么？例如：让小猫碰到球就加分。"
+        ></textarea>
+
+        <div class="coach-copy">
+          <p id="ai-status">连接 Scratch 后，点击“生成 AI 提示”获取下一步建议。</p>
+          <p id="ai-answer">AI 会根据当前角色程序、已用模块和扩展，给出下一步建议。</p>
+        </div>
+
+        <article class="ai-highlight">
+          <p id="ai-next-step">下一步：先连接 Scratch，然后点击“生成 AI 提示”。</p>
+        </article>
+
+        <div class="coach-grid">
+          <article class="sub-panel">
+            <h3>推荐积木</h3>
+            <ul id="ai-recommended-blocks"></ul>
+          </article>
+          <article class="sub-panel">
+            <h3>风险提醒</h3>
+            <ul id="ai-detected-issues"></ul>
+          </article>
+          <article class="sub-panel">
+            <h3>继续追问</h3>
+            <p id="ai-follow-up-question">追问：你想让这个角色下一步完成什么？</p>
+          </article>
+        </div>
+      </section>
+
+      <p id="error" hidden></p>
+    </main>
+    <script type="module" src="./renderer.js"></script>
+  </body>
+</html>

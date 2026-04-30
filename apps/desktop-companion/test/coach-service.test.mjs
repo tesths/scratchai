@@ -1,0 +1,175 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { CoachService } from "../dist/coach-service.js";
+
+function createAiConfig(overrides = {}) {
+  return {
+    configured: true,
+    apiKey: "sk-test-demo",
+    baseUrl: "https://api.deepseek.com",
+    model: "deepseek-v4-flash",
+    timeoutMs: 20000,
+    configPath: "C:\\config\\deepseek.config.json",
+    source: "custom",
+    customKeyConfigured: true,
+    ...overrides
+  };
+}
+
+function createSnapshot() {
+  return {
+    currentTarget: "Cat",
+    currentTargetId: "sprite-cat",
+    toolboxCategories: ["运动", "控制"],
+    loadedExtensions: [],
+    programAreaModules: [
+      {
+        id: "motion",
+        label: "运动",
+        blockCount: 1
+      }
+    ],
+    sprites: [
+      {
+        name: "Cat",
+        isStage: false,
+        blockCount: 2,
+        variables: [],
+        scripts: [
+          {
+            spriteName: "Cat",
+            event: "when green flag clicked",
+            blockSequence: ["当绿旗被点击", "移动 10 步"],
+            blockOpcodes: ["event_whenflagclicked", "motion_movesteps"]
+          }
+        ]
+      }
+    ],
+    blocks: [
+      {
+        id: "block-1",
+        opcode: "event_whenflagclicked",
+        category: "事件",
+        label: "当绿旗被点击",
+        spriteName: "Cat",
+        topLevel: true
+      },
+      {
+        id: "block-2",
+        opcode: "motion_movesteps",
+        category: "运动",
+        label: "移动 10 步",
+        spriteName: "Cat",
+        topLevel: false
+      }
+    ],
+    globalVariables: [],
+    detectedConcepts: ["event", "motion"],
+    updatedAt: "2026-04-29T12:00:00.000Z"
+  };
+}
+
+function createDeepSeekResponse(content) {
+  return new Response(
+    JSON.stringify({
+      choices: [
+        {
+          message: {
+            content
+          }
+        }
+      ]
+    }),
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json"
+      }
+    }
+  );
+}
+
+test("CoachService sends DeepSeek V4 chat completions requests in JSON non-thinking mode", async () => {
+  let capturedRequest;
+
+  const service = new CoachService(async (url, init) => {
+    capturedRequest = {
+      url,
+      init,
+      body: JSON.parse(init.body)
+    };
+
+    return createDeepSeekResponse(
+      JSON.stringify({
+        answerText: "先把角色移动起来。",
+        recommendedBlocks: [
+          {
+            opcode: "motion_movesteps",
+            category: "运动",
+            label: "移动 10 步",
+            reason: "先给角色一个明显反馈。"
+          }
+        ],
+        nextStep: "先点击绿旗运行一次。",
+        detectedIssues: [],
+        followUpQuestion: "你想让角色继续往哪里走？"
+      })
+    );
+  });
+
+  const result = await service.generateHint({
+    snapshot: createSnapshot(),
+    currentTargetPrograms: ["event_whenflagclicked -> motion_movesteps"],
+    programAreaModules: [
+      {
+        id: "motion",
+        label: "运动",
+        blockCount: 1
+      }
+    ],
+    usedExtensions: [],
+    loadedExtensions: [],
+    goal: "让小猫先动起来",
+    aiConfig: createAiConfig()
+  });
+
+  assert.equal(result.source, "deepseek");
+  assert.equal(result.model, "deepseek-v4-flash");
+  assert.equal(result.coachResponse.answerText, "先把角色移动起来。");
+  assert.equal(capturedRequest.url, "https://api.deepseek.com/chat/completions");
+  assert.equal(capturedRequest.init.method, "POST");
+  assert.equal(capturedRequest.init.headers["Content-Type"], "application/json");
+  assert.equal(capturedRequest.init.headers.Authorization, "Bearer sk-test-demo");
+  assert.equal(capturedRequest.body.model, "deepseek-v4-flash");
+  assert.deepEqual(capturedRequest.body.thinking, { type: "disabled" });
+  assert.equal(capturedRequest.body.temperature, 0.3);
+  assert.equal(capturedRequest.body.max_tokens, 2048);
+  assert.deepEqual(capturedRequest.body.response_format, { type: "json_object" });
+  assert.equal(capturedRequest.body.messages.length, 2);
+});
+
+test("CoachService falls back when DeepSeek returns invalid JSON content", async () => {
+  const service = new CoachService(async () => createDeepSeekResponse("not-json"));
+
+  const result = await service.generateHint({
+    snapshot: createSnapshot(),
+    currentTargetPrograms: ["event_whenflagclicked -> motion_movesteps"],
+    programAreaModules: [
+      {
+        id: "motion",
+        label: "运动",
+        blockCount: 1
+      }
+    ],
+    usedExtensions: [],
+    loadedExtensions: [],
+    goal: "让小猫先动起来",
+    aiConfig: createAiConfig()
+  });
+
+  assert.equal(result.source, "fallback");
+  assert.equal(result.model, "local-heuristic");
+  assert.equal(typeof result.warning, "string");
+  assert.equal(result.coachResponse.recommendedBlocks.length > 0, true);
+});

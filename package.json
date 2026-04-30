@@ -1,0 +1,13 @@
+{
+  "name": "scratch-ai-coach-workspace",
+  "private": true,
+  "description": "Minimal workspace entry for the Scratch AI Coach project",
+  "license": "UNLICENSED",
+  "scripts": {
+    "desktop:icons": "npm --prefix apps/desktop-companion run icons:generate",
+    "desktop:build": "npm --prefix apps/desktop-companion run build",
+    "desktop:test": "npm --prefix apps/desktop-companion run test",
+    "desktop:package:portable": "npm --prefix apps/desktop-companion run package:win:single",
+    "desktop:package:installer": "npm --prefix apps/desktop-companion run package:win:installer"
+  }
+}

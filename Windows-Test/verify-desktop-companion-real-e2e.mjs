@@ -1,0 +1,882 @@
+import {access, mkdir, readFile, readdir, rm, stat, writeFile} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawn, spawnSync} from 'node:child_process';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const workspaceRoot = path.resolve(__dirname, '..');
+
+const argv = new Map(
+    process.argv.slice(2).map(arg => {
+        const [key, ...rest] = arg.split('=');
+        return [key, rest.join('=') || 'true'];
+    })
+);
+
+const companionExe =
+    argv.get('--companion-exe') ??
+    path.join(
+        workspaceRoot,
+        'apps',
+        'desktop-companion',
+        'release-single',
+        'win-unpacked',
+        'ScratchDesktopCompanion.exe'
+    );
+const scratchExe =
+    argv.get('--scratch-exe') ??
+    'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Scratch 3\\Scratch 3.exe';
+const requestedProjectFile = argv.get('--project-file') ?? null;
+const companionDebugPort = Number(argv.get('--port') ?? '9346');
+const timeoutMs = Number(argv.get('--timeout-ms') ?? '45000');
+const appDataDir =
+    argv.get('--appdata-dir') ??
+    (process.env.APPDATA ?? '');
+const useCustomAppDataDir = argv.has('--appdata-dir');
+const requestedUserDataDir = argv.get('--user-data-dir') ?? null;
+const userDataDirCandidates = requestedUserDataDir
+    ? [requestedUserDataDir]
+    : [
+        path.join(appDataDir, '@scratch-ai', 'desktop-companion'),
+        path.join(appDataDir, 'scratch-desktop-companion'),
+        path.join(appDataDir, 'ScratchDesktopCompanion')
+    ];
+
+let activeUserDataDir = requestedUserDataDir;
+
+function getConfigFilePath(userDataDir) {
+    return path.join(userDataDir, 'desktop-companion.config.json');
+}
+
+function getLogFilePath(userDataDir) {
+    return path.join(userDataDir, 'desktop-companion.log');
+}
+
+async function ensureReadable(filePath) {
+    await access(filePath);
+}
+
+async function findDefaultProjectFile() {
+    const desktopDir = path.join(process.env.USERPROFILE ?? '', 'Desktop');
+    const entries = await readdir(desktopDir, {withFileTypes: true});
+    const candidates = [];
+    for (const entry of entries) {
+        if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.sb3')) {
+            continue;
+        }
+        const fullPath = path.join(desktopDir, entry.name);
+        const info = await stat(fullPath);
+        candidates.push({fullPath, mtimeMs: info.mtimeMs});
+    }
+    candidates.sort((left, right) => right.mtimeMs - left.mtimeMs);
+    return candidates[0]?.fullPath ?? null;
+}
+
+function assert(condition, message) {
+    if (!condition) {
+        throw new Error(message);
+    }
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function waitFor(predicate, options = {}) {
+    const timeout = options.timeoutMs ?? timeoutMs;
+    const interval = options.intervalMs ?? 400;
+    const deadline = Date.now() + timeout;
+    let lastValue = null;
+    while (Date.now() < deadline) {
+        lastValue = await predicate();
+        if (lastValue) {
+            return lastValue;
+        }
+        await sleep(interval);
+    }
+    throw new Error(options.errorMessage ?? `Timed out after ${timeout}ms.`);
+}
+
+function normalizeProcessList(parsed) {
+    if (!parsed) return [];
+    return Array.isArray(parsed) ? parsed : [parsed];
+}
+
+function listWindowsProcessesByNames(names) {
+    const quotedNames = names.map(name => `'${name.replace(/'/g, "''")}'`).join(', ');
+    const command = [
+        '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;',
+        `$names=@(${quotedNames});`,
+        '$procs=Get-CimInstance Win32_Process | Where-Object { $names -contains $_.Name } |',
+        'Select-Object ProcessId,Name,ExecutablePath,CommandLine,ParentProcessId;',
+        '$procs | ConvertTo-Json -Compress'
+    ].join(' ');
+    const result = spawnSync('powershell', ['-NoProfile', '-Command', command], {
+        encoding: 'utf8'
+    });
+    if (result.status !== 0) {
+        throw new Error(result.stderr.trim() || 'Failed to query process list.');
+    }
+    const raw = result.stdout.trim();
+    if (!raw) {
+        return [];
+    }
+    return normalizeProcessList(JSON.parse(raw));
+}
+
+function parseRemoteDebuggingPort(commandLine) {
+    const match = String(commandLine ?? '').match(/--remote-debugging-port=(\d+)/i);
+    return match ? Number(match[1]) : null;
+}
+
+async function writeScratchConfig(scratchExecutablePath) {
+    await Promise.all(userDataDirCandidates.map(async userDataDir => {
+        await mkdir(userDataDir, {recursive: true});
+        await writeFile(
+            getConfigFilePath(userDataDir),
+            JSON.stringify({scratchExecutablePath}, null, 2),
+            'utf8'
+        );
+    }));
+}
+
+async function resolveActiveUserDataDir() {
+    const scoredCandidates = [];
+    for (const userDataDir of userDataDirCandidates) {
+        let hasLog = false;
+        let hasConfig = false;
+        let logMtimeMs = 0;
+        try {
+            const logInfo = await stat(getLogFilePath(userDataDir));
+            hasLog = true;
+            logMtimeMs = logInfo.mtimeMs;
+        } catch {
+            // ignore missing log files
+        }
+        try {
+            await access(getConfigFilePath(userDataDir));
+            hasConfig = true;
+        } catch {
+            // ignore missing config files
+        }
+        if (hasLog || hasConfig) {
+            scoredCandidates.push({
+                userDataDir,
+                hasLog,
+                hasConfig,
+                logMtimeMs
+            });
+        }
+    }
+
+    scoredCandidates.sort((left, right) =>
+        Number(right.hasLog) - Number(left.hasLog) ||
+        right.logMtimeMs - left.logMtimeMs ||
+        Number(right.hasConfig) - Number(left.hasConfig)
+    );
+
+    if (scoredCandidates[0]) {
+        activeUserDataDir = scoredCandidates[0].userDataDir;
+        return activeUserDataDir;
+    }
+
+    return activeUserDataDir;
+}
+
+async function getLogSize() {
+    const userDataDir = await resolveActiveUserDataDir();
+    if (!userDataDir) {
+        return 0;
+    }
+    try {
+        const info = await stat(getLogFilePath(userDataDir));
+        return info.size;
+    } catch {
+        return 0;
+    }
+}
+
+async function readLogSince(offset) {
+    const userDataDir = await resolveActiveUserDataDir();
+    if (!userDataDir) {
+        return '';
+    }
+    try {
+        const content = await readFile(getLogFilePath(userDataDir), 'utf8');
+        return content.slice(offset);
+    } catch {
+        return '';
+    }
+}
+
+async function waitForLogMarkers(markers, offset, errorMessage) {
+    return await waitFor(async () => {
+        const content = await readLogSince(offset);
+        return markers.every(marker => content.includes(marker)) ? content : null;
+    }, {
+        timeoutMs,
+        intervalMs: 500,
+        errorMessage
+    });
+}
+
+function isInspectablePageTarget(target) {
+    return target?.type === 'page' &&
+        typeof target.webSocketDebuggerUrl === 'string' &&
+        target.webSocketDebuggerUrl.length > 0 &&
+        typeof target.url === 'string' &&
+        !target.url.startsWith('devtools://') &&
+        target.url !== 'about:blank';
+}
+
+function pickCompanionTarget(targets) {
+    const inspectableTargets = targets.filter(isInspectablePageTarget);
+    return inspectableTargets.find(target => {
+        const title = typeof target.title === 'string' ? target.title.trim() : '';
+        const url = typeof target.url === 'string' ? target.url.toLowerCase() : '';
+        return title.includes('Scratch AI 教练') || url.endsWith('/index.html') || url.includes('index.html');
+    }) ?? inspectableTargets[0] ?? null;
+}
+
+function pickSettingsTarget(targets) {
+    const inspectableTargets = targets.filter(isInspectablePageTarget);
+    return inspectableTargets.find(target => {
+        const title = typeof target.title === 'string' ? target.title.trim() : '';
+        const url = typeof target.url === 'string' ? target.url.toLowerCase() : '';
+        return title.includes('DeepSeek 设置') || url.endsWith('/settings.html') || url.includes('settings.html');
+    }) ?? null;
+}
+
+function pickScratchTarget(targets) {
+    const inspectableTargets = targets.filter(isInspectablePageTarget);
+    return inspectableTargets.find(target => {
+        const normalizedTitle = typeof target.title === 'string' ? target.title.trim() : '';
+        if (/^Scratch\b/i.test(normalizedTitle)) {
+            return true;
+        }
+        const normalizedUrl = typeof target.url === 'string' ? target.url.toLowerCase() : '';
+        return normalizedUrl.includes('/index.html') &&
+            !normalizedUrl.includes('?route=about') &&
+            !normalizedUrl.includes('?route=privacy');
+    }) ?? inspectableTargets[0] ?? null;
+}
+
+async function waitForTargets(port, picker, errorMessage) {
+    return await waitFor(async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:${port}/json/list`);
+            if (!response.ok) {
+                return null;
+            }
+            const parsed = await response.json();
+            if (!Array.isArray(parsed)) {
+                return null;
+            }
+            const preferredTarget = picker(parsed);
+            if (!preferredTarget) {
+                return null;
+            }
+            return {
+                targets: parsed,
+                preferredTarget
+            };
+        } catch {
+            return null;
+        }
+    }, {
+        timeoutMs,
+        intervalMs: 500,
+        errorMessage
+    });
+}
+
+class CdpConnection {
+    constructor(socket) {
+        this.socket = socket;
+        this.nextId = 1;
+        this.pending = new Map();
+        this.socket.addEventListener('message', event => {
+            const rawData = typeof event.data === 'string' ? event.data : String(event.data ?? '');
+            if (!rawData) return;
+            let message;
+            try {
+                message = JSON.parse(rawData);
+            } catch {
+                return;
+            }
+            if (typeof message.id !== 'number') return;
+            const request = this.pending.get(message.id);
+            if (!request) return;
+            this.pending.delete(message.id);
+            if (message.error?.message) {
+                request.reject(new Error(message.error.message));
+                return;
+            }
+            request.resolve(message.result ?? {});
+        });
+    }
+
+    send(method, params) {
+        const id = this.nextId++;
+        return new Promise((resolve, reject) => {
+            this.pending.set(id, {resolve, reject});
+            this.socket.send(JSON.stringify({id, method, params}));
+        });
+    }
+}
+
+async function waitForWebSocketOpen(socket, maxWaitMs) {
+    if (socket.readyState === WebSocket.OPEN) return;
+    await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error('Timed out while opening websocket.'));
+        }, maxWaitMs);
+        socket.addEventListener('open', () => {
+            clearTimeout(timer);
+            resolve();
+        });
+        socket.addEventListener('error', () => {
+            clearTimeout(timer);
+            reject(new Error('Failed to connect to websocket.'));
+        });
+    });
+}
+
+async function evaluateExpressionInTarget(target, expression) {
+    const socket = new WebSocket(target.webSocketDebuggerUrl);
+    await waitForWebSocketOpen(socket, timeoutMs);
+    try {
+        const connection = new CdpConnection(socket);
+        await connection.send('Runtime.enable');
+        const response = await connection.send('Runtime.evaluate', {
+            expression,
+            awaitPromise: true,
+            returnByValue: true,
+            userGesture: true
+        });
+        if (response.exceptionDetails?.text) {
+            throw new Error(response.exceptionDetails.text);
+        }
+        return {
+            ok: true,
+            value: response.result?.value,
+            type: response.result?.type
+        };
+    } catch (error) {
+        return {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
+    } finally {
+        socket.close();
+    }
+}
+
+function buildCompanionUiSnapshotExpression() {
+    return `
+(() => ({
+  title: document.title,
+  href: window.location.href,
+  status: document.querySelector("#status")?.textContent?.trim() ?? null,
+  detail: document.querySelector("#detail")?.textContent?.trim() ?? null,
+  currentTarget: document.querySelector("#current-target")?.textContent?.trim() ?? null,
+  scratchPath: document.querySelector("#scratch-path")?.textContent?.trim() ?? null,
+  errorText: document.querySelector("#error")?.textContent?.trim() ?? null,
+  buttons: {
+    choose: document.querySelector("#choose-scratch-button") instanceof HTMLButtonElement
+      ? document.querySelector("#choose-scratch-button").disabled
+      : null,
+    launch: document.querySelector("#launch-button") instanceof HTMLButtonElement
+      ? document.querySelector("#launch-button").disabled
+      : null,
+    retry: document.querySelector("#retry-button") instanceof HTMLButtonElement
+      ? document.querySelector("#retry-button").disabled
+      : null,
+    settings: document.querySelector("#settings-button") instanceof HTMLButtonElement
+      ? document.querySelector("#settings-button").disabled
+      : null
+  },
+  currentTargetPrograms: Array.from(document.querySelectorAll("#current-target-programs li"))
+    .map(element => (element.textContent || "").trim())
+    .filter(Boolean)
+}))()
+    `.trim();
+}
+
+async function readCompanionUiSnapshot(target) {
+    const result = await evaluateExpressionInTarget(target, buildCompanionUiSnapshotExpression());
+    if (!result.ok) {
+        throw new Error(result.error ?? 'Failed to read companion UI snapshot.');
+    }
+    return result.value ?? {};
+}
+
+async function waitForCompanionUi(target, predicate, errorMessage) {
+    return await waitFor(async () => {
+        const snapshot = await readCompanionUiSnapshot(target);
+        return predicate(snapshot) ? snapshot : null;
+    }, {
+        timeoutMs,
+        intervalMs: 500,
+        errorMessage
+    });
+}
+
+function buildSettingsUiSnapshotExpression() {
+    return `
+(() => ({
+  title: document.title,
+  href: window.location.href,
+  status: document.querySelector("#settings-status")?.textContent?.trim() ?? null,
+  summary: document.querySelector("#settings-config-summary")?.textContent?.trim() ?? null,
+  source: document.querySelector("#settings-current-source")?.textContent?.trim() ?? null,
+  model: document.querySelector("#settings-current-model")?.textContent?.trim() ?? null,
+  configPath: document.querySelector("#settings-config-path")?.textContent?.trim() ?? null,
+  buttons: {
+    save: document.querySelector("#settings-save-custom-ai-api-key-button") instanceof HTMLButtonElement
+      ? document.querySelector("#settings-save-custom-ai-api-key-button").disabled
+      : null,
+    clear: document.querySelector("#settings-clear-custom-ai-api-key-button") instanceof HTMLButtonElement
+      ? document.querySelector("#settings-clear-custom-ai-api-key-button").disabled
+      : null
+  }
+}))()
+    `.trim();
+}
+
+async function readSettingsUiSnapshot(target) {
+    const result = await evaluateExpressionInTarget(target, buildSettingsUiSnapshotExpression());
+    if (!result.ok) {
+        throw new Error(result.error ?? 'Failed to read settings UI snapshot.');
+    }
+    return result.value ?? {};
+}
+
+async function waitForSettingsUi(target, predicate, errorMessage) {
+    return await waitFor(async () => {
+        const snapshot = await readSettingsUiSnapshot(target);
+        return predicate(snapshot) ? snapshot : null;
+    }, {
+        timeoutMs,
+        intervalMs: 500,
+        errorMessage
+    });
+}
+
+async function clickButton(target, selector) {
+    const clickResult = await evaluateExpressionInTarget(
+        target,
+        `
+(() => {
+  const button = document.querySelector(${JSON.stringify(selector)});
+  if (!(button instanceof HTMLButtonElement)) {
+    return { ok: false, error: "button-not-found" };
+  }
+  button.click();
+  return { ok: true, disabledImmediately: button.disabled };
+})()
+        `.trim()
+    );
+    if (!clickResult.ok) {
+        throw new Error(clickResult.error ?? `Failed to click ${selector}.`);
+    }
+    return clickResult.value ?? {};
+}
+
+function buildLoadProjectExpression(projectFilePath, projectFileBase64) {
+    return `
+(async () => {
+  function isVmLike(value) {
+    return Boolean(
+      value &&
+      typeof value === "object" &&
+      value.runtime &&
+      Array.isArray(value.runtime.targets) &&
+      typeof value.toJSON === "function"
+    );
+  }
+  function findVmInFiberNode(node) {
+    const queue = [node];
+    const visited = new Set();
+    while (queue.length > 0 && visited.size < 2000) {
+      const current = queue.shift();
+      if (!current || typeof current !== "object" || visited.has(current)) {
+        continue;
+      }
+      visited.add(current);
+      const candidateProps = [
+        current.memoizedProps,
+        current.pendingProps,
+        current.stateNode && current.stateNode.props
+      ];
+      for (const props of candidateProps) {
+        if (!props || typeof props !== "object") {
+          continue;
+        }
+        if (isVmLike(props.vm)) {
+          return props.vm;
+        }
+        if (isVmLike(props)) {
+          return props;
+        }
+      }
+      for (const key of ["child", "sibling", "return"]) {
+        const nextNode = current[key];
+        if (nextNode && !visited.has(nextNode)) {
+          queue.push(nextNode);
+        }
+      }
+    }
+    return null;
+  }
+  function findVm() {
+    const windowVmKeys = ["vm", "__scratchVm", "__vm"];
+    for (const key of windowVmKeys) {
+      try {
+        if (isVmLike(window[key])) {
+          return window[key];
+        }
+      } catch {}
+    }
+    const elements = Array.from(document.querySelectorAll("*"));
+    for (const element of elements) {
+      const reactKeys = Object.getOwnPropertyNames(element).filter(key =>
+        key.startsWith("__reactFiber$") ||
+        key.startsWith("__reactContainer$") ||
+        key.startsWith("__reactInternalInstance$")
+      );
+      for (const reactKey of reactKeys) {
+        const vm = findVmInFiberNode(element[reactKey]);
+        if (vm) {
+          return vm;
+        }
+      }
+    }
+    return null;
+  }
+  function sleep(ms) {
+    return new Promise(resolve => window.setTimeout(resolve, ms));
+  }
+  async function waitFor(check, timeoutMs) {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      try {
+        if (check()) {
+          return true;
+        }
+      } catch {}
+      await sleep(200);
+    }
+    return false;
+  }
+  function getSpriteTarget(vm) {
+    return (vm.runtime.targets || []).find(target => !target.isStage) || null;
+  }
+  function decodeBase64ToArrayBuffer(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes.buffer;
+  }
+  function parseProject(rawProject) {
+    if (typeof rawProject === "string") {
+      try {
+        return JSON.parse(rawProject);
+      } catch {
+        return null;
+      }
+    }
+    return rawProject && typeof rawProject === "object" ? rawProject : null;
+  }
+
+  const vm = findVm();
+  if (!vm || !vm.runtime || typeof vm.loadProject !== "function") {
+    return JSON.stringify({ ok: false, error: "vm-not-found" });
+  }
+
+  const ready = await waitFor(() => Boolean(Array.isArray(vm.runtime.targets) && vm.runtime.targets.length > 0), 10000);
+  if (!ready) {
+    return JSON.stringify({ ok: false, error: "project-not-ready" });
+  }
+
+  const projectBuffer = decodeBase64ToArrayBuffer(${JSON.stringify(projectFileBase64)});
+  if (typeof vm.stopAll === "function") {
+    vm.stopAll();
+  }
+  await vm.loadProject(projectBuffer);
+
+  const loaded = await waitFor(() => {
+    const project = parseProject(vm.toJSON());
+    return Boolean(project && Array.isArray(project.targets) && project.targets.length > 0);
+  }, 15000);
+  if (!loaded) {
+    return JSON.stringify({ ok: false, error: "project-load-timeout" });
+  }
+
+  const runtimeSprite = getSpriteTarget(vm);
+  if (runtimeSprite && typeof vm.setEditingTarget === "function" && runtimeSprite.id) {
+    vm.setEditingTarget(runtimeSprite.id);
+  }
+
+  await sleep(1800);
+  if (typeof window.__scratchDesktopCompanionCaptureNow === "function") {
+    window.__scratchDesktopCompanionCaptureNow("e2e-project-load");
+  }
+
+  const project = parseProject(vm.toJSON());
+  return JSON.stringify({
+    ok: true,
+    loadedProjectFile: ${JSON.stringify(projectFilePath)},
+    currentTargetName: vm.editingTarget && vm.editingTarget.sprite ? vm.editingTarget.sprite.name : null,
+    projectTargetCount: Array.isArray(project?.targets) ? project.targets.length : 0
+  });
+})()
+    `.trim();
+}
+
+async function main() {
+    await ensureReadable(companionExe);
+    await ensureReadable(scratchExe);
+    if (useCustomAppDataDir) {
+        await rm(appDataDir, {recursive: true, force: true});
+        await mkdir(appDataDir, {recursive: true});
+    }
+
+    const projectFile = requestedProjectFile ?? await findDefaultProjectFile();
+    assert(projectFile, 'No .sb3 file was found on the desktop for the real E2E test.');
+    await ensureReadable(projectFile);
+
+    const existingCompanionProcesses = listWindowsProcessesByNames([
+        'ScratchDesktopCompanion.exe',
+        'ScratchDesktopCompanion-portable.exe'
+    ]);
+    assert(
+        existingCompanionProcesses.length === 0,
+        `Existing desktop companion processes detected. Please close them before E2E: ${JSON.stringify(existingCompanionProcesses)}`
+    );
+
+    const existingScratchProcesses = listWindowsProcessesByNames(['Scratch 3.exe', 'Scratch.exe']);
+    assert(
+        existingScratchProcesses.length === 0,
+        `Existing Scratch processes detected. Please close them before E2E: ${JSON.stringify(existingScratchProcesses)}`
+    );
+
+    await writeScratchConfig(scratchExe);
+
+    const child = spawn(
+        companionExe,
+        [`--remote-debugging-port=${companionDebugPort}`],
+        useCustomAppDataDir
+            ? {
+                cwd: path.dirname(companionExe),
+                env: {
+                    ...process.env,
+                    APPDATA: appDataDir
+                },
+                stdio: 'ignore',
+                windowsHide: false
+            }
+            : {
+                cwd: path.dirname(companionExe),
+                stdio: 'ignore',
+                windowsHide: false
+            }
+    );
+
+    let launchedScratchProcess = null;
+    try {
+        const companionTargetResult = await waitForTargets(
+            companionDebugPort,
+            pickCompanionTarget,
+            'Failed to find the packaged desktop companion target.'
+        );
+
+        const initialUi = await waitForCompanionUi(
+            companionTargetResult.preferredTarget,
+            snapshot =>
+                typeof snapshot.status === 'string' &&
+                typeof snapshot.buttons?.launch === 'boolean' &&
+                typeof snapshot.buttons?.settings === 'boolean' &&
+                snapshot.scratchPath === scratchExe,
+            'Desktop companion UI did not become ready.'
+        );
+
+        const launchLogOffset = await getLogSize();
+        const launchClick = await clickButton(companionTargetResult.preferredTarget, '#launch-button');
+        assert(
+            launchClick.ok === true,
+            `Launch button did not click successfully. Actual: ${JSON.stringify(launchClick)}`
+        );
+
+        launchedScratchProcess = await waitFor(async () => {
+            const processes = listWindowsProcessesByNames(['Scratch 3.exe', 'Scratch.exe']);
+            const candidate = processes.find(processInfo => {
+                const port = parseRemoteDebuggingPort(processInfo.CommandLine);
+                return Boolean(port);
+            });
+            if (!candidate) {
+                return null;
+            }
+            const debugPort = parseRemoteDebuggingPort(candidate.CommandLine);
+            return debugPort ? {...candidate, debugPort} : null;
+        }, {
+            timeoutMs,
+            intervalMs: 700,
+            errorMessage: 'Scratch was not launched with a remote debugging port.'
+        });
+
+        const launchLogContent = await waitForLogMarkers(
+            ['Scratch launched pid=', 'Bridge script injected via CDP'],
+            launchLogOffset,
+            'Desktop companion log did not show a successful launch/injection sequence.'
+        );
+
+        const blankProjectUi = await waitForCompanionUi(
+            companionTargetResult.preferredTarget,
+            snapshot =>
+                snapshot.status === '已连接到 Scratch Desktop' &&
+                snapshot.scratchPath === scratchExe &&
+                snapshot.errorText === '',
+            'Desktop companion did not connect to the freshly launched Scratch instance.'
+        );
+
+        const scratchTargetResult = await waitForTargets(
+            launchedScratchProcess.debugPort,
+            pickScratchTarget,
+            'Failed to find the Scratch debug target.'
+        );
+
+        const projectFileBase64 = (await readFile(projectFile)).toString('base64');
+        const loadProjectResult = await evaluateExpressionInTarget(
+            scratchTargetResult.preferredTarget,
+            buildLoadProjectExpression(projectFile, projectFileBase64)
+        );
+        assert(
+            loadProjectResult.ok === true,
+            `Failed to evaluate project load expression: ${JSON.stringify(loadProjectResult)}`
+        );
+
+        const parsedLoadProjectResult =
+            typeof loadProjectResult.value === 'string'
+                ? JSON.parse(loadProjectResult.value)
+                : (loadProjectResult.value ?? {});
+        assert(
+            parsedLoadProjectResult.ok === true,
+            `Scratch did not load the project file successfully: parsed=${JSON.stringify(parsedLoadProjectResult)} raw=${JSON.stringify(loadProjectResult)}`
+        );
+
+        const projectUi = await waitForCompanionUi(
+            companionTargetResult.preferredTarget,
+            snapshot =>
+                snapshot.status === '已连接到 Scratch Desktop' &&
+                snapshot.currentTarget === parsedLoadProjectResult.currentTargetName &&
+                Array.isArray(snapshot.currentTargetPrograms) &&
+                snapshot.currentTargetPrograms.some(program => program !== '当前角色还没有可读取的程序。'),
+            'Desktop companion did not update to the loaded Scratch project state.'
+        );
+
+        const retryLogOffset = await getLogSize();
+        const retryClick = await clickButton(companionTargetResult.preferredTarget, '#retry-button');
+        assert(
+            retryClick.ok === true,
+            `Retry button did not click successfully. Actual: ${JSON.stringify(retryClick)}`
+        );
+
+        const retryLogContent = await waitForLogMarkers(
+            ['Preparing controlled injection', 'Bridge script injected via CDP'],
+            retryLogOffset,
+            'Desktop companion log did not show a retry injection sequence.'
+        );
+
+        const retryUi = await waitForCompanionUi(
+            companionTargetResult.preferredTarget,
+            snapshot =>
+                snapshot.status === '已连接到 Scratch Desktop' &&
+                snapshot.currentTarget === parsedLoadProjectResult.currentTargetName &&
+                Array.isArray(snapshot.currentTargetPrograms) &&
+                snapshot.currentTargetPrograms.some(program => program !== '当前角色还没有可读取的程序。') &&
+                snapshot.errorText === '',
+            'Desktop companion did not reconnect to Scratch after clicking retry.'
+        );
+
+        const settingsClick = await clickButton(companionTargetResult.preferredTarget, '#settings-button');
+        assert(
+            settingsClick.ok === true,
+            `Settings button did not click successfully. Actual: ${JSON.stringify(settingsClick)}`
+        );
+
+        const settingsTargetResult = await waitForTargets(
+            companionDebugPort,
+            pickSettingsTarget,
+            'Failed to find the packaged DeepSeek settings target.'
+        );
+
+        const settingsUi = await waitForSettingsUi(
+            settingsTargetResult.preferredTarget,
+            snapshot =>
+                snapshot.title === 'DeepSeek 设置' &&
+                snapshot.status !== '正在读取当前配置…' &&
+                snapshot.summary !== '正在同步当前 DeepSeek 配置来源。' &&
+                typeof snapshot.source === 'string' &&
+                snapshot.source.length > 0 &&
+                snapshot.source !== '正在读取…' &&
+                snapshot.buttons?.save === false,
+            'Packaged DeepSeek settings window did not finish rendering.'
+        );
+
+        const output = {
+            companionExe,
+            scratchExe,
+            projectFile,
+            appDataDir,
+            userDataDirCandidates,
+            activeUserDataDir,
+            companionDebugPort,
+            scratchDebugPort: launchedScratchProcess.debugPort,
+            selectedCompanionTarget: {
+                id: companionTargetResult.preferredTarget.id,
+                title: companionTargetResult.preferredTarget.title,
+                url: companionTargetResult.preferredTarget.url
+            },
+            selectedScratchTarget: {
+                id: scratchTargetResult.preferredTarget.id,
+                title: scratchTargetResult.preferredTarget.title,
+                url: scratchTargetResult.preferredTarget.url
+            },
+            launchClick,
+            loadProjectResult: parsedLoadProjectResult,
+            initialUi,
+            blankProjectUi,
+            projectUi,
+            retryClick,
+            retryUi,
+            settingsClick,
+            settingsUi,
+            logChecks: {
+                launchMarkersPresent: launchLogContent.includes('Bridge script injected via CDP'),
+                retryMarkersPresent: retryLogContent.includes('Preparing controlled injection')
+            }
+        };
+
+        process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
+    } finally {
+        if (child.pid) {
+            try {
+                process.kill(child.pid);
+            } catch {
+                // ignore cleanup errors
+            }
+        }
+        if (launchedScratchProcess?.ProcessId) {
+            try {
+                process.kill(Number(launchedScratchProcess.ProcessId));
+            } catch {
+                // ignore cleanup errors
+            }
+        }
+    }
+}
+
+await main();

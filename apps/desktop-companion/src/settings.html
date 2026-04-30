@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>DeepSeek 设置</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f0e1;
+        --panel: rgba(255, 252, 247, 0.94);
+        --panel-strong: #ffffff;
+        --ink: #143732;
+        --muted: #5d716c;
+        --accent: #0e8d68;
+        --accent-soft: rgba(14, 141, 104, 0.1);
+        --warning: #b25534;
+        --border: rgba(20, 55, 50, 0.12);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top left, rgba(14, 141, 104, 0.2), transparent 36%),
+          radial-gradient(circle at bottom right, rgba(194, 111, 64, 0.15), transparent 30%),
+          linear-gradient(180deg, #fffaf1 0%, var(--bg) 100%);
+        padding: 18px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      .shell {
+        min-height: calc(100vh - 36px);
+        border: 1px solid var(--border);
+        border-radius: 28px;
+        background: var(--panel);
+        box-shadow: 0 24px 60px rgba(20, 55, 50, 0.15);
+        backdrop-filter: blur(18px);
+        padding: 20px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 8px;
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1 {
+        font-size: 26px;
+        line-height: 1.15;
+      }
+
+      .hero-copy {
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .status-pill {
+        width: fit-content;
+        max-width: 100%;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .panel {
+        background: var(--panel-strong);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        padding: 16px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .panel-heading {
+        display: grid;
+        gap: 4px;
+      }
+
+      .panel-heading h2 {
+        font-size: 16px;
+      }
+
+      .panel-heading p {
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .meta-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .meta-card {
+        padding: 12px 14px;
+        border-radius: 16px;
+        background: rgba(20, 55, 50, 0.04);
+        border: 1px solid rgba(20, 55, 50, 0.08);
+      }
+
+      .meta-card span {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .meta-card strong {
+        display: block;
+        font-size: 13px;
+        line-height: 1.6;
+        word-break: break-word;
+      }
+
+      input[type="password"] {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 12px 14px;
+        font: inherit;
+        font-size: 13px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      .action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .action-button {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+          transform 180ms ease,
+          box-shadow 180ms ease,
+          opacity 180ms ease;
+      }
+
+      .action-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .action-button:disabled {
+        opacity: 0.55;
+        cursor: wait;
+        transform: none;
+      }
+
+      .action-button.primary {
+        color: #fff;
+        background: linear-gradient(135deg, #0e8d68 0%, #107157 100%);
+        box-shadow: 0 14px 32px rgba(14, 141, 104, 0.22);
+      }
+
+      .action-button.secondary {
+        color: var(--ink);
+        background: rgba(20, 55, 50, 0.08);
+      }
+
+      .note {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      #settings-feedback,
+      #settings-error {
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      #settings-feedback[data-kind="success"] {
+        color: var(--accent);
+      }
+
+      #settings-feedback[data-kind="error"],
+      #settings-error {
+        color: var(--warning);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">DeepSeek Settings</p>
+        <h1>把 API Key 放到独立设置里，不再挤在主页面。</h1>
+        <p class="hero-copy">
+          这里用于保存本机专用的 DeepSeek API Key。保存后，程序会优先使用这里的 Key；清除后，再回退到
+          `DEEPSEEK_API_KEY` 和程序自带配置。
+        </p>
+        <p id="settings-status" class="status-pill">正在读取当前配置…</p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>当前配置状态</h2>
+          <p id="settings-config-summary">
+            正在同步当前 DeepSeek 配置来源。
+          </p>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-card">
+            <span>当前来源</span>
+            <strong id="settings-current-source">正在读取…</strong>
+          </div>
+          <div class="meta-card">
+            <span>当前模型</span>
+            <strong id="settings-current-model">正在读取…</strong>
+          </div>
+          <div class="meta-card">
+            <span>程序自带配置文件</span>
+            <strong id="settings-config-path">正在读取…</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>自定义 DeepSeek API Key</h2>
+          <p>只在当前电脑本地保存，用来覆盖环境变量和程序自带配置。</p>
+        </div>
+        <input
+          id="settings-custom-ai-api-key"
+          type="password"
+          placeholder="输入一个自定义 DeepSeek API Key"
+        />
+        <div class="action-row">
+          <button id="settings-save-custom-ai-api-key-button" class="action-button primary" type="button">
+            保存 Key
+          </button>
+          <button id="settings-clear-custom-ai-api-key-button" class="action-button secondary" type="button">
+            清除 Key
+          </button>
+        </div>
+        <p class="note">
+          建议只在老师机或固定授课电脑上保存。若不保存，程序会继续尝试读取环境变量和 `deepseek.config.json`。
+        </p>
+        <p id="settings-feedback" hidden></p>
+        <p id="settings-error" hidden></p>
+      </section>
+    </main>
+    <script type="module" src="./settings-renderer.js"></script>
+  </body>
+</html>
