@@ -181,3 +181,45 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 - `当前角色`
 - `当前角色程序`
 - 最后 30 到 50 行日志
+
+## 2026-05-03 补充：网页 URL 功能与截图测试
+
+本轮新增了一个专门覆盖“网页作品地址 -> 远程项目加载 -> AI 提示”链路的 UI 自动化脚本：
+
+```powershell
+node Windows-Test\verify-desktop-companion-project-url-ui.mjs
+```
+
+脚本行为：
+
+- 启动桌面伴随程序
+- 填入远程 `.sb3` 地址
+- 填入教学目标
+- 点击 `分析网页作品并生成提示`
+- 断言页面最终能显示 `当前角色`、`当前角色程序` 和 AI 提示
+- 保存前后两张截图
+
+截图输出：
+
+- `C:\Users\Administrator\Desktop\scratch\current-ui-project-url-before.png`
+- `C:\Users\Administrator\Desktop\scratch\current-ui-project-url-after.png`
+
+已有脚本 `verify-desktop-companion-ui.mjs` 也补充了两个断言：
+
+- 页面存在网页作品 URL 输入框
+- 页面存在网页作品分析按钮
+
+它会额外保存一张静态界面截图：
+
+- `C:\Users\Administrator\Desktop\scratch\current-ui-desktop-companion-mock.png`
+
+建议回归顺序：
+
+1. `cd apps\desktop-companion && npm test`
+2. `node Windows-Test\verify-desktop-companion-ui.mjs`
+3. `node Windows-Test\verify-desktop-companion-project-url-ui.mjs`
+
+注意：
+
+- 这三步不要并行跑
+- 并行执行时，`dist` 目录构建和 Electron 单实例容易互相抢占，导致 `EBUSY` 或 WebSocket 连接失败

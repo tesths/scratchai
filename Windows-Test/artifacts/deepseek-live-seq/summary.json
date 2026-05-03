@@ -1,0 +1,180 @@
+{
+  "artifactDir": "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq",
+  "shots": [
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\01-main-initial.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\02-settings-before-save.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\03-settings-after-save.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\04-main-after-key-save.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\05-main-form-filled.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\06-main-project-url-result.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\07-main-scratch-connected.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\08-scratch-project-loaded.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\09-main-after-scratch-project-load.png",
+    "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\artifacts\\deepseek-live-seq\\10-main-live-ai-result.png"
+  ],
+  "settingsBefore": {
+    "title": "DeepSeek 设置",
+    "status": "已检测到可用的 DeepSeek 配置",
+    "summary": "当前优先使用设置窗口里保存的自定义 DeepSeek Key。",
+    "source": "设置窗口里的自定义 Key",
+    "model": "deepseek-v4-flash",
+    "feedback": ""
+  },
+  "afterSave": {
+    "main": {
+      "title": "Scratch AI 教练",
+      "status": "请从伴随程序启动 Scratch Desktop",
+      "detail": "已配置 Scratch 程序：C:\\Users\\Administrator\\AppData\\Local\\Programs\\Scratch 3\\Scratch 3.exe。点击“打开 Scratch”后，伴随程序会自动连接调试端口。",
+      "currentTarget": "未识别",
+      "updatedAt": "还没有收到数据",
+      "scratchPath": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Scratch 3\\Scratch 3.exe",
+      "aiConfigSummary": "当前优先使用设置窗口里保存的自定义 DeepSeek Key。",
+      "aiStatus": "连接 Scratch 后，点击“生成 AI 提示”获取下一步建议。",
+      "aiAnswer": "AI 会根据当前角色程序、已用模块和扩展，给出下一步建议。",
+      "aiNextStep": "下一步：先连接 Scratch，然后点击“生成 AI 提示”。",
+      "errorText": "",
+      "projectUrlValue": "",
+      "goalValue": "",
+      "buttons": {
+        "launch": false,
+        "settings": false,
+        "generateAi": true,
+        "analyzeProjectUrl": false
+      },
+      "currentTargetPrograms": [],
+      "recommendedBlocks": []
+    },
+    "settings": {
+      "title": "DeepSeek 设置",
+      "status": "已检测到可用的 DeepSeek 配置",
+      "summary": "当前优先使用设置窗口里保存的自定义 DeepSeek Key。",
+      "source": "设置窗口里的自定义 Key",
+      "model": "deepseek-v4-flash",
+      "feedback": "已保存自定义 DeepSeek API Key，后续会优先使用它。"
+    }
+  },
+  "projectUrlResult": {
+    "title": "Scratch AI 教练",
+    "status": "已加载网页作品，可直接查看提示",
+    "detail": "来源：https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
+    "currentTarget": "cheese",
+    "updatedAt": "2026/5/3 15:53:58",
+    "scratchPath": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Scratch 3\\Scratch 3.exe",
+    "aiConfigSummary": "当前优先使用设置窗口里保存的自定义 DeepSeek Key。",
+    "aiStatus": "DeepSeek 暂时不可用，已切换到本地提示。",
+    "aiAnswer": "这个项目已经有基础结构了。下一步建议不要一下子加太多，而是在现有动作外面加一层条件判断，让行为更像真实游戏规则。",
+    "aiNextStep": "在现有脚本基础上补一个“如果……那么……”判断，让角色学会根据情况切换行为。",
+    "errorText": "",
+    "projectUrlValue": "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
+    "goalValue": "??????????",
+    "buttons": {
+      "launch": false,
+      "settings": false,
+      "generateAi": true,
+      "analyzeProjectUrl": false
+    },
+    "currentTargetPrograms": [
+      "脚本 1: procedures_definition -> motion_gotoxy -> looks_show",
+      "脚本 2: event_whenflagclicked -> data_setvariableto -> data_setvariableto -> control_forever",
+      "脚本 3: event_whenbroadcastreceived -> data_changevariableby"
+    ],
+    "recommendedBlocks": [
+      "控制 / 如果 那么（control_if）：让角色开始区分不同情况。",
+      "运算 / = （operator_equals）：适合配合变量或侦测结果判断。",
+      "外观 / 切换造型为（looks_switchcostumeto）：判断成立时给一个明显反馈。"
+    ]
+  },
+  "connectedMain": {
+    "title": "Scratch AI 教练",
+    "status": "已连接到 Scratch Desktop",
+    "detail": "最近更新来源：heartbeat",
+    "currentTarget": "未识别",
+    "updatedAt": "2026/5/3 15:54:14",
+    "scratchPath": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Scratch 3\\Scratch 3.exe",
+    "aiConfigSummary": "当前优先使用设置窗口里保存的自定义 DeepSeek Key。",
+    "aiStatus": "DeepSeek 暂时不可用，已切换到本地提示。",
+    "aiAnswer": "这个项目已经有基础结构了。下一步建议不要一下子加太多，而是在现有动作外面加一层条件判断，让行为更像真实游戏规则。",
+    "aiNextStep": "在现有脚本基础上补一个“如果……那么……”判断，让角色学会根据情况切换行为。",
+    "errorText": "",
+    "projectUrlValue": "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
+    "goalValue": "??????????",
+    "buttons": {
+      "launch": false,
+      "settings": false,
+      "generateAi": false,
+      "analyzeProjectUrl": false
+    },
+    "currentTargetPrograms": [],
+    "recommendedBlocks": [
+      "控制 / 如果 那么（control_if）：让角色开始区分不同情况。",
+      "运算 / = （operator_equals）：适合配合变量或侦测结果判断。",
+      "外观 / 切换造型为（looks_switchcostumeto）：判断成立时给一个明显反馈。"
+    ]
+  },
+  "loadProjectResult": {
+    "ok": true,
+    "loadedProjectFile": "C:\\Users\\Administrator\\Desktop\\scratch\\Windows-Test\\fixtures\\projects\\cat-and-a-mouse\\source\\Cat and a Mouse.sb3",
+    "currentTargetName": "Cat 2",
+    "projectTargetCount": 5
+  },
+  "mainAfterScratchLoad": {
+    "title": "Scratch AI 教练",
+    "status": "已连接到 Scratch Desktop",
+    "detail": "最近更新来源：live-e2e-project-load",
+    "currentTarget": "Cat 2",
+    "updatedAt": "2026/5/3 15:54:18",
+    "scratchPath": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Scratch 3\\Scratch 3.exe",
+    "aiConfigSummary": "当前优先使用设置窗口里保存的自定义 DeepSeek Key。",
+    "aiStatus": "DeepSeek 暂时不可用，已切换到本地提示。",
+    "aiAnswer": "这个项目已经有基础结构了。下一步建议不要一下子加太多，而是在现有动作外面加一层条件判断，让行为更像真实游戏规则。",
+    "aiNextStep": "在现有脚本基础上补一个“如果……那么……”判断，让角色学会根据情况切换行为。",
+    "errorText": "",
+    "projectUrlValue": "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
+    "goalValue": "??????????",
+    "buttons": {
+      "launch": false,
+      "settings": false,
+      "generateAi": false,
+      "analyzeProjectUrl": false
+    },
+    "currentTargetPrograms": [
+      "脚本 1: event_whenflagclicked -> motion_gotoxy -> control_forever",
+      "脚本 2: event_whenbroadcastreceived -> control_forever"
+    ],
+    "recommendedBlocks": [
+      "控制 / 如果 那么（control_if）：让角色开始区分不同情况。",
+      "运算 / = （operator_equals）：适合配合变量或侦测结果判断。",
+      "外观 / 切换造型为（looks_switchcostumeto）：判断成立时给一个明显反馈。"
+    ]
+  },
+  "liveAiResult": {
+    "title": "Scratch AI 教练",
+    "status": "已连接到 Scratch Desktop",
+    "detail": "最近更新来源：heartbeat",
+    "currentTarget": "Cat 2",
+    "updatedAt": "2026/5/3 15:54:25",
+    "scratchPath": "C:\\Users\\Administrator\\AppData\\Local\\Programs\\Scratch 3\\Scratch 3.exe",
+    "aiConfigSummary": "当前优先使用设置窗口里保存的自定义 DeepSeek Key。",
+    "aiStatus": "当前提示来源：DeepSeek（deepseek-v4-flash），生成时间：2026/5/3 15:54:25",
+    "aiAnswer": "你的猫已经能移动到鼠标位置了，但还没有计分功能。试试让猫碰到奶酪时增加分数吧！",
+    "aiNextStep": "在猫的“重复执行”循环里，添加一个“如果...那么”积木，判断猫是否碰到奶酪，如果是，就将“Score”增加1。",
+    "errorText": "",
+    "projectUrlValue": "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
+    "goalValue": "??????????",
+    "buttons": {
+      "launch": false,
+      "settings": false,
+      "generateAi": false,
+      "analyzeProjectUrl": false
+    },
+    "currentTargetPrograms": [
+      "脚本 1: event_whenflagclicked -> motion_gotoxy -> control_forever",
+      "脚本 2: event_whenbroadcastreceived -> control_forever"
+    ],
+    "recommendedBlocks": [
+      "侦测 / 碰到...？（sensing_touchingobject）：用来检测猫是否碰到了奶酪",
+      "控制 / 如果...那么（control_if）：在循环里判断条件",
+      "变量 / 将变量增加1（data_changevariableby）：碰到奶酪时增加分数"
+    ]
+  }
+}

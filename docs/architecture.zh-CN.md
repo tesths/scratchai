@@ -201,3 +201,25 @@ Windows Electron 桌面伴随程序。
 2. [桌面伴随程序说明](../apps/desktop-companion/README.md)
 3. [桌面伴随程序开发交接](../apps/desktop-companion/DEVELOPMENT_STATUS.zh-CN.md)
 4. [Windows 测试说明](../Windows-Test/README.zh-CN.md)
+
+## 10. 2026-05-03 补充：远程项目 URL 旁路
+
+在原来的“受控启动 Scratch Desktop + CDP 注入”主路线之外，当前又补了一条不依赖本地 Scratch 的分析旁路，专门用于直接读取网页作品地址并生成提示。
+
+顺序如下：
+
+1. 用户在桌面端输入远程项目 URL 和可选教学目标
+2. `renderer.ts` 通过 IPC 调用主进程
+3. `SessionManager.requestAiHintFromProjectUrl` 接管这条链路
+4. `ProjectUrlLoader` 按 URL 类型选择读取方式
+5. 如果是 Scratch 项目页或 API，则先取元数据和 `project_token`
+6. 如果是直接 `.sb3`，则下载压缩包并解出 `project.json`
+7. 复用 `projectJsonToSnapshot`、`summarizeProgramAreaModulesFromProject` 和当前角色脚本提取逻辑
+8. 把结果继续送入 `CoachService.generateHint`
+9. UI 最终展示当前角色、脚本序列、模块摘要和 AI 提示
+
+这条旁路的边界：
+
+- 只做读取和分析，不会回写远程项目
+- 仍然沿用“提示不给答案”的 AI 输出约束
+- 对 Scratch 官网项目页的读取依赖远端返回的 `project_token`

@@ -191,3 +191,35 @@ node Windows-Test\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administr
 - [机房测试说明](Windows-Test/README.zh-CN.md)
 - [DeepSeek 教学工作流说明](Windows-Test/deepseek-workflow/README.zh-CN.md)
 - [Windows 部署与排查 SOP](apps/desktop-companion/SOP.zh-CN.md)
+
+## 2026-05-03 补充：网页作品 URL 提示
+
+桌面伴随程序现在除了连接本地 Scratch Desktop，也支持直接粘贴远程 Scratch 作品地址来生成教学提示。
+
+支持的地址类型：
+
+- Scratch 项目页 URL
+- Scratch API / `projects.scratch.mit.edu` URL
+- 直接可下载的 `.sb3` URL
+
+示例地址：
+
+- `https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3`
+
+提示约束：
+
+- AI 只给下一步方向、关键积木和追问
+- 不直接输出完整答案、完整脚本或整段可照抄实现
+
+对应验证入口：
+
+```powershell
+node Windows-Test\verify-desktop-companion-ui.mjs
+node Windows-Test\verify-desktop-companion-project-url-ui.mjs
+```
+
+本轮截图产物：
+
+- `current-ui-desktop-companion-mock.png`
+- `current-ui-project-url-before.png`
+- `current-ui-project-url-after.png`

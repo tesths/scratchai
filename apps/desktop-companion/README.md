@@ -233,3 +233,42 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 - [部署与排查 SOP](SOP.zh-CN.md)
 - [Windows 测试说明](../../Windows-Test/README.zh-CN.md)
 - [DeepSeek 教学工作流说明](../../Windows-Test/deepseek-workflow/README.zh-CN.md)
+
+## 2026-05-03 补充：从网页地址生成 AI 提示
+
+当前界面新增了一个网页作品地址输入框和 `分析网页作品并生成提示` 按钮。这个入口不要求本机已经连接到 Scratch Desktop，适合老师直接拿一个远程 `.sb3` 或 Scratch 作品页做诊断。
+
+支持的地址类型：
+
+- Scratch 项目页 URL
+- Scratch API / `projects.scratch.mit.edu` URL
+- 直接 `.sb3` 下载 URL
+
+推荐验证地址：
+
+- `https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3`
+
+内部链路：
+
+1. `renderer.ts` 收集 URL 和可选教学目标
+2. IPC 调用 `desktop-companion:request-ai-hint-from-project-url`
+3. `SessionManager.requestAiHintFromProjectUrl` 调用 `ProjectUrlLoader.load`
+4. `project-url-loader.ts` 下载远程项目并提取 `project.json`
+5. 复用 `packages/shared` 生成 snapshot、当前角色程序和模块摘要
+6. 复用 `CoachService.generateHint` 输出“提示但不给答案”的结果
+
+测试命令：
+
+```powershell
+cd apps\desktop-companion
+npm test
+cd ..\..
+node Windows-Test\verify-desktop-companion-ui.mjs
+node Windows-Test\verify-desktop-companion-project-url-ui.mjs
+```
+
+截图输出：
+
+- `C:\Users\Administrator\Desktop\scratch\current-ui-desktop-companion-mock.png`
+- `C:\Users\Administrator\Desktop\scratch\current-ui-project-url-before.png`
+- `C:\Users\Administrator\Desktop\scratch\current-ui-project-url-after.png`
