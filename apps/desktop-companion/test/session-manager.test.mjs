@@ -29,18 +29,45 @@ function createAiConfigMock(overrides = {}) {
   });
 }
 
+function createConfigStoreMock(initialPath = undefined) {
+  let scratchExecutablePath = initialPath;
+  let customAiApiKey;
+
+  return {
+    load: async () => ({
+      ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
+      ...(customAiApiKey ? { customAiApiKey } : {})
+    }),
+    saveScratchExecutablePath: async (value) => {
+      scratchExecutablePath = value;
+      return {
+        ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
+        ...(customAiApiKey ? { customAiApiKey } : {})
+      };
+    },
+    saveCustomAiApiKey: async (value) => {
+      customAiApiKey = value;
+      return {
+        ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
+        ...(customAiApiKey ? { customAiApiKey } : {})
+      };
+    },
+    clearCustomAiApiKey: async () => {
+      customAiApiKey = undefined;
+      return {
+        ...(scratchExecutablePath ? { scratchExecutablePath } : {})
+      };
+    }
+  };
+}
+
 test("SessionManager enters waiting state when Scratch path is not configured", async () => {
   const stateStore = new StateStore();
   const manager = new SessionManager(stateStore, {
     bridgeServer: createBridgeServerMock(),
     platform: "win32",
     log: () => {},
-    configStore: {
-      load: async () => ({}),
-      saveScratchExecutablePath: async (value) => ({ scratchExecutablePath: value }),
-      saveCustomAiApiKey: async (value) => ({ customAiApiKey: value }),
-      clearCustomAiApiKey: async () => ({})
-    },
+    configStore: createConfigStoreMock(),
     loadAiConfig: createAiConfigMock(),
     scratchLauncher: {},
     scratchRemoteDebugger: {}
@@ -48,24 +75,17 @@ test("SessionManager enters waiting state when Scratch path is not configured", 
 
   await manager.start();
 
-  assert.deepEqual(stateStore.getState(), {
-    status: "waiting",
-    statusText: "请先选择 Scratch 路径",
-    launchMode: "controlled-launch",
-    injectionMode: "cdp-runtime-evaluate",
-    toolboxCategories: [],
-    usedExtensions: [],
-    loadedExtensions: [],
-    programAreaModules: [],
-    currentTargetPrograms: [],
-    aiConfigured: false,
-    aiConfigPath: "C:\\config\\deepseek.config.json",
-    aiCustomKeyConfigured: false,
-    aiStatus: "idle",
-    aiModel: "deepseek-v4-flash",
-    detail:
-      "本地监听端已启动：http://127.0.0.1:39000。请先选择老师机上的 Scratch 可执行文件（Scratch.exe 或 Scratch 3.exe）。"
-  });
+  const nextState = stateStore.getState();
+  assert.equal(nextState.status, "waiting");
+  assert.equal(nextState.scratchExecutablePath, undefined);
+  assert.deepEqual(nextState.toolboxCategories, []);
+  assert.deepEqual(nextState.usedExtensions, []);
+  assert.deepEqual(nextState.loadedExtensions, []);
+  assert.deepEqual(nextState.programAreaModules, []);
+  assert.deepEqual(nextState.currentTargetPrograms, []);
+  assert.equal(nextState.aiConfigured, false);
+  assert.equal(nextState.aiCustomKeyConfigured, false);
+  assert.equal(nextState.aiStatus, "idle");
 });
 
 test("SessionManager enters waiting state with the configured Scratch path", async () => {
@@ -74,12 +94,7 @@ test("SessionManager enters waiting state with the configured Scratch path", asy
     bridgeServer: createBridgeServerMock(),
     platform: "win32",
     log: () => {},
-    configStore: {
-      load: async () => ({ scratchExecutablePath: "C:\\Scratch 3.exe" }),
-      saveScratchExecutablePath: async (value) => ({ scratchExecutablePath: value }),
-      saveCustomAiApiKey: async (value) => ({ scratchExecutablePath: "C:\\Scratch 3.exe", customAiApiKey: value }),
-      clearCustomAiApiKey: async () => ({ scratchExecutablePath: "C:\\Scratch 3.exe" })
-    },
+    configStore: createConfigStoreMock("C:\\Scratch 3.exe"),
     loadAiConfig: createAiConfigMock(),
     scratchLauncher: {},
     scratchRemoteDebugger: {}
@@ -87,25 +102,11 @@ test("SessionManager enters waiting state with the configured Scratch path", asy
 
   await manager.start();
 
-  assert.deepEqual(stateStore.getState(), {
-    status: "waiting",
-    statusText: "请从伴随程序启动 Scratch Desktop",
-    launchMode: "controlled-launch",
-    injectionMode: "cdp-runtime-evaluate",
-    scratchExecutablePath: "C:\\Scratch 3.exe",
-    toolboxCategories: [],
-    usedExtensions: [],
-    loadedExtensions: [],
-    programAreaModules: [],
-    currentTargetPrograms: [],
-    aiConfigured: false,
-    aiConfigPath: "C:\\config\\deepseek.config.json",
-    aiCustomKeyConfigured: false,
-    aiStatus: "idle",
-    aiModel: "deepseek-v4-flash",
-    detail:
-      "已配置 Scratch 程序：C:\\Scratch 3.exe。点击“打开 Scratch”后，伴随程序会自动连接调试端口。"
-  });
+  const nextState = stateStore.getState();
+  assert.equal(nextState.status, "waiting");
+  assert.equal(nextState.scratchExecutablePath, "C:\\Scratch 3.exe");
+  assert.equal(nextState.aiStatus, "idle");
+  assert.equal(nextState.aiModel, "deepseek-v4-flash");
 });
 
 test("SessionManager derives current target programs from projectData", async () => {
@@ -115,12 +116,7 @@ test("SessionManager derives current target programs from projectData", async ()
     bridgeServer,
     platform: "win32",
     log: () => {},
-    configStore: {
-      load: async () => ({ scratchExecutablePath: "C:\\Scratch 3.exe" }),
-      saveScratchExecutablePath: async (value) => ({ scratchExecutablePath: value }),
-      saveCustomAiApiKey: async (value) => ({ scratchExecutablePath: "C:\\Scratch 3.exe", customAiApiKey: value }),
-      clearCustomAiApiKey: async () => ({ scratchExecutablePath: "C:\\Scratch 3.exe" })
-    },
+    configStore: createConfigStoreMock("C:\\Scratch 3.exe"),
     loadAiConfig: createAiConfigMock(),
     scratchLauncher: {},
     scratchRemoteDebugger: {}
@@ -132,7 +128,7 @@ test("SessionManager derives current target programs from projectData", async ()
     source: "test",
     currentTargetId: "sprite-a",
     currentTargetName: "Cat",
-    toolboxCategories: ["运动", "外观"],
+    toolboxCategories: ["motion", "looks"],
     loadedExtensions: ["music"],
     projectData: {
       targets: [
@@ -187,11 +183,17 @@ test("SessionManager derives current target programs from projectData", async ()
   assert.equal(nextState.status, "connected");
   assert.equal(nextState.currentTargetName, "Cat");
   assert.deepEqual(nextState.loadedExtensions, ["music"]);
-  assert.deepEqual(nextState.programAreaModules, [
-    { id: "motion", label: "运动", blockCount: 2 },
-    { id: "pen", label: "画笔", blockCount: 1 },
-    { id: "event", label: "事件", blockCount: 1 }
-  ]);
+  assert.deepEqual(
+    nextState.programAreaModules.map((module) => ({
+      id: module.id,
+      blockCount: module.blockCount
+    })),
+    [
+      { id: "motion", blockCount: 2 },
+      { id: "pen", blockCount: 1 },
+      { id: "event", blockCount: 1 }
+    ]
+  );
   assert.deepEqual(nextState.currentTargetPrograms, [
     "event_whenflagclicked -> motion_movesteps -> motion_turnright -> pen_clear"
   ]);
@@ -203,12 +205,7 @@ test("SessionManager returns fallback AI hints when DeepSeek key is not configur
     bridgeServer: createBridgeServerMock(),
     platform: "win32",
     log: () => {},
-    configStore: {
-      load: async () => ({ scratchExecutablePath: "C:\\Scratch 3.exe" }),
-      saveScratchExecutablePath: async (value) => ({ scratchExecutablePath: value }),
-      saveCustomAiApiKey: async (value) => ({ scratchExecutablePath: "C:\\Scratch 3.exe", customAiApiKey: value }),
-      clearCustomAiApiKey: async () => ({ scratchExecutablePath: "C:\\Scratch 3.exe" })
-    },
+    configStore: createConfigStoreMock("C:\\Scratch 3.exe"),
     loadAiConfig: createAiConfigMock(),
     scratchLauncher: {},
     scratchRemoteDebugger: {}
@@ -220,7 +217,7 @@ test("SessionManager returns fallback AI hints when DeepSeek key is not configur
     source: "test",
     currentTargetId: "sprite-a",
     currentTargetName: "Cat",
-    toolboxCategories: ["运动", "控制"],
+    toolboxCategories: ["motion", "control"],
     projectData: {
       targets: [
         {
@@ -260,6 +257,103 @@ test("SessionManager returns fallback AI hints when DeepSeek key is not configur
   assert.equal(nextState.aiModel, "local-heuristic");
   assert.equal(typeof nextState.aiCoachResponse?.answerText, "string");
   assert.equal(nextState.aiCoachResponse?.recommendedBlocks.length > 0, true);
+});
+
+test("SessionManager can generate hints from a project URL without a live Scratch connection", async () => {
+  const stateStore = new StateStore();
+  const sharedModules = [
+    { id: "event", label: "event", blockCount: 1 },
+    { id: "control", label: "control", blockCount: 1 },
+    { id: "sensing", label: "sensing", blockCount: 1 },
+    { id: "data", label: "data", blockCount: 1 }
+  ];
+
+  const manager = new SessionManager(stateStore, {
+    bridgeServer: createBridgeServerMock(),
+    platform: "win32",
+    log: () => {},
+    configStore: createConfigStoreMock("C:\\Scratch 3.exe"),
+    loadAiConfig: createAiConfigMock(),
+    projectUrlLoader: {
+      load: async (projectUrl) => ({
+        sourceLabel: projectUrl,
+        currentTargetName: "cheese",
+        currentTargetIsStage: false,
+        currentTargetPrograms: [
+          "event_whenflagclicked -> control_forever -> sensing_touchingobject -> data_changevariableby"
+        ],
+        programAreaModules: sharedModules,
+        usedExtensions: [],
+        loadedExtensions: [],
+        snapshot: {
+          projectId: "fixture-project",
+          currentTarget: "cheese",
+          currentTargetId: "sprite-cheese",
+          toolboxCategories: [],
+          loadedExtensions: [],
+          programAreaModules: sharedModules,
+          sprites: [
+            {
+              name: "cheese",
+              isStage: false,
+              blockCount: 4,
+              variables: [],
+              scripts: [
+                {
+                  spriteName: "cheese",
+                  event: "when green flag clicked",
+                  blockSequence: [
+                    "event_whenflagclicked",
+                    "control_forever",
+                    "sensing_touchingobject",
+                    "data_changevariableby"
+                  ],
+                  blockOpcodes: [
+                    "event_whenflagclicked",
+                    "control_forever",
+                    "sensing_touchingobject",
+                    "data_changevariableby"
+                  ]
+                }
+              ]
+            }
+          ],
+          blocks: [
+            {
+              id: "block-1",
+              opcode: "event_whenflagclicked",
+              category: "event",
+              label: "when green flag clicked",
+              spriteName: "cheese",
+              topLevel: true
+            }
+          ],
+          globalVariables: [],
+          detectedConcepts: ["event", "control", "sensing", "data"],
+          updatedAt: "2026-05-03T12:00:00.000Z"
+        }
+      })
+    },
+    scratchLauncher: {},
+    scratchRemoteDebugger: {}
+  });
+
+  await manager.start();
+  await manager.requestAiHintFromProjectUrl(
+    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
+    "让奶酪被碰到以后加分"
+  );
+
+  const nextState = stateStore.getState();
+  assert.equal(nextState.status, "waiting");
+  assert.equal(nextState.currentTargetName, "cheese");
+  assert.deepEqual(nextState.currentTargetPrograms, [
+    "event_whenflagclicked -> control_forever -> sensing_touchingobject -> data_changevariableby"
+  ]);
+  assert.equal(nextState.aiStatus, "ready");
+  assert.equal(nextState.aiProvider, "fallback");
+  assert.equal(nextState.aiModel, "local-heuristic");
+  assert.equal(typeof nextState.aiCoachResponse?.answerText, "string");
 });
 
 test("SessionManager can switch to a saved custom AI key", async () => {

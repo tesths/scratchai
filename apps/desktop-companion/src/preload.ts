@@ -26,6 +26,9 @@ const api = {
   requestAiHint: async (goal?: string) => {
     await ipcRenderer.invoke("desktop-companion:request-ai-hint", goal);
   },
+  requestAiHintFromProjectUrl: async (projectUrl: string, goal?: string) => {
+    await ipcRenderer.invoke("desktop-companion:request-ai-hint-from-project-url", projectUrl, goal);
+  },
   saveCustomAiApiKey: async (apiKey: string) => {
     await ipcRenderer.invoke("desktop-companion:save-custom-ai-api-key", apiKey);
   },

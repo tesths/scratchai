@@ -147,6 +147,8 @@ test("CoachService sends DeepSeek V4 chat completions requests in JSON non-think
   assert.equal(capturedRequest.body.max_tokens, 2048);
   assert.deepEqual(capturedRequest.body.response_format, { type: "json_object" });
   assert.equal(capturedRequest.body.messages.length, 2);
+  assert.equal(capturedRequest.body.messages[0].content.includes("不要直接给完整答案"), true);
+  assert.equal(capturedRequest.body.messages[1].content.includes("不要直接泄露完整答案"), true);
 });
 
 test("CoachService falls back when DeepSeek returns invalid JSON content", async () => {
@@ -172,4 +174,59 @@ test("CoachService falls back when DeepSeek returns invalid JSON content", async
   assert.equal(result.model, "local-heuristic");
   assert.equal(typeof result.warning, "string");
   assert.equal(result.coachResponse.recommendedBlocks.length > 0, true);
+});
+
+test("CoachService normalizes non-schema severity values from DeepSeek", async () => {
+  const service = new CoachService(async () =>
+    createDeepSeekResponse(
+      JSON.stringify({
+        answerText: "先补碰撞和加分。",
+        recommendedBlocks: [
+          {
+            opcode: "sensing_touchingobject",
+            category: "侦测",
+            label: "碰到...？",
+            reason: "先检测猫是否碰到奶酪。"
+          }
+        ],
+        nextStep: "把碰撞判断放进循环里。",
+        detectedIssues: [
+          {
+            severity: "high",
+            title: "缺少得分逻辑",
+            description: "碰到奶酪后还没有加分。",
+            spriteName: "Cat 2"
+          }
+        ],
+        followUpQuestion: "你想在哪个角色里加分？"
+      })
+    )
+  );
+
+  const result = await service.generateHint({
+    snapshot: createSnapshot(),
+    currentTargetPrograms: ["event_whenflagclicked -> motion_movesteps"],
+    programAreaModules: [
+      {
+        id: "motion",
+        label: "运动",
+        blockCount: 1
+      }
+    ],
+    usedExtensions: [],
+    loadedExtensions: [],
+    goal: "让小猫碰到奶酪后加分",
+    aiConfig: createAiConfig()
+  });
+
+  assert.equal(result.source, "deepseek");
+  assert.equal(result.warning, undefined);
+  assert.deepEqual(result.coachResponse.detectedIssues, [
+    {
+      severity: "warning",
+      title: "缺少得分逻辑",
+      description: "碰到奶酪后还没有加分。",
+      spriteName: "Cat 2"
+    }
+  ]);
 });

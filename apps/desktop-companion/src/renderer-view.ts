@@ -34,7 +34,9 @@ export interface RendererElements {
   launchButton?: HTMLButtonElement | null;
   chooseScratchButton?: HTMLButtonElement | null;
   generateAiButton?: HTMLButtonElement | null;
+  analyzeProjectUrlButton?: HTMLButtonElement | null;
   goalInput?: HTMLTextAreaElement | null;
+  projectUrlInput?: HTMLInputElement | null;
 }
 
 export function renderList(
@@ -264,7 +266,13 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     elements.generateAiButton.disabled =
       state.status !== "connected" || state.aiStatus === "loading";
   }
+  if (elements.analyzeProjectUrlButton) {
+    elements.analyzeProjectUrlButton.disabled = state.aiStatus === "loading";
+  }
   if (elements.goalInput) {
-    elements.goalInput.disabled = state.status !== "connected" || state.aiStatus === "loading";
+    elements.goalInput.disabled = state.aiStatus === "loading";
+  }
+  if (elements.projectUrlInput) {
+    elements.projectUrlInput.disabled = state.aiStatus === "loading";
   }
 }

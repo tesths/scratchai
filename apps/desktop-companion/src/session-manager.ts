@@ -10,6 +10,7 @@ import { buildDesktopInjectionScript } from "./bridge-script";
 import { ScratchBridgeServer } from "./bridge-server";
 import { CoachService } from "./coach-service";
 import { loadDeepSeekConfig } from "./deepseek-config";
+import { ProjectUrlLoader } from "./project-url-loader";
 import { writeRuntimeLog } from "./runtime-log";
 import { ScratchExecutableConfigStore } from "./scratch-config-store";
 import { ScratchLauncher } from "./scratch-launcher";
@@ -32,6 +33,7 @@ interface SessionManagerDependencies {
   scratchRemoteDebugger?: ScratchRemoteDebugger;
   buildInjectionScript?: typeof buildDesktopInjectionScript;
   coachService?: Pick<CoachService, "generateHint">;
+  projectUrlLoader?: Pick<ProjectUrlLoader, "load">;
   loadAiConfig?: typeof loadDeepSeekConfig;
   platform?: string;
 }
@@ -68,6 +70,8 @@ export class SessionManager {
   private readonly buildInjectionScript: typeof buildDesktopInjectionScript;
 
   private readonly coachService: Pick<CoachService, "generateHint">;
+
+  private readonly projectUrlLoader: Pick<ProjectUrlLoader, "load">;
 
   private readonly loadAiConfig: typeof loadDeepSeekConfig;
 
@@ -117,6 +121,7 @@ export class SessionManager {
     this.scratchRemoteDebugger = dependencies.scratchRemoteDebugger ?? new ScratchRemoteDebugger();
     this.buildInjectionScript = dependencies.buildInjectionScript ?? buildDesktopInjectionScript;
     this.coachService = dependencies.coachService ?? new CoachService();
+    this.projectUrlLoader = dependencies.projectUrlLoader ?? new ProjectUrlLoader();
     this.loadAiConfig = dependencies.loadAiConfig ?? loadDeepSeekConfig;
     this.platform = dependencies.platform ?? process.platform;
   }
@@ -241,6 +246,10 @@ export class SessionManager {
       ...(trimmedGoal ? { goal: trimmedGoal } : {})
     });
 
+    if (result.warning) {
+      this.log("DeepSeek live hint fell back to local heuristics", result.warning);
+    }
+
     this.stateStore.update({
       ...this.getAiStatePatch(),
       aiStatus: "ready",
@@ -250,6 +259,95 @@ export class SessionManager {
       aiLastUpdatedAt: new Date().toISOString(),
       aiError: result.warning
     });
+  }
+
+  async requestAiHintFromProjectUrl(projectUrl: string, goal?: string) {
+    await this.refreshAiConfig();
+
+    const trimmedProjectUrl = typeof projectUrl === "string" ? projectUrl.trim() : "";
+    if (!trimmedProjectUrl) {
+      this.stateStore.update({
+        ...this.getAiStatePatch(),
+        aiStatus: "error",
+        aiProvider: undefined,
+        aiCoachResponse: undefined,
+        aiLastUpdatedAt: undefined,
+        aiError: "请先粘贴作品网页地址。"
+      });
+      return;
+    }
+
+    this.stateStore.update({
+      ...this.getAiStatePatch(),
+      aiStatus: "loading",
+      aiProvider: undefined,
+      aiCoachResponse: undefined,
+      aiLastUpdatedAt: undefined,
+      aiError: undefined
+    });
+
+    const aiConfig = this.aiConfig;
+    if (!aiConfig) {
+      this.stateStore.update({
+        aiStatus: "error",
+        aiError: "AI 配置尚未加载完成，请稍后重试。"
+      });
+      return;
+    }
+
+    try {
+      const loadedProject = await this.projectUrlLoader.load(trimmedProjectUrl);
+      this.lastProjectSnapshot = loadedProject.snapshot;
+
+      const trimmedGoal = typeof goal === "string" ? goal.trim() : "";
+      const result = await this.coachService.generateHint({
+        snapshot: loadedProject.snapshot,
+        currentTargetPrograms: loadedProject.currentTargetPrograms,
+        programAreaModules: loadedProject.programAreaModules,
+        usedExtensions: loadedProject.usedExtensions,
+        loadedExtensions: loadedProject.loadedExtensions,
+        aiConfig,
+        ...(trimmedGoal ? { goal: trimmedGoal } : {})
+      });
+
+      if (result.warning) {
+        this.log("DeepSeek project-url hint fell back to local heuristics", result.warning);
+      }
+
+      this.stateStore.update({
+        status: "waiting",
+        statusText: "已加载网页作品，可直接查看提示",
+        detail: `来源：${loadedProject.sourceLabel}`,
+        error: undefined,
+        scratchPid: undefined,
+        scratchTitle: undefined,
+        currentTargetId: loadedProject.snapshot.currentTargetId,
+        currentTargetName: loadedProject.currentTargetName,
+        currentTargetIsStage: loadedProject.currentTargetIsStage,
+        toolboxCategories: loadedProject.snapshot.toolboxCategories,
+        usedExtensions: loadedProject.usedExtensions,
+        loadedExtensions: loadedProject.loadedExtensions,
+        programAreaModules: loadedProject.programAreaModules,
+        currentTargetPrograms: loadedProject.currentTargetPrograms,
+        lastUpdatedAt: loadedProject.snapshot.updatedAt,
+        ...this.getAiStatePatch(),
+        aiStatus: "ready",
+        aiProvider: result.source,
+        aiModel: result.model,
+        aiCoachResponse: result.coachResponse,
+        aiLastUpdatedAt: new Date().toISOString(),
+        aiError: result.warning
+      });
+    } catch (error) {
+      this.stateStore.update({
+        ...this.getAiStatePatch(),
+        aiStatus: "error",
+        aiProvider: undefined,
+        aiCoachResponse: undefined,
+        aiLastUpdatedAt: undefined,
+        aiError: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
 
   async launchScratchNow() {

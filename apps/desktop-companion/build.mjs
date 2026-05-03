@@ -67,6 +67,12 @@ const buildConfigs = [
     external: ["electron"]
   },
   {
+    entryPoints: [path.join(__dirname, "src/project-url-loader.ts")],
+    outfile: path.join(distDir, "project-url-loader.js"),
+    platform: "node",
+    format: "esm"
+  },
+  {
     entryPoints: [path.join(__dirname, "src/scratch-remote-debugger.ts")],
     outfile: path.join(distDir, "scratch-remote-debugger.js"),
     platform: "node",

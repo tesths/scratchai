@@ -1,10 +1,11 @@
-import {access} from 'node:fs/promises';
+import {access, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..');
+const screenshotPathDefault = path.join(workspaceRoot, 'current-ui-desktop-companion-mock.png');
 
 const argv = new Map(
     process.argv.slice(2).map(arg => {
@@ -28,6 +29,7 @@ const mockStateFile =
     path.join(workspaceRoot, 'Windows-Test', 'fixtures', 'desktop-companion-mock-state.json');
 const debugPort = Number(argv.get('--port') ?? '9344');
 const timeoutMs = Number(argv.get('--timeout-ms') ?? '15000');
+const screenshotPath = argv.get('--screenshot') ?? screenshotPathDefault;
 const automationScratchPath = argv.get('--automation-scratch-path') ?? 'C:\\Automation\\Scratch 3.exe';
 const expectedProgram =
     '脚本 1: event_whenflagclicked -> control_forever -> motion_movesteps -> pen_clear';
@@ -199,6 +201,23 @@ async function evaluateExpressionInTarget(target, expression) {
     }
 }
 
+async function captureScreenshot(target, outputPath) {
+    const socket = new WebSocket(target.webSocketDebuggerUrl);
+    await waitForWebSocketOpen(socket, timeoutMs);
+    try {
+        const connection = new CdpConnection(socket);
+        await connection.send('Page.enable');
+        const response = await connection.send('Page.captureScreenshot', {
+            format: 'png',
+            captureBeyondViewport: true
+        });
+        await writeFile(outputPath, Buffer.from(response.data, 'base64'));
+        return outputPath;
+    } finally {
+        socket.close();
+    }
+}
+
 function buildUiSnapshotExpression() {
     return `
 (() => ({
@@ -224,6 +243,10 @@ function buildUiSnapshotExpression() {
       ? document.querySelector("#settings-button").disabled
       : null
   },
+  projectUrlInputPresent: document.querySelector("#project-url-input") instanceof HTMLInputElement,
+  analyzeProjectUrlButtonDisabled: document.querySelector("#analyze-project-url-button") instanceof HTMLButtonElement
+    ? document.querySelector("#analyze-project-url-button").disabled
+    : null,
   currentTargetPrograms: Array.from(document.querySelectorAll("#current-target-programs li"))
     .map(element => (element.textContent || "").trim())
     .filter(Boolean)
@@ -398,6 +421,16 @@ async function main() {
         assert(value.buttons?.launch === false, `Launch button should be enabled. Actual: ${JSON.stringify(value)}`);
         assert(value.buttons?.retry === false, `Retry button should be enabled. Actual: ${JSON.stringify(value)}`);
         assert(value.buttons?.settings === false, `Settings button should be enabled. Actual: ${JSON.stringify(value)}`);
+        assert(
+            value.projectUrlInputPresent === true,
+            `Project URL input should exist. Actual: ${JSON.stringify(value)}`
+        );
+        assert(
+            value.analyzeProjectUrlButtonDisabled === false,
+            `Project URL analyze button should be enabled. Actual: ${JSON.stringify(value)}`
+        );
+
+        const savedScreenshotPath = await captureScreenshot(targetResult.preferredTarget, screenshotPath);
 
         const chooseClick = await clickButton(targetResult.preferredTarget, '#choose-scratch-button');
         assert(
@@ -517,6 +550,7 @@ async function main() {
                 title: targetResult.preferredTarget.title,
                 url: targetResult.preferredTarget.url
             },
+            screenshotPath: savedScreenshotPath,
             ui: value,
             buttonChecks: {
                 chooseClick,

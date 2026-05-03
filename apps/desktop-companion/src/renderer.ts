@@ -31,7 +31,9 @@ const retryButton = document.getElementById("retry-button") as HTMLButtonElement
 const settingsButton = document.getElementById("settings-button") as HTMLButtonElement | null;
 const secondarySettingsButton = document.getElementById("secondary-settings-button") as HTMLButtonElement | null;
 const generateAiButton = document.getElementById("generate-ai-button") as HTMLButtonElement | null;
+const analyzeProjectUrlButton = document.getElementById("analyze-project-url-button") as HTMLButtonElement | null;
 const goalInput = document.getElementById("goal-input") as HTMLTextAreaElement | null;
+const projectUrlInput = document.getElementById("project-url-input") as HTMLInputElement | null;
 
 function showActionError(message: string) {
   if (!errorElement) {
@@ -75,7 +77,9 @@ function renderNormalizedState(rawState: unknown) {
     chooseScratchButton,
     retryButton,
     generateAiButton,
-    goalInput
+    analyzeProjectUrlButton,
+    goalInput,
+    projectUrlInput
   });
 }
 
@@ -150,6 +154,30 @@ generateAiButton?.addEventListener("click", () => {
       window.setTimeout(() => {
         if (generateAiButton) {
           generateAiButton.disabled = false;
+        }
+      }, 400);
+    });
+});
+
+analyzeProjectUrlButton?.addEventListener("click", () => {
+  const projectUrl = projectUrlInput?.value?.trim() ?? "";
+  if (!projectUrl) {
+    showActionError("请先粘贴作品网页地址。");
+    projectUrlInput?.focus();
+    return;
+  }
+
+  analyzeProjectUrlButton.disabled = true;
+  const goal = goalInput?.value?.trim() ?? "";
+  void Promise.resolve()
+    .then(() => getDesktopCompanionApi().requestAiHintFromProjectUrl(projectUrl, goal || undefined))
+    .catch((error) => {
+      showActionError(error instanceof Error ? error.message : "读取网页作品并生成提示失败，请查看日志。");
+    })
+    .finally(() => {
+      window.setTimeout(() => {
+        if (analyzeProjectUrlButton) {
+          analyzeProjectUrlButton.disabled = false;
         }
       }, 400);
     });

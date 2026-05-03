@@ -318,10 +318,9 @@
         color: var(--muted);
       }
 
+      input[type="url"],
       textarea {
         width: 100%;
-        min-height: 86px;
-        resize: vertical;
         border: 1px solid var(--border);
         border-radius: 18px;
         padding: 12px 14px;
@@ -329,6 +328,26 @@
         font-size: 13px;
         color: var(--ink);
         background: rgba(255, 255, 255, 0.96);
+      }
+
+      textarea {
+        min-height: 86px;
+        resize: vertical;
+      }
+
+      .source-tool {
+        display: grid;
+        gap: 10px;
+        padding: 14px;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(22, 51, 45, 0.03), rgba(12, 142, 104, 0.04));
+        border: 1px solid rgba(22, 51, 45, 0.08);
+      }
+
+      .source-tool p {
+        font-size: 12px;
+        line-height: 1.6;
+        color: var(--muted);
       }
 
       .ai-highlight {
@@ -479,6 +498,18 @@
             生成 AI 提示
           </button>
         </div>
+
+        <article class="source-tool">
+          <p>也可以直接粘贴 Scratch 项目页地址、Scratch API 地址，或一个可下载的 `.sb3` 网页地址。</p>
+          <input
+            id="project-url-input"
+            type="url"
+            placeholder="例如：https://.../Cat%20and%20a%20Mouse.sb3"
+          />
+          <button id="analyze-project-url-button" class="action-button secondary" type="button">
+            读取网页作品并生成提示
+          </button>
+        </article>
 
         <textarea
           id="goal-input"

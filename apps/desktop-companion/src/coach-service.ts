@@ -5,6 +5,10 @@ import type { CoachResponse, ProgramAreaModule, ProjectSnapshot, RecommendedBloc
 
 const DEFAULT_FALLBACK_MODEL = "local-heuristic";
 const DEFAULT_DEEPSEEK_MAX_TOKENS = 2048;
+const HINT_ONLY_SYSTEM_PROMPT =
+  "你是 Scratch 小学编程助教。请根据学生当前作品，给出具体、可执行、面向小学生的中文提示，但不要直接给完整答案，不要写完整脚本，不要把积木顺序一次性全部告诉学生。你只能做诊断、缩小下一步范围、提示关键积木和追问。输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 中每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 中每个元素必须包含 severity、title、description，可选 spriteName，其中 severity 只能是 info 或 warning，绝不能使用 high、medium、low、critical 或其他值。不要输出 Markdown，不要输出额外解释。";
+const HINT_ONLY_USER_PROMPT =
+  "请根据下面的 Scratch 项目上下文，给出“下一步做什么”的提示。优先基于学生已经使用过的模块继续推进，不要让学生一下子大改，也不要直接泄露完整答案。";
 
 interface GenerateCoachHintOptions {
   snapshot: ProjectSnapshot;
@@ -87,11 +91,19 @@ function buildFallbackCoachResponse(options: GenerateCoachHintOptions): CoachRes
   let answerText = `我看到 ${currentTarget} 现在主要用了 ${describeModules(programAreaModules)}。建议先把现有脚本做成一个更稳定、能重复演示的小功能。`;
   let followUpQuestion = "你希望这个角色下一步对什么做出反应，比如按键、碰撞还是计分？";
 
+  nextStep = `先围绕 ${currentTarget} 补一个更清楚的互动目标。`;
+  answerText = `我看到 ${currentTarget} 现在主要用了 ${describeModules(programAreaModules)}。下一步先收紧范围，只补一个小功能，让学生能自己继续往下搭。`;
+
   if (currentTargetPrograms.length === 0 || !currentSprite || currentSprite.blockCount === 0) {
     nextStep = `先给 ${currentTarget} 做一个最小可运行脚本：当绿旗被点击后移动，再说一句话。`;
     answerText = goal
       ? `我还没有看到 ${currentTarget} 的完整脚本。先做一个最小版本来靠近“${goal}”，这样后面再继续扩展会更稳。`
       : `我还没有看到 ${currentTarget} 的完整脚本。先做一个最小版本，让角色先能动起来、说一句话，再继续往下加。`;
+    nextStep = `先想一想：这个角色最先需要“开始触发”“明显动作”还是“可见反馈”？只补其中最缺的一块。`;
+    answerText = goal
+      ? `我还没有看到 ${currentTarget} 的完整脚本。先挑一个最小步骤，往“${goal}”靠近一点点，不要一次把整套做完。`
+      : `我还没有看到 ${currentTarget} 的完整脚本。先补一个最容易验证的局部效果，让学生自己观察还缺哪一块。`;
+
     recommendedBlocks.push(
       createRecommendedBlock(
         "event_whenflagclicked",
@@ -352,6 +364,111 @@ function parseJsonObject(text: string) {
   return JSON.parse(withoutFence);
 }
 
+function normalizeTextValue(value: unknown) {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function normalizeDetectedIssueSeverity(value: unknown): "info" | "warning" {
+  const normalized = normalizeTextValue(value)?.toLowerCase();
+  if (!normalized) {
+    return "info";
+  }
+
+  if (["warning", "warn", "high", "medium", "critical", "error", "severe"].includes(normalized)) {
+    return "warning";
+  }
+
+  return "info";
+}
+
+function normalizeCoachResponse(rawPayload: unknown) {
+  if (!rawPayload || typeof rawPayload !== "object") {
+    return rawPayload;
+  }
+
+  const candidate = rawPayload as Record<string, unknown>;
+  const answerText =
+    normalizeTextValue(candidate.answerText) ??
+    normalizeTextValue(candidate.answer) ??
+    normalizeTextValue(candidate.summary);
+  const nextStep =
+    normalizeTextValue(candidate.nextStep) ??
+    normalizeTextValue(candidate.next_action) ??
+    normalizeTextValue(candidate.nextAction);
+  const followUpQuestion =
+    normalizeTextValue(candidate.followUpQuestion) ??
+    normalizeTextValue(candidate.follow_up_question) ??
+    normalizeTextValue(candidate.followUp);
+
+  const recommendedBlocks = Array.isArray(candidate.recommendedBlocks)
+    ? candidate.recommendedBlocks
+        .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
+        .map((item) => {
+          const opcode = normalizeTextValue(item.opcode) ?? "unknown_block";
+          const category = normalizeTextValue(item.category) ?? "其他";
+          const label =
+            normalizeTextValue(item.label) ??
+            normalizeTextValue(item.blockName) ??
+            opcode;
+          const reason =
+            normalizeTextValue(item.reason) ??
+            normalizeTextValue(item.description) ??
+            "适合作为下一步尝试。";
+          const example = normalizeTextValue(item.example);
+
+          return {
+            opcode,
+            category,
+            label,
+            reason,
+            ...(example ? { example } : {})
+          };
+        })
+    : [];
+
+  const detectedIssues = Array.isArray(candidate.detectedIssues)
+    ? candidate.detectedIssues
+        .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
+        .map((item) => {
+          const title =
+            normalizeTextValue(item.title) ??
+            normalizeTextValue(item.summary) ??
+            "需要留意的一点";
+          const description =
+            normalizeTextValue(item.description) ??
+            normalizeTextValue(item.reason) ??
+            title;
+          const spriteName =
+            normalizeTextValue(item.spriteName) ??
+            normalizeTextValue(item.sprite);
+
+          return {
+            severity: normalizeDetectedIssueSeverity(item.severity),
+            title,
+            description,
+            ...(spriteName ? { spriteName } : {})
+          };
+        })
+    : [];
+
+  return {
+    answerText,
+    recommendedBlocks,
+    nextStep,
+    detectedIssues,
+    ...(followUpQuestion ? { followUpQuestion } : {})
+  };
+}
+
 export class CoachService {
   constructor(private readonly fetchImpl: typeof fetch = fetch) {}
 
@@ -411,15 +528,25 @@ export class CoachService {
           response_format: {
             type: "json_object"
           },
-          messages: [
+          [Symbol.for("legacyMessages")]: [
             {
               role: "system",
               content:
-                "你是 Scratch 小学编程助教。请根据学生当前作品，给出非常具体、可执行、面向小学生的中文提示。输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 中每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 中每个元素必须包含 severity、title、description，可选 spriteName。不要输出 Markdown，不要输出额外解释。"
+                "你是 Scratch 小学编程助教。请根据学生当前作品，给出非常具体、可执行、面向小学生的中文提示。输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 中每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 中每个元素必须包含 severity、title、description，可选 spriteName，其中 severity 只能是 info 或 warning。不要输出 Markdown，不要输出额外解释。"
             },
             {
               role: "user",
               content: `请根据下面的 Scratch 项目上下文，给出“下一步做什么”的提示。优先基于学生已经使用过的模块继续推进，不要让学生一下子大改。\n\n${JSON.stringify(promptContext, null, 2)}`
+            }
+          ],
+          messages: [
+            {
+              role: "system",
+              content: HINT_ONLY_SYSTEM_PROMPT
+            },
+            {
+              role: "user",
+              content: `${HINT_ONLY_USER_PROMPT}\n\n${JSON.stringify(promptContext, null, 2)}`
             }
           ]
         }),
@@ -434,7 +561,8 @@ export class CoachService {
       const rawPayload = await response.json();
       const messageContent = extractMessageContent(rawPayload);
       const parsedJson = parseJsonObject(messageContent);
-      return coachResponseSchema.parse(parsedJson) as CoachResponse;
+      const normalizedJson = normalizeCoachResponse(parsedJson);
+      return coachResponseSchema.parse(normalizedJson) as CoachResponse;
     } finally {
       clearTimeout(timer);
     }
