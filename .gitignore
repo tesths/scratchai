@@ -34,6 +34,7 @@ ScratchDesktopCompanion-setup.exe
 
 # Local test artifacts
 current-ui-*.png
+docs/assets/screenshots/*.png
 tmp-*/
 Windows-Test/tmp-*/
 Windows-Test/generated/

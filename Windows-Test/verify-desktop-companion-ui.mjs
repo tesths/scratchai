@@ -1,11 +1,12 @@
-import {access, writeFile} from 'node:fs/promises';
+import {access, mkdir, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..');
-const screenshotPathDefault = path.join(workspaceRoot, 'current-ui-desktop-companion-mock.png');
+const screenshotDir = path.join(workspaceRoot, 'docs', 'assets', 'screenshots');
+const screenshotPathDefault = path.join(screenshotDir, 'current-ui-desktop-companion-mock.png');
 
 const argv = new Map(
     process.argv.slice(2).map(arg => {
@@ -211,6 +212,7 @@ async function captureScreenshot(target, outputPath) {
             format: 'png',
             captureBeyondViewport: true
         });
+        await mkdir(path.dirname(outputPath), {recursive: true});
         await writeFile(outputPath, Buffer.from(response.data, 'base64'));
         return outputPath;
     } finally {
