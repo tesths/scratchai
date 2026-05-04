@@ -152,10 +152,10 @@ function createTray() {
 
 function createWindow(startHidden: boolean) {
   const window = new BrowserWindow({
-    width: 480,
-    height: 820,
-    minWidth: 420,
-    minHeight: 680,
+    width: 720,
+    height: 920,
+    minWidth: 560,
+    minHeight: 760,
     title: "Scratch AI 教练",
     alwaysOnTop: true,
     autoHideMenuBar: true,
@@ -188,10 +188,10 @@ function createWindow(startHidden: boolean) {
 
 function createSettingsWindow() {
   const settingsWindow = new BrowserWindow({
-    width: 420,
-    height: 560,
-    minWidth: 380,
-    minHeight: 500,
+    width: 480,
+    height: 640,
+    minWidth: 420,
+    minHeight: 540,
     title: "DeepSeek 设置",
     alwaysOnTop: true,
     autoHideMenuBar: true,

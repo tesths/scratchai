@@ -95,7 +95,7 @@ export function formatProgramAreaModules(
 
 export function formatAiStatus(state: DesktopCompanionState) {
   if (state.aiStatus === "loading") {
-    return "AI 正在整理当前项目并生成提示…";
+    return "AI 正在整理作品并生成下一步提示…";
   }
 
   if (state.aiStatus === "error") {
@@ -109,15 +109,15 @@ export function formatAiStatus(state: DesktopCompanionState) {
 
   if (state.aiCoachResponse && state.aiProvider === "fallback") {
     return state.aiError
-      ? `DeepSeek 暂时不可用，已切换到本地提示。`
-      : "当前提示来源：本地提示。到“DeepSeek 设置”里保存 API Key 后会优先调用线上模型。";
+      ? "DeepSeek 暂时不可用，已自动切换到基础提示。"
+      : "当前提示来源：基础提示。老师需要更完整结果时，可到“老师设置”里配置 DeepSeek。";
   }
 
   if (!state.aiConfigured) {
-    return "未配置 DeepSeek API Key。可打开“DeepSeek 设置”保存自定义 Key，或继续使用环境变量 / 程序自带配置。";
+    return "还没配置 DeepSeek 也可以先用。程序会先给基础提示；老师需要更完整结果时，再到“老师设置”里配置。";
   }
 
-  return "连接 Scratch 后，点击“生成 AI 提示”获取下一步建议。";
+  return "准备好了：分析当前 Scratch 作品，或直接分析网页作品。";
 }
 
 export function formatAiConfigSourceLabel(source?: DesktopCompanionState["aiConfigSource"]) {
@@ -138,7 +138,7 @@ export function formatAiConfigSourceLabel(source?: DesktopCompanionState["aiConf
 
 export function formatAiConfigSummary(state: DesktopCompanionState) {
   if (state.aiConfigSource === "custom") {
-    return "当前优先使用设置窗口里保存的自定义 DeepSeek Key。";
+    return "当前优先使用设置页里保存的自定义 DeepSeek Key。";
   }
 
   if (state.aiConfigSource === "env") {
@@ -150,6 +150,34 @@ export function formatAiConfigSummary(state: DesktopCompanionState) {
   }
 
   return "当前还没有可用的 DeepSeek Key。";
+}
+
+export function formatDefaultDetail(state: DesktopCompanionState) {
+  if (state.detail) {
+    return state.detail;
+  }
+
+  if (state.status === "connected") {
+    return "已经连接成功，直接点“分析当前 Scratch 作品”就可以。";
+  }
+
+  if (state.scratchExecutablePath) {
+    return "已经记住 Scratch 程序了。现在点“打开 Scratch”即可。";
+  }
+
+  return "第一次使用先选一次 Scratch 程序，然后点“打开 Scratch”。";
+}
+
+export function formatDefaultNextStep(state: DesktopCompanionState) {
+  if (state.aiCoachResponse?.nextStep) {
+    return state.aiCoachResponse.nextStep;
+  }
+
+  if (state.status === "connected") {
+    return "下一步：直接点“分析当前 Scratch 作品”。";
+  }
+
+  return "下一步：先打开 Scratch，或者粘贴一个作品链接。";
 }
 
 export function formatRecommendedBlocks(state: DesktopCompanionState) {
@@ -175,8 +203,7 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
   }
 
   if (elements.detailElement) {
-    elements.detailElement.textContent =
-      state.detail ?? "伴随程序会自动等待 Scratch 出现。";
+    elements.detailElement.textContent = formatDefaultDetail(state);
   }
 
   if (elements.currentTargetElement) {
@@ -222,12 +249,11 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
 
   if (elements.aiAnswerElement) {
     elements.aiAnswerElement.textContent =
-      state.aiCoachResponse?.answerText ?? "AI 会根据当前角色程序、已用模块和扩展，给出下一步建议。";
+      state.aiCoachResponse?.answerText ?? "写下目标后，我会根据当前作品给出下一步建议。";
   }
 
   if (elements.aiNextStepElement) {
-    elements.aiNextStepElement.textContent =
-      state.aiCoachResponse?.nextStep ?? "下一步：先连接 Scratch，然后点击“生成 AI 提示”。";
+    elements.aiNextStepElement.textContent = formatDefaultNextStep(state);
   }
 
   renderList(

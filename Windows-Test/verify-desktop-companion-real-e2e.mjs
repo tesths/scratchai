@@ -189,8 +189,8 @@ async function getLogSize() {
         return 0;
     }
     try {
-        const info = await stat(getLogFilePath(userDataDir));
-        return info.size;
+        const content = await readFile(getLogFilePath(userDataDir));
+        return content.byteLength;
     } catch {
         return 0;
     }
@@ -202,8 +202,8 @@ async function readLogSince(offset) {
         return '';
     }
     try {
-        const content = await readFile(getLogFilePath(userDataDir), 'utf8');
-        return content.slice(offset);
+        const content = await readFile(getLogFilePath(userDataDir));
+        return content.subarray(offset).toString('utf8');
     } catch {
         return '';
     }

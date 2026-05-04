@@ -54,7 +54,7 @@
 
       .hero {
         display: grid;
-        gap: 8px;
+        gap: 10px;
       }
 
       .eyebrow {
@@ -72,6 +72,16 @@
 
       .hero-copy {
         font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      .teacher-note {
+        padding: 12px 14px;
+        border-radius: 18px;
+        background: rgba(20, 55, 50, 0.04);
+        border: 1px solid rgba(20, 55, 50, 0.08);
+        font-size: 12px;
         line-height: 1.6;
         color: var(--muted);
       }
@@ -215,11 +225,12 @@
     <main class="shell">
       <section class="hero">
         <p class="eyebrow">DeepSeek Settings</p>
-        <h1>把 API Key 放到独立设置里，不再挤在主页面。</h1>
+        <h1>老师设置放这里，首页只保留提示流程。</h1>
         <p class="hero-copy">
           这里用于保存本机专用的 DeepSeek API Key。保存后，程序会优先使用这里的 Key；清除后，再回退到
           `DEEPSEEK_API_KEY` 和程序自带配置。
         </p>
+        <p class="teacher-note">学生平时只要留在首页输入目标和点按钮即可，这一页主要给老师配置。</p>
         <p id="settings-status" class="status-pill">正在读取当前配置…</p>
       </section>
 
