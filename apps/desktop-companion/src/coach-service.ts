@@ -5,8 +5,10 @@ import type { CoachResponse, ProgramAreaModule, ProjectSnapshot, RecommendedBloc
 
 const DEFAULT_FALLBACK_MODEL = "local-heuristic";
 const DEFAULT_DEEPSEEK_MAX_TOKENS = 2048;
-const HINT_ONLY_SYSTEM_PROMPT =
-  "你是 Scratch 小学编程助教。请根据学生当前作品，给出具体、可执行、面向小学生的中文提示，但不要直接给完整答案，不要写完整脚本，不要把积木顺序一次性全部告诉学生。你只能做诊断、缩小下一步范围、提示关键积木和追问。输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 中每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 中每个元素必须包含 severity、title、description，可选 spriteName，其中 severity 只能是 info 或 warning，绝不能使用 high、medium、low、critical 或其他值。不要输出 Markdown，不要输出额外解释。";
+const DEFAULT_HINT_ONLY_SYSTEM_PROMPT =
+  "你是 Scratch 小学编程助教。请根据学生当前作品，给出具体、可执行、面向小学生的中文提示，但不要直接给完整答案，不要写完整脚本，也不要把积木顺序一次性全部告诉学生。你只能做诊断、缩小下一步范围、提示关键积木和追问。如果上下文里有 teachingReference，它表示老师先导入的参考作品；current context 表示学生当前 Scratch 进度。请优先比较两者差异，只给学生下一小步。";
+const HINT_ONLY_OUTPUT_REQUIREMENTS =
+  "输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 里每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 里每个元素必须包含 severity、title、description，可选 spriteName，其中 severity 只能是 info 或 warning。不要输出 Markdown，不要输出额外解释。";
 const HINT_ONLY_USER_PROMPT =
   "请根据下面的 Scratch 项目上下文，给出“下一步做什么”的提示。优先基于学生已经使用过的模块继续推进，不要让学生一下子大改，也不要直接泄露完整答案。";
 
@@ -16,8 +18,15 @@ interface GenerateCoachHintOptions {
   programAreaModules: ProgramAreaModule[];
   usedExtensions: string[];
   loadedExtensions: string[];
+  referenceSnapshot?: ProjectSnapshot;
+  referenceCurrentTargetPrograms?: string[];
+  referenceProgramAreaModules?: ProgramAreaModule[];
+  referenceUsedExtensions?: string[];
+  referenceLoadedExtensions?: string[];
+  referenceSourceLabel?: string;
   goal?: string;
   aiConfig: LoadedDeepSeekConfig;
+  customSystemPrompt?: string;
 }
 
 export interface GenerateCoachHintResult {
@@ -57,6 +66,7 @@ function getCurrentTargetOpcodes(snapshot: ProjectSnapshot) {
   if (!sprite) {
     return [];
   }
+
   return sprite.scripts.flatMap((script) => script.blockOpcodes);
 }
 
@@ -70,7 +80,7 @@ function hasModule(programAreaModules: ProgramAreaModule[], moduleId: string) {
 
 function describeModules(programAreaModules: ProgramAreaModule[]) {
   if (programAreaModules.length === 0) {
-    return "还没有读取到当前角色的模块使用情况";
+    return "还没读取到当前角色的模块使用情况";
   }
 
   return programAreaModules
@@ -79,7 +89,97 @@ function describeModules(programAreaModules: ProgramAreaModule[]) {
     .join("、");
 }
 
-function buildFallbackCoachResponse(options: GenerateCoachHintOptions): CoachResponse {
+function buildCompactSprites(snapshot: ProjectSnapshot, currentTargetName?: string) {
+  return snapshot.sprites.slice(0, 8).map((sprite: SpriteSnapshot) => ({
+    name: sprite.name,
+    isStage: sprite.isStage,
+    blockCount: sprite.blockCount,
+    variables: sprite.variables.map((variable) => variable.name),
+    scripts:
+      sprite.name === currentTargetName
+        ? sprite.scripts.map((script) => script.blockSequence)
+        : sprite.scripts.slice(0, 2).map((script) => script.blockSequence)
+  }));
+}
+
+function buildReferenceProgramList(snapshot: ProjectSnapshot) {
+  const currentTarget = getCurrentTargetSprite(snapshot);
+  if (!currentTarget) {
+    return [];
+  }
+
+  return currentTarget.scripts
+    .map((script) => script.blockSequence.join(" -> ").trim())
+    .filter(Boolean);
+}
+
+function buildBlockSuggestionFromOpcode(opcode: string) {
+  switch (opcode) {
+    case "event_whenflagclicked":
+      return createRecommendedBlock("event_whenflagclicked", "事件", "当绿旗被点击", "先给脚本一个明确的开始时机。");
+    case "event_whenbroadcastreceived":
+      return createRecommendedBlock("event_whenbroadcastreceived", "事件", "当接收到消息", "适合把多个角色之间的配合关联起来。");
+    case "motion_gotoxy":
+      return createRecommendedBlock("motion_gotoxy", "运动", "移到 x: y:", "先把角色放到需要的起点位置。");
+    case "motion_movesteps":
+      return createRecommendedBlock("motion_movesteps", "运动", "移动 10 步", "先让角色动起来，学生更容易看到效果。");
+    case "motion_pointtowards":
+      return createRecommendedBlock("motion_pointtowards", "运动", "面向...", "如果角色要跟随某个目标，先让方向正确。");
+    case "control_forever":
+      return createRecommendedBlock("control_forever", "控制", "一直重复", "把动作放进循环里，效果才会持续发生。");
+    case "control_repeat":
+      return createRecommendedBlock("control_repeat", "控制", "重复执行", "先用固定次数循环测试行为。");
+    case "control_if":
+      return createRecommendedBlock("control_if", "控制", "如果...那么", "让角色开始根据条件判断下一步。");
+    case "sensing_touchingobject":
+      return createRecommendedBlock("sensing_touchingobject", "侦测", "碰到...？", "适合做碰撞、得分、触发消息等互动。");
+    case "data_setvariableto":
+      return createRecommendedBlock("data_setvariableto", "变量", "将变量设为", "先把分数、生命值等状态初始化。");
+    case "data_changevariableby":
+      return createRecommendedBlock("data_changevariableby", "变量", "将变量增加", "完成某个动作或满足条件后，用它更新结果。");
+    case "looks_show":
+      return createRecommendedBlock("looks_show", "外观", "显示", "让角色在该出现的时候可见。");
+    case "looks_sayforsecs":
+      return createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "给学生一个看得见的反馈，方便调试。");
+    default:
+      return null;
+  }
+}
+
+function buildReferenceStarterBlocks(referenceSnapshot: ProjectSnapshot) {
+  const referenceOpcodes = getCurrentTargetOpcodes(referenceSnapshot);
+  const seen = new Set<string>();
+  const blocks: RecommendedBlock[] = [];
+
+  for (const opcode of referenceOpcodes) {
+    if (seen.has(opcode)) {
+      continue;
+    }
+
+    seen.add(opcode);
+    const block = buildBlockSuggestionFromOpcode(opcode);
+    if (!block) {
+      continue;
+    }
+
+    blocks.push(block);
+    if (blocks.length >= 3) {
+      return blocks;
+    }
+  }
+
+  if (blocks.length > 0) {
+    return blocks;
+  }
+
+  return [
+    createRecommendedBlock("event_whenflagclicked", "事件", "当绿旗被点击", "先给脚本一个明确的开始时机。"),
+    createRecommendedBlock("motion_movesteps", "运动", "移动 10 步", "先让角色动起来，再继续往下搭。"),
+    createRecommendedBlock("control_forever", "控制", "一直重复", "把刚才的动作放到循环里，效果才会持续。")
+  ];
+}
+
+function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): CoachResponse {
   const { snapshot, currentTargetPrograms, programAreaModules, goal } = options;
   const currentTarget = snapshot.currentTarget || "当前角色";
   const currentSprite = getCurrentTargetSprite(snapshot);
@@ -87,199 +187,76 @@ function buildFallbackCoachResponse(options: GenerateCoachHintOptions): CoachRes
   const recommendedBlocks: RecommendedBlock[] = [];
   const detectedIssues: CoachResponse["detectedIssues"] = [];
 
-  let nextStep = `先为 ${currentTarget} 补一个更明确的互动效果。`;
-  let answerText = `我看到 ${currentTarget} 现在主要用了 ${describeModules(programAreaModules)}。建议先把现有脚本做成一个更稳定、能重复演示的小功能。`;
+  let nextStep = `先围绕 ${currentTarget} 补一个更清晰的小目标。`;
+  let answerText = `我看到 ${currentTarget} 现在主要用了 ${describeModules(programAreaModules)}。下一步先收紧范围，只补一个学生自己也能完成的小功能。`;
   let followUpQuestion = "你希望这个角色下一步对什么做出反应，比如按键、碰撞还是计分？";
 
-  nextStep = `先围绕 ${currentTarget} 补一个更清楚的互动目标。`;
-  answerText = `我看到 ${currentTarget} 现在主要用了 ${describeModules(programAreaModules)}。下一步先收紧范围，只补一个小功能，让学生能自己继续往下搭。`;
-
   if (currentTargetPrograms.length === 0 || !currentSprite || currentSprite.blockCount === 0) {
-    nextStep = `先给 ${currentTarget} 做一个最小可运行脚本：当绿旗被点击后移动，再说一句话。`;
+    nextStep = `先让 ${currentTarget} 拥有一个最小可运行脚本：事件开始，再加一个动作反馈。`;
     answerText = goal
-      ? `我还没有看到 ${currentTarget} 的完整脚本。先做一个最小版本来靠近“${goal}”，这样后面再继续扩展会更稳。`
-      : `我还没有看到 ${currentTarget} 的完整脚本。先做一个最小版本，让角色先能动起来、说一句话，再继续往下加。`;
-    nextStep = `先想一想：这个角色最先需要“开始触发”“明显动作”还是“可见反馈”？只补其中最缺的一块。`;
-    answerText = goal
-      ? `我还没有看到 ${currentTarget} 的完整脚本。先挑一个最小步骤，往“${goal}”靠近一点点，不要一次把整套做完。`
-      : `我还没有看到 ${currentTarget} 的完整脚本。先补一个最容易验证的局部效果，让学生自己观察还缺哪一块。`;
-
+      ? `我还没看到 ${currentTarget} 的完整脚本。先搭一个最小版本，往“${goal}”靠近一点点，不要一次把整套答案做完。`
+      : `我还没看到 ${currentTarget} 的完整脚本。先搭一个最小版本，让角色先动起来或说一句话，再继续往下加。`;
     recommendedBlocks.push(
-      createRecommendedBlock(
-        "event_whenflagclicked",
-        "事件",
-        "当绿旗被点击",
-        "给脚本一个明确的开始时机。"
-      ),
-      createRecommendedBlock(
-        "motion_movesteps",
-        "运动",
-        "移动 10 步",
-        "先让角色产生最直观的动作反馈。"
-      ),
-      createRecommendedBlock(
-        "looks_sayforsecs",
-        "外观",
-        "说 2 秒",
-        "让学生更容易看出脚本已经被触发。",
-        "比如：'我开始执行啦！'"
-      )
+      createRecommendedBlock("event_whenflagclicked", "事件", "当绿旗被点击", "给脚本一个清楚的开始时机。"),
+      createRecommendedBlock("motion_movesteps", "运动", "移动 10 步", "先做一个最直观的动作反馈。"),
+      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "学生更容易看出脚本已经被触发。", "比如：我开始执行啦")
     );
     detectedIssues.push({
       severity: "info",
       title: "当前角色还没有完整脚本",
-      description: "建议先做一个能立即运行的小脚本，再继续添加更复杂的规则。",
+      description: "建议先做一个能立刻运行的小脚本，再继续添加更复杂的规则。",
       spriteName: currentTarget
     });
-    followUpQuestion = "你想让角色先动起来，还是先说话、换造型？";
+    followUpQuestion = "你想先让角色动起来，还是先做一个看得见的提示？";
   } else if (!hasOpcodePrefix(opcodes, "event_")) {
-    nextStep = `先补一个事件积木，把现有动作接到“当绿旗被点击”或“当按下某键”后面。`;
-    answerText = `现在 ${currentTarget} 已经有动作想法了，但缺少明确的触发时机。先补事件，学生会更容易理解“什么时候开始执行”。`;
+    nextStep = "先补一个事件积木，把现有动作接到明确的触发时机后面。";
+    answerText = `现在 ${currentTarget} 已经有动作思路了，但还缺少清楚的“什么时候开始执行”。先补事件，学生会更容易理解流程。`;
     recommendedBlocks.push(
-      createRecommendedBlock(
-        "event_whenflagclicked",
-        "事件",
-        "当绿旗被点击",
-        "最适合给演示型作品做统一启动。"
-      ),
-      createRecommendedBlock(
-        "event_whenkeypressed",
-        "事件",
-        "当按下空格键",
-        "适合做角色控制或互动触发。"
-      ),
-      createRecommendedBlock(
-        "looks_sayforsecs",
-        "外观",
-        "说 2 秒",
-        "触发后给一个可见反馈，便于调试。"
-      )
+      createRecommendedBlock("event_whenflagclicked", "事件", "当绿旗被点击", "适合先做统一启动。"),
+      createRecommendedBlock("event_whenkeypressed", "事件", "当按下某个键", "适合做角色控制或交互触发。"),
+      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "触发后给一个可见反馈，方便调试。")
     );
     detectedIssues.push({
       severity: "warning",
-      title: "脚本触发条件不够清晰",
+      title: "脚本触发条件不够清楚",
       description: "学生可能已经拼好了动作，但还缺少“什么时候开始”的事件积木。",
       spriteName: currentTarget
     });
     followUpQuestion = "你想让这个角色在绿旗点击时开始，还是在按键时开始？";
   } else if (!hasOpcodePrefix(opcodes, "control_repeat") && !hasOpcodePrefix(opcodes, "control_forever")) {
-    nextStep = `把已有动作放进“重复执行”或“一直重复”里，让角色连续表现。`;
-    answerText = `当前脚本已经能跑起来了，下一步最值得补的是循环。这样角色不会只做一次动作，作品会更像完整动画或游戏。`;
+    nextStep = "把现有动作放进“重复执行”或“一直重复”里，让角色持续表现。";
+    answerText = "当前脚本已经能跑起来了，下一步最值得补的是循环。这样角色不只做一次动作，作品会更像一个完整的小动画或小游戏。";
     recommendedBlocks.push(
-      createRecommendedBlock(
-        "control_repeat",
-        "控制",
-        "重复执行 10 次",
-        "适合先做可控次数的测试。"
-      ),
-      createRecommendedBlock(
-        "control_forever",
-        "控制",
-        "一直重复",
-        "适合持续移动、持续检测或持续绘制。"
-      ),
-      createRecommendedBlock(
-        "motion_turnright",
-        "运动",
-        "右转 15 度",
-        "放进循环里更容易看出连续效果。"
-      )
+      createRecommendedBlock("control_repeat", "控制", "重复执行", "先做固定次数的循环测试。"),
+      createRecommendedBlock("control_forever", "控制", "一直重复", "适合持续移动、持续检测或持续绘制。"),
+      createRecommendedBlock("motion_turnright", "运动", "右转 15 度", "放进循环里更容易看出连续效果。")
     );
-    followUpQuestion = "如果把这段动作重复起来，你希望它一直循环，还是只循环几次？";
+    followUpQuestion = "你希望它一直循环，还是只循环几次？";
   } else if (hasModule(programAreaModules, "motion") && !hasModule(programAreaModules, "sensing")) {
-    nextStep = `在现有动作外面加一个侦测条件，让角色能根据环境改变行为。`;
-    answerText = `现在 ${currentTarget} 已经会动了，最适合继续补“侦测”。这样学生就能从“会动”进阶到“会判断、会互动”。`;
+    nextStep = "在现有动作外面加一个侦测条件，让角色开始根据环境变化行为。";
+    answerText = `现在 ${currentTarget} 已经会动了，下一步很适合补“侦测”。这样学生就能从“会动”进阶到“会判断、会互动”。`;
     recommendedBlocks.push(
-      createRecommendedBlock(
-        "sensing_touchingobject",
-        "侦测",
-        "碰到 [边缘 v] ?",
-        "让角色开始根据环境做判断。"
-      ),
-      createRecommendedBlock(
-        "control_if",
-        "控制",
-        "如果 那么",
-        "把侦测结果转成真正的行为变化。"
-      ),
-      createRecommendedBlock(
-        "motion_ifonedgebounce",
-        "运动",
-        "碰到边缘就反弹",
-        "适合快速做出看得见的互动结果。"
-      )
+      createRecommendedBlock("sensing_touchingobject", "侦测", "碰到...？", "让角色开始根据环境做判断。"),
+      createRecommendedBlock("control_if", "控制", "如果...那么", "把侦测结果变成真正的行为变化。"),
+      createRecommendedBlock("motion_ifonedgebounce", "运动", "碰到边缘就反弹", "适合快速做出可见的互动结果。")
     );
     followUpQuestion = "你希望角色碰到边缘、鼠标，还是另一个角色时发生变化？";
   } else if (!hasModule(programAreaModules, "data")) {
-    nextStep = `加一个变量，例如“分数”或“时间”，把作品从演示推进到游戏规则。`;
-    answerText = `当前脚本已经不只是单纯动作了。下一步可以加变量，让学生开始理解“状态”会随着事件变化。`;
+    nextStep = "加一个变量，例如“分数”或“时间”，把作品从演示推进到有规则。";
+    answerText = "当前脚本已经不只是单纯动作了。下一步可以加变量，让学生开始理解“状态”会随着事件变化。";
     recommendedBlocks.push(
-      createRecommendedBlock(
-        "data_setvariableto",
-        "变量和列表",
-        "将 [分数 v] 设为 0",
-        "先初始化规则里最核心的变量。"
-      ),
-      createRecommendedBlock(
-        "data_changevariableby",
-        "变量和列表",
-        "将 [分数 v] 增加 1",
-        "每次完成动作或碰撞时更新结果。"
-      ),
-      createRecommendedBlock(
-        "looks_sayforsecs",
-        "外观",
-        "说 2 秒",
-        "变量变化后给一个可见反馈，方便调试。"
-      )
+      createRecommendedBlock("data_setvariableto", "变量", "将变量设为", "先初始化一个核心变量。"),
+      createRecommendedBlock("data_changevariableby", "变量", "将变量增加", "完成动作或满足条件时更新结果。"),
+      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "变量变化后给一个可见反馈，方便调试。")
     );
     followUpQuestion = "如果这是一个小游戏，你最想先记录分数、时间，还是生命值？";
-  } else if (hasModule(programAreaModules, "pen")) {
-    nextStep = `把画笔动作和循环、转向组合起来，试着画一个有规律的图形。`;
-    answerText = `你现在已经用到了画笔模块，下一步最适合把“重复”和“转向”组合起来，让图案更明显。`;
-    recommendedBlocks.push(
-      createRecommendedBlock(
-        "pen_penDown",
-        "画笔",
-        "落笔",
-        "让移动真正留下轨迹。"
-      ),
-      createRecommendedBlock(
-        "control_repeat",
-        "控制",
-        "重复执行 4 次",
-        "规则图形最适合从固定次数循环开始。"
-      ),
-      createRecommendedBlock(
-        "motion_turnright",
-        "运动",
-        "右转 90 度",
-        "和画笔结合可以快速画出方形、矩形。"
-      )
-    );
-    followUpQuestion = "你想让角色先画方形、三角形，还是画一条有规律的路线？";
   } else {
-    nextStep = `在现有脚本基础上补一个“如果……那么……”判断，让角色学会根据情况切换行为。`;
-    answerText = `这个项目已经有基础结构了。下一步建议不要一下子加太多，而是在现有动作外面加一层条件判断，让行为更像真实游戏规则。`;
+    nextStep = "在现有脚本基础上补一个“如果...那么”判断，让角色会根据情况切换行为。";
+    answerText = "这个项目已经有基础结构了。下一步不用一下子加太多，而是在现有动作外面补一层条件判断，让行为更像真实规则。";
     recommendedBlocks.push(
-      createRecommendedBlock(
-        "control_if",
-        "控制",
-        "如果 那么",
-        "让角色开始区分不同情况。"
-      ),
-      createRecommendedBlock(
-        "operator_equals",
-        "运算",
-        "= ",
-        "适合配合变量或侦测结果判断。"
-      ),
-      createRecommendedBlock(
-        "looks_switchcostumeto",
-        "外观",
-        "切换造型为",
-        "判断成立时给一个明显反馈。"
-      )
+      createRecommendedBlock("control_if", "控制", "如果...那么", "让角色开始区分不同情况。"),
+      createRecommendedBlock("operator_equals", "运算", "= ", "适合配合变量或侦测结果做判断。"),
+      createRecommendedBlock("looks_switchcostumeto", "外观", "切换造型", "判断成立时给一个明显反馈。")
     );
   }
 
@@ -292,34 +269,134 @@ function buildFallbackCoachResponse(options: GenerateCoachHintOptions): CoachRes
   };
 }
 
+function buildSystemPrompt(customSystemPrompt?: string) {
+  const basePrompt = customSystemPrompt?.trim() || DEFAULT_HINT_ONLY_SYSTEM_PROMPT;
+  return `${basePrompt}\n\n${HINT_ONLY_OUTPUT_REQUIREMENTS}`;
+}
+
+function buildReferenceAwareFallbackCoachResponse(options: GenerateCoachHintOptions): CoachResponse {
+  const referenceSnapshot = options.referenceSnapshot;
+  if (!referenceSnapshot) {
+    return buildGenericFallbackCoachResponse(options);
+  }
+
+  const currentTarget = options.snapshot.currentTarget || "当前角色";
+  const currentSprite = getCurrentTargetSprite(options.snapshot);
+  const referenceTarget = referenceSnapshot.currentTarget || getCurrentTargetSprite(referenceSnapshot)?.name || "参考角色";
+  const referencePrograms =
+    options.referenceCurrentTargetPrograms?.filter(Boolean) ?? buildReferenceProgramList(referenceSnapshot);
+  const referenceModules = options.referenceProgramAreaModules?.length
+    ? options.referenceProgramAreaModules
+    : referenceSnapshot.programAreaModules;
+  const referenceOpcodes = getCurrentTargetOpcodes(referenceSnapshot);
+  const currentOpcodes = getCurrentTargetOpcodes(options.snapshot);
+  const starterBlocks = buildReferenceStarterBlocks(referenceSnapshot);
+  const nextReferenceBlocks = referenceOpcodes
+    .filter((opcode, index) => referenceOpcodes.indexOf(opcode) === index && !currentOpcodes.includes(opcode))
+    .map((opcode) => buildBlockSuggestionFromOpcode(opcode))
+    .filter((block): block is RecommendedBlock => Boolean(block))
+    .slice(0, 3);
+  const currentModuleIds = new Set(options.programAreaModules.map((module) => module.id));
+  const missingReferenceModule = referenceModules.find((module) => !currentModuleIds.has(module.id));
+
+  if (options.currentTargetPrograms.length === 0 || !currentSprite || currentSprite.blockCount === 0) {
+    return {
+      answerText: options.goal
+        ? `你现在打开的是一个新项目，我们继续参考刚才导入的教师参考作品，一步一步朝“${options.goal}”靠近。先不要急着完整复刻，先把 ${referenceTarget} 的第一段基础脚本搭起来。`
+        : `你现在打开的是一个新项目，我们继续参考刚才导入的教师参考作品。先不要一次把完整作品全做出来，先把 ${referenceTarget} 的第一段基础脚本搭起来。`,
+      recommendedBlocks: starterBlocks,
+      nextStep: referencePrograms[0]
+        ? `先在当前 Scratch 里补一段最小脚本，去模仿参考作品里 ${referenceTarget} 的开头思路：${referencePrograms[0]}。`
+        : "先补出一段最小起步脚本：用事件积木开始，再加一个动作或循环，让角色先动起来。",
+      detectedIssues: [
+        {
+          severity: "info",
+          title: "当前 Scratch 还是新项目",
+          description: `已保留教师参考作品作为参考目标。建议先补一段最小起步脚本，再一点一点靠近参考作品里 ${referenceTarget} 的效果。`,
+          spriteName: currentTarget
+        }
+      ],
+      followUpQuestion: `你想先把参考作品里 ${referenceTarget} 的哪一步搭出来：先触发、先移动，还是先做循环？`
+    };
+  }
+
+  return {
+    answerText: "你现在已经开始搭当前的 Scratch 项目了。下一步可以继续参考刚才导入的教师参考作品，只补一小段当前还没有的关键积木，不要一下子把整套答案搭完。",
+    recommendedBlocks: nextReferenceBlocks.length > 0 ? nextReferenceBlocks : starterBlocks,
+    nextStep: missingReferenceModule
+      ? `先补上参考作品里已经用到、但你当前项目里还没用到的“${missingReferenceModule.label}”相关积木。`
+      : referencePrograms[0]
+        ? `先把当前项目和参考作品对比一下，只补一小段更接近 ${referenceTarget} 的脚本：${referencePrograms[0]}。`
+        : "先从参考作品里选一小段你现在还没做到的效果，只补这一小步。",
+    detectedIssues: [
+      {
+        severity: "info",
+        title: "当前工程还没完成参考作品里的关键一步",
+        description: "建议保持“参考作品 + 当前进度”的方式，一次只补一小段，让学生能自己完成。",
+        spriteName: currentTarget
+      }
+    ],
+    followUpQuestion: "你看看你当前的项目和参考作品相比，最先缺的是触发、循环，还是碰撞 / 加分？"
+  };
+}
+
+function buildFallbackCoachResponse(options: GenerateCoachHintOptions): CoachResponse {
+  if (options.referenceSnapshot) {
+    return buildReferenceAwareFallbackCoachResponse(options);
+  }
+
+  return buildGenericFallbackCoachResponse(options);
+}
+
 function buildPromptContext(options: GenerateCoachHintOptions) {
   const { snapshot, currentTargetPrograms, programAreaModules, usedExtensions, loadedExtensions, goal } = options;
   const currentTarget = getCurrentTargetSprite(snapshot);
 
-  const compactSprites = snapshot.sprites.slice(0, 8).map((sprite: SpriteSnapshot) => ({
-    name: sprite.name,
-    isStage: sprite.isStage,
-    blockCount: sprite.blockCount,
-    variables: sprite.variables.map((variable) => variable.name),
-    scripts:
-      sprite.name === currentTarget?.name
-        ? sprite.scripts.map((script) => script.blockSequence)
-        : sprite.scripts.slice(0, 2).map((script) => script.blockSequence)
-  }));
-
-  return {
+  const context = {
     goal: goal?.trim() || snapshot.goal || "",
+    guidanceMode: options.referenceSnapshot
+      ? "compare_current_student_project_with_imported_reference"
+      : "analyze_current_project_only",
     currentTarget: snapshot.currentTarget || "",
     currentTargetPrograms,
     programAreaModules,
     usedExtensions,
     loadedExtensions,
     detectedConcepts: snapshot.detectedConcepts,
-    sprites: compactSprites,
+    sprites: buildCompactSprites(snapshot, currentTarget?.name),
     globalVariables: snapshot.globalVariables.map((variable) => ({
       name: variable.name,
       value: variable.value
     }))
+  };
+
+  if (!options.referenceSnapshot) {
+    return context;
+  }
+
+  const referenceTarget = getCurrentTargetSprite(options.referenceSnapshot);
+  const referenceCurrentTargetPrograms =
+    options.referenceCurrentTargetPrograms?.filter(Boolean) ?? buildReferenceProgramList(options.referenceSnapshot);
+
+  return {
+    ...context,
+    teachingReference: {
+      sourceLabel: options.referenceSourceLabel ?? "imported-project-url",
+      currentTarget: options.referenceSnapshot.currentTarget || "",
+      currentTargetPrograms: referenceCurrentTargetPrograms,
+      programAreaModules:
+        options.referenceProgramAreaModules?.length
+          ? options.referenceProgramAreaModules
+          : options.referenceSnapshot.programAreaModules,
+      usedExtensions: options.referenceUsedExtensions ?? options.referenceSnapshot.loadedExtensions,
+      loadedExtensions: options.referenceLoadedExtensions ?? options.referenceSnapshot.loadedExtensions,
+      detectedConcepts: options.referenceSnapshot.detectedConcepts,
+      sprites: buildCompactSprites(options.referenceSnapshot, referenceTarget?.name),
+      globalVariables: options.referenceSnapshot.globalVariables.map((variable) => ({
+        name: variable.name,
+        value: variable.value
+      }))
+    }
   };
 }
 
@@ -474,9 +551,13 @@ export class CoachService {
 
   async generateHint(options: GenerateCoachHintOptions): Promise<GenerateCoachHintResult> {
     const snapshot = projectSnapshotSchema.parse(options.snapshot) as ProjectSnapshot;
+    const referenceSnapshot = options.referenceSnapshot
+      ? (projectSnapshotSchema.parse(options.referenceSnapshot) as ProjectSnapshot)
+      : undefined;
     const normalizedOptions = {
       ...options,
-      snapshot
+      snapshot,
+      ...(referenceSnapshot ? { referenceSnapshot } : {})
     };
 
     if (!options.aiConfig.configured || !options.aiConfig.apiKey) {
@@ -512,6 +593,8 @@ export class CoachService {
 
     try {
       const promptContext = buildPromptContext(options);
+      const systemPrompt = buildSystemPrompt(options.customSystemPrompt);
+      const userPrompt = `${HINT_ONLY_USER_PROMPT}\n\n${JSON.stringify(promptContext, null, 2)}`;
       const response = await this.fetchImpl(`${options.aiConfig.baseUrl}/chat/completions`, {
         method: "POST",
         headers: {
@@ -531,22 +614,21 @@ export class CoachService {
           [Symbol.for("legacyMessages")]: [
             {
               role: "system",
-              content:
-                "你是 Scratch 小学编程助教。请根据学生当前作品，给出非常具体、可执行、面向小学生的中文提示。输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 中每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 中每个元素必须包含 severity、title、description，可选 spriteName，其中 severity 只能是 info 或 warning。不要输出 Markdown，不要输出额外解释。"
+              content: systemPrompt
             },
             {
               role: "user",
-              content: `请根据下面的 Scratch 项目上下文，给出“下一步做什么”的提示。优先基于学生已经使用过的模块继续推进，不要让学生一下子大改。\n\n${JSON.stringify(promptContext, null, 2)}`
+              content: userPrompt
             }
           ],
           messages: [
             {
               role: "system",
-              content: HINT_ONLY_SYSTEM_PROMPT
+              content: systemPrompt
             },
             {
               role: "user",
-              content: `${HINT_ONLY_USER_PROMPT}\n\n${JSON.stringify(promptContext, null, 2)}`
+              content: userPrompt
             }
           ]
         }),

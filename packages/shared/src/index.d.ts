@@ -101,6 +101,8 @@ export type DesktopCompanionState = {
   aiConfigPath?: string;
   aiConfigSource?: AiConfigSource;
   aiCustomKeyConfigured: boolean;
+  aiCustomPromptConfigured: boolean;
+  aiCustomPrompt?: string;
   aiStatus: "idle" | "loading" | "ready" | "error";
   aiProvider?: "deepseek" | "fallback";
   aiModel?: string;

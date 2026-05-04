@@ -5,6 +5,7 @@ import {spawn} from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..');
+const screenshotDir = path.join(workspaceRoot, 'docs', 'assets', 'screenshots');
 
 const argv = new Map(
     process.argv.slice(2).map(arg => {
@@ -40,17 +41,18 @@ const projectUrl = getTextArg(
     '--project-url',
     'https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3'
 );
-const goalText = getTextArg('--goal', '让奶酪被碰到以后加分');
 const deepseekApiKey = getTextArg('--deepseek-api-key', '');
+const learningMode = argv.get('--learning-mode') === 'self-paced' ? 'self-paced' : 'follow-teacher';
 const appDataDir =
     argv.get('--appdata-dir') ??
     path.join(workspaceRoot, 'Windows-Test', 'tmp-project-url-ui-appdata');
+const userDataDir = path.join(appDataDir, '@scratch-ai', 'desktop-companion');
 const beforeScreenshotPath =
     argv.get('--before-screenshot') ??
-    path.join(workspaceRoot, 'current-ui-project-url-before.png');
+    path.join(screenshotDir, 'current-ui-project-url-before.png');
 const afterScreenshotPath =
     argv.get('--after-screenshot') ??
-    path.join(workspaceRoot, 'current-ui-project-url-after.png');
+    path.join(screenshotDir, 'current-ui-project-url-after.png');
 
 async function ensureReadable(filePath) {
     await access(filePath);
@@ -76,6 +78,9 @@ function pickDesktopCompanionTarget(targets) {
     return inspectableTargets.find(target => {
         const title = typeof target.title === 'string' ? target.title.trim() : '';
         const url = typeof target.url === 'string' ? target.url.toLowerCase() : '';
+        if (title.includes('Scratch AI')) {
+            return true;
+        }
         return title.includes('Scratch AI 教练') || url.endsWith('/index.html') || url.includes('index.html');
     }) ?? inspectableTargets[0] ?? null;
 }
@@ -204,6 +209,7 @@ async function captureScreenshot(target, outputPath) {
             format: 'png',
             captureBeyondViewport: true
         });
+        await mkdir(path.dirname(outputPath), {recursive: true});
         await writeFile(outputPath, Buffer.from(response.data, 'base64'));
         return outputPath;
     });
@@ -227,8 +233,10 @@ function buildUiSnapshotExpression() {
   projectUrlValue: document.querySelector("#project-url-input") instanceof HTMLInputElement
     ? document.querySelector("#project-url-input").value
     : null,
-  goalValue: document.querySelector("#goal-input") instanceof HTMLTextAreaElement
-    ? document.querySelector("#goal-input").value
+  learningModeValue: Array.from(document.querySelectorAll('input[name="learning-mode"]'))
+    .find(element => element instanceof HTMLInputElement && element.checked) instanceof HTMLInputElement
+    ? Array.from(document.querySelectorAll('input[name="learning-mode"]'))
+        .find(element => element instanceof HTMLInputElement && element.checked).value
     : null,
   buttons: {
     analyzeProjectUrl: document.querySelector("#analyze-project-url-button") instanceof HTMLButtonElement
@@ -303,32 +311,34 @@ async function clickButton(target, selector) {
     return clickResult.value ?? {};
 }
 
-async function setFormValues(target, {projectUrlValue, goalValue}) {
+async function setFormValues(target, {projectUrlValue, learningModeValue}) {
     const result = await evaluateExpressionInTarget(
         target,
         `
 (() => {
   const projectUrlInput = document.querySelector("#project-url-input");
-  const goalInput = document.querySelector("#goal-input");
+  const learningModeInput = document.querySelector(
+    'input[name="learning-mode"][value=' + JSON.stringify(${JSON.stringify(learningModeValue)}) + ']'
+  );
   if (!(projectUrlInput instanceof HTMLInputElement)) {
     return { ok: false, error: "project-url-input-missing" };
   }
-  if (!(goalInput instanceof HTMLTextAreaElement)) {
-    return { ok: false, error: "goal-input-missing" };
+  if (!(learningModeInput instanceof HTMLInputElement)) {
+    return { ok: false, error: "learning-mode-input-missing" };
   }
 
   projectUrlInput.value = ${JSON.stringify(projectUrlValue)};
   projectUrlInput.dispatchEvent(new Event("input", { bubbles: true }));
   projectUrlInput.dispatchEvent(new Event("change", { bubbles: true }));
 
-  goalInput.value = ${JSON.stringify(goalValue)};
-  goalInput.dispatchEvent(new Event("input", { bubbles: true }));
-  goalInput.dispatchEvent(new Event("change", { bubbles: true }));
+  learningModeInput.checked = true;
+  learningModeInput.dispatchEvent(new Event("input", { bubbles: true }));
+  learningModeInput.dispatchEvent(new Event("change", { bubbles: true }));
 
   return {
     ok: true,
     projectUrlValue: projectUrlInput.value,
-    goalValue: goalInput.value
+    learningModeValue: learningModeInput.value
   };
 })()
         `.trim()
@@ -359,7 +369,8 @@ async function main() {
             env: {
                 ...process.env,
                 APPDATA: appDataDir,
-                DEEPSEEK_API_KEY: deepseekApiKey
+                DEEPSEEK_API_KEY: deepseekApiKey,
+                SCRATCH_AI_USER_DATA_DIR: userDataDir
             },
             stdio: 'ignore',
             windowsHide: false
@@ -394,7 +405,7 @@ async function main() {
         const savedBeforeScreenshotPath = await captureScreenshot(targetResult.preferredTarget, beforeScreenshotPath);
         const fillResult = await setFormValues(targetResult.preferredTarget, {
             projectUrlValue: projectUrl,
-            goalValue: goalText
+            learningModeValue: learningMode
         });
         assert(fillResult.ok === true, `Failed to set project URL form values. Actual: ${JSON.stringify(fillResult)}`);
 
@@ -449,9 +460,10 @@ async function main() {
             appMain,
             port: debugPort,
             appDataDir,
+            userDataDir,
             expectDeepSeek,
             projectUrl,
-            goalText,
+            learningMode,
             screenshots: {
                 before: savedBeforeScreenshotPath,
                 after: savedAfterScreenshotPath

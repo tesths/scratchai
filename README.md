@@ -21,18 +21,22 @@
 
 Windows 桌面伴随程序。
 
-当前产品视角已经收敛到两件事：
+当前课堂首页已经收敛到一条 4 步主流程：
 
-- 读取 `当前角色`
-- 读取 `当前角色对应的程序`
+- `选择 Scratch 软件`；如果之前已经选过，就继续使用
+- `打开已选 Scratch`
+- `填入教师 sb3 地址`，支持 Scratch 作品页、Scratch API 地址或直链 `.sb3`
+- `编写程序，学生跟着做`；AI 只给当前这一小步，不直接把完整答案讲完
 
-在 2026-04-29 这轮迭代里，桌面端已经直接接入 DeepSeek：
+在 2026-05-04 这轮迭代里，桌面端已经把这条流程和 DeepSeek 提示统一到一个课堂入口：
 
-- 展示 `当前已用模块`
-- 根据当前项目快照生成 `AI 开发提示`
+- 默认课堂模式是 `跟老师做`
+- 已导入教师参考作品后，即使 Scratch 里还是新项目，也会继续参考该作品给出下一步
 - 没填 key 时自动回退到本地提示
 - 默认走 DeepSeek 官方 V4 模型 `deepseek-v4-flash`
-- 自定义 Key 现在放在独立 `DeepSeek 设置` 窗口里，优先级高于环境变量和程序自带配置
+- 自定义 Key 放在独立 `DeepSeek 设置` 窗口里，优先级高于环境变量和程序自带配置
+- `DeepSeek 设置` 窗口已经和主界面统一为同一套蓝色主题，避免老师入口和学生首页视觉割裂
+- 主窗口与设置窗口都支持鼠标右键菜单；`教师 sb3 地址` 输入框和设置页 Key 输入框都可直接右键复制、粘贴、全选
 
 ### `packages/shared`
 
@@ -116,6 +120,7 @@ npm test
 npm run test:windows-ui
 npm run package:win:single
 npm run package:win:installer
+npm run package:win:bundle
 ```
 
 如果你想直接在仓库根目录执行，也可以用：
@@ -126,6 +131,7 @@ npm run desktop:build
 npm run desktop:test
 npm run desktop:package:portable
 npm run desktop:package:installer
+npm run desktop:package:bundle
 ```
 
 共享包：
@@ -169,21 +175,43 @@ node Windows-Test\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administr
 
 当前最新且已验证的交付物在：
 
-- `ScratchDesktopCompanion-setup.exe`
+- `installers/`
+- `installers/ScratchDesktopCompanion-setup.exe`
+- `installers/ScratchDesktopCompanion-portable.exe`
+- `installers/ScratchDesktopCompanion-with-key-setup.exe`
+- `installers/ScratchDesktopCompanion-with-key-portable.exe`
+- `installers/SHA256SUMS.txt`
+- `installers/RELEASE-NOTES.md`
 - `apps/desktop-companion/release-installer/ScratchDesktopCompanion-setup.exe`
 - `apps/desktop-companion/release-single/win-unpacked/ScratchDesktopCompanion.exe`
 - `apps/desktop-companion/release-single/ScratchDesktopCompanion-portable.exe`
+- `apps/desktop-companion/release-bundles/<timestamp>/`
 
 补充说明：
 
-- 根目录 `ScratchDesktopCompanion-setup.exe` 是 `npm run package:win:installer` 打包完成后自动复制出的最新安装包入口。
+- 根目录 `installers/` 是 4 个最终分发文件的统一收口目录。
+- 常用入口是 `installers/ScratchDesktopCompanion-setup.exe`、`installers/ScratchDesktopCompanion-portable.exe`、`installers/ScratchDesktopCompanion-with-key-setup.exe`、`installers/ScratchDesktopCompanion-with-key-portable.exe`。
+- 如果要直接分发“已经内置 DeepSeek 配置”的版本，优先使用 `installers/ScratchDesktopCompanion-with-key-setup.exe` 或 `installers/ScratchDesktopCompanion-with-key-portable.exe`。
+- `installers/SHA256SUMS.txt` 提供 4 个最终分发文件的 SHA256 校验值，`installers/RELEASE-NOTES.md` 提供这一轮交付说明。
+- 不带 `with-key` 的同名包按当前打包约定是 `no-key` 分发版本，不应再当成“已内置 DeepSeek Key”的交付物。
 - `apps/desktop-companion/release-installer/` 保留安装包原始输出和 blockmap，方便核对与追踪。
+- `npm run package:win:bundle` / `npm run desktop:package:bundle` 会一次性产出 4 个最终交付文件；4 个整包结果仍会收口到 `apps/desktop-companion/release-bundles/<timestamp>/`，同时会把 4 个最终分发文件同步复制到根目录 `installers/`。
+- 每次执行 bundle 打包时，还会同步生成 `SHA256SUMS.txt` 和 `RELEASE-NOTES.md`，并分别写入 bundle 目录和根目录 `installers/`。
 - `win-unpacked` 是当前最稳的已验证产物。
 - `portable.exe` 已做过压缩，当前体积约 `83.95 MB`。
-- `Windows-Test` 目录不再保留历史 exe 副本；交付时优先认根目录安装包，其余产物回到 `apps/desktop-companion/release-*` 下查找。
+- `Windows-Test` 目录不再保留历史 exe 副本；交付时优先认根目录 `installers/`，其余产物回到 `apps/desktop-companion/release-*` 下查找。
+
+## 当前目录收口
+
+- 文档总导航统一看 `docs/README.zh-CN.md`
+- 最终安装包统一收口到 `installers/`
+- 文档截图统一归档到 `docs/assets/screenshots/`
+- `Windows-Test/tmp-*` 和 `Windows-Test/generated/` 属于可再生临时目录，复跑后可以清理
+- `Windows-Test/artifacts/` 只保留需要回看的命名验证结果
 
 ## 文档导航
 
+- [主工程文档索引](docs/README.zh-CN.md)
 - [主工程架构说明](docs/architecture.zh-CN.md)
 - [文档维护约定](docs/maintenance.zh-CN.md)
 - [桌面伴随程序说明](apps/desktop-companion/README.md)
@@ -192,9 +220,9 @@ node Windows-Test\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administr
 - [DeepSeek 教学工作流说明](Windows-Test/deepseek-workflow/README.zh-CN.md)
 - [Windows 部署与排查 SOP](apps/desktop-companion/SOP.zh-CN.md)
 
-## 2026-05-03 补充：网页作品 URL 提示
+## 2026-05-03 补充：教师 sb3 地址 / 参考作品 URL 提示
 
-桌面伴随程序现在除了连接本地 Scratch Desktop，也支持直接粘贴远程 Scratch 作品地址来生成教学提示。
+桌面伴随程序现在除了连接本地 Scratch Desktop，也支持直接粘贴教师参考作品地址来生成教学提示。
 
 支持的地址类型：
 
@@ -218,8 +246,11 @@ node Windows-Test\verify-desktop-companion-ui.mjs
 node Windows-Test\verify-desktop-companion-project-url-ui.mjs
 ```
 
-本轮截图产物：
+当前交互补充：
+- `教师 sb3 地址` 输入框支持鼠标右键复制、粘贴、全选，老师现场发链接时不需要再依赖键盘快捷键
 
-- `current-ui-desktop-companion-mock.png`
-- `current-ui-project-url-before.png`
-- `current-ui-project-url-after.png`
+本轮截图归档：
+
+- `docs/assets/screenshots/current-ui-desktop-companion-mock.png`
+- `docs/assets/screenshots/current-ui-project-url-before.png`
+- `docs/assets/screenshots/current-ui-project-url-after.png`

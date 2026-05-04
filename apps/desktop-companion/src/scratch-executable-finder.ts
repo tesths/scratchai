@@ -110,7 +110,7 @@ export async function resolveScratchExecutableSelection(
   try {
     await accessImpl(resolvedPath);
   } catch {
-    throw new Error("选中的 Scratch 程序不存在，请重新选择。");
+    throw new Error("选中的 Scratch 软件不存在，请重新选择。");
   }
 
   return resolvedPath;

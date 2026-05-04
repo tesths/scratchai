@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { desktopCompanionStateSchema } from "@scratch-ai/shared";
-import { BrowserWindow, Menu, Tray, app, dialog, ipcMain, shell } from "electron";
+import { BrowserWindow, Menu, Tray, app, clipboard, dialog, ipcMain, shell } from "electron";
 
 import { getLaunchOptions } from "./launch-options";
 import { getRuntimeLogPath, initializeRuntimeLog, writeRuntimeLog } from "./runtime-log";
@@ -36,12 +36,17 @@ const automationActionCounts = {
 };
 
 const WINDOWS_APP_ID = "com.scratchai.desktopcompanion";
+const WINDOW_BACKGROUND_COLOR = "#f7fbff";
+const USER_DATA_DIR =
+  process.env.SCRATCH_AI_USER_DATA_DIR?.trim() ||
+  path.join(app.getPath("appData"), "@scratch-ai", "desktop-companion");
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 }
 
 app.setAppUserModelId(WINDOWS_APP_ID);
+app.setPath("userData", USER_DATA_DIR);
 
 function showMainWindow() {
   if (!windowRef) {
@@ -80,6 +85,57 @@ function showSettingsWindow() {
   settingsWindowRef.focus();
 }
 
+function buildContextMenuTemplate(
+  params: Electron.ContextMenuParams
+): Electron.MenuItemConstructorOptions[] {
+  if (params.isEditable) {
+    return [
+      { label: "撤销", role: "undo", enabled: params.editFlags.canUndo },
+      { label: "重做", role: "redo", enabled: params.editFlags.canRedo },
+      { type: "separator" },
+      { label: "剪切", role: "cut", enabled: params.editFlags.canCut },
+      { label: "复制", role: "copy", enabled: params.editFlags.canCopy },
+      { label: "粘贴", role: "paste", enabled: params.editFlags.canPaste },
+      { type: "separator" },
+      { label: "全选", role: "selectAll", enabled: params.editFlags.canSelectAll }
+    ];
+  }
+
+  const template: Electron.MenuItemConstructorOptions[] = [];
+  const hasSelection = params.selectionText.trim().length > 0;
+  const hasLink = params.linkURL.trim().length > 0;
+
+  if (hasSelection) {
+    template.push({ label: "复制", role: "copy", enabled: params.editFlags.canCopy });
+  }
+
+  if (hasLink) {
+    if (template.length > 0) {
+      template.push({ type: "separator" });
+    }
+
+    template.push({
+      label: "复制链接地址",
+      click: () => {
+        clipboard.writeText(params.linkURL);
+      }
+    });
+  }
+
+  return template;
+}
+
+function installContextMenu(window: BrowserWindow) {
+  window.webContents.on("context-menu", (_event, params) => {
+    const template = buildContextMenuTemplate(params);
+    if (template.length === 0) {
+      return;
+    }
+
+    Menu.buildFromTemplate(template).popup({ window });
+  });
+}
+
 function createTray() {
   const tray = new Tray(createTrayIcon().resize({ width: 16, height: 16 }));
 
@@ -99,13 +155,13 @@ function createTray() {
           }
         },
         {
-          label: "选择 Scratch 程序",
+          label: "选择 Scratch 软件",
           click: async () => {
             await chooseScratchExecutable("tray");
           }
         },
         {
-          label: "打开 Scratch Desktop",
+          label: "打开已选 Scratch",
           click: () => {
             void sessionManager?.launchScratchNow();
           }
@@ -159,7 +215,7 @@ function createWindow(startHidden: boolean) {
     title: "Scratch AI 教练",
     alwaysOnTop: true,
     autoHideMenuBar: true,
-    backgroundColor: "#f7f0e1",
+    backgroundColor: WINDOW_BACKGROUND_COLOR,
     icon: getIconAssetPath("app-icon.png"),
     show: !startHidden,
     skipTaskbar: startHidden,
@@ -170,6 +226,7 @@ function createWindow(startHidden: boolean) {
     }
   });
 
+  installContextMenu(window);
   void window.loadFile(path.join(__dirname, "index.html"));
   window.webContents.on("did-fail-load", (_event, errorCode, errorDescription) => {
     writeRuntimeLog(`renderer failed to load: ${errorCode} ${errorDescription}`);
@@ -195,7 +252,7 @@ function createSettingsWindow() {
     title: "DeepSeek 设置",
     alwaysOnTop: true,
     autoHideMenuBar: true,
-    backgroundColor: "#f7f0e1",
+    backgroundColor: WINDOW_BACKGROUND_COLOR,
     icon: getIconAssetPath("app-icon.png"),
     show: false,
     parent: windowRef ?? undefined,
@@ -206,6 +263,7 @@ function createSettingsWindow() {
     }
   });
 
+  installContextMenu(settingsWindow);
   void settingsWindow.loadFile(path.join(__dirname, "settings.html"));
   settingsWindow.on("closed", () => {
     settingsWindowRef = null;
@@ -288,6 +346,20 @@ async function handleClearCustomAiApiKey() {
   await sessionManager?.clearCustomAiApiKey();
 }
 
+async function handleSaveCustomAiPrompt(prompt: string) {
+  if (launchOptions.automationActions) {
+    return;
+  }
+  await sessionManager?.saveCustomAiPrompt(prompt);
+}
+
+async function handleClearCustomAiPrompt() {
+  if (launchOptions.automationActions) {
+    return;
+  }
+  await sessionManager?.clearCustomAiPrompt();
+}
+
 async function handleChooseScratchExecutable() {
   if (launchOptions.automationActions) {
     return applyAutomationAction("chooseScratchExecutable");
@@ -319,6 +391,12 @@ ipcMain.handle("desktop-companion:save-custom-ai-api-key", async (_event, apiKey
 });
 ipcMain.handle("desktop-companion:clear-custom-ai-api-key", async () => {
   await handleClearCustomAiApiKey();
+});
+ipcMain.handle("desktop-companion:save-custom-ai-prompt", async (_event, prompt: string) => {
+  await handleSaveCustomAiPrompt(prompt);
+});
+ipcMain.handle("desktop-companion:clear-custom-ai-prompt", async () => {
+  await handleClearCustomAiPrompt();
 });
 ipcMain.handle("desktop-companion:choose-scratch-executable", async () => {
   return await handleChooseScratchExecutable();

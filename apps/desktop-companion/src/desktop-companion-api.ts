@@ -9,4 +9,6 @@ export interface DesktopCompanionApi {
   requestAiHintFromProjectUrl: (projectUrl: string, goal?: string) => Promise<void>;
   saveCustomAiApiKey: (apiKey: string) => Promise<void>;
   clearCustomAiApiKey: () => Promise<void>;
+  saveCustomAiPrompt: (prompt: string) => Promise<void>;
+  clearCustomAiPrompt: () => Promise<void>;
 }

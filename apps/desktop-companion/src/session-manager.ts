@@ -1,9 +1,9 @@
 import {
   desktopCompanionStateSchema,
+  getUsedExtensionsFromProject,
   projectJsonToSnapshot,
   scratchStatePayloadSchema,
-  summarizeProgramAreaModulesFromProject,
-  getUsedExtensionsFromProject
+  summarizeProgramAreaModulesFromProject
 } from "@scratch-ai/shared";
 
 import { buildDesktopInjectionScript } from "./bridge-script";
@@ -17,7 +17,7 @@ import { ScratchLauncher } from "./scratch-launcher";
 import { ScratchRemoteDebugger } from "./scratch-remote-debugger";
 import { StateStore } from "./state-store";
 import type { LoadedDeepSeekConfig } from "./deepseek-config";
-import type { DesktopCompanionState, ProjectSnapshot, ScratchStatePayload } from "./types";
+import type { DesktopCompanionState, ProgramAreaModule, ProjectSnapshot, ScratchStatePayload } from "./types";
 
 const CDP_INJECTION_TIMEOUT_MS = 15_000;
 const BRIDGE_CONNECTION_SETTLE_MS = 6_000;
@@ -40,6 +40,18 @@ interface SessionManagerDependencies {
 
 type ScratchLaunchSession = Awaited<ReturnType<ScratchLauncher["launch"]>>;
 
+interface ImportedProjectReference {
+  snapshot: ProjectSnapshot;
+  currentTargetName?: string;
+  currentTargetIsStage: boolean;
+  currentTargetPrograms: string[];
+  programAreaModules: ProgramAreaModule[];
+  usedExtensions: string[];
+  loadedExtensions: string[];
+  sourceLabel: string;
+  goal?: string;
+}
+
 function deriveCurrentTargetPrograms(snapshot: ProjectSnapshot, fallbackTargetName?: string) {
   const targetName =
     typeof snapshot.currentTarget === "string" && snapshot.currentTarget.trim()
@@ -54,6 +66,11 @@ function deriveCurrentTargetPrograms(snapshot: ProjectSnapshot, fallbackTargetNa
   return currentTargetSprite.scripts
     .map((script) => script.blockSequence.join(" -> ").trim())
     .filter(Boolean);
+}
+
+function trimText(value?: string) {
+  const candidate = typeof value === "string" ? value.trim() : "";
+  return candidate || undefined;
 }
 
 export class SessionManager {
@@ -77,7 +94,7 @@ export class SessionManager {
 
   private readonly platform: string;
 
-  private config: { scratchExecutablePath?: string; customAiApiKey?: string } = {};
+  private config: { scratchExecutablePath?: string; customAiApiKey?: string; customAiPrompt?: string } = {};
 
   private activeLaunchSession?: ScratchLaunchSession;
 
@@ -87,7 +104,9 @@ export class SessionManager {
 
   private aiConfig: LoadedDeepSeekConfig | null = null;
 
-  private lastProjectSnapshot: ProjectSnapshot | null = null;
+  private liveProjectSnapshot: ProjectSnapshot | null = null;
+
+  private importedProjectReference: ImportedProjectReference | null = null;
 
   private isLaunching = false;
 
@@ -143,6 +162,7 @@ export class SessionManager {
         currentTargetPrograms: [],
         aiConfigured: false,
         aiCustomKeyConfigured: false,
+        aiCustomPromptConfigured: false,
         aiStatus: "idle"
       });
       return;
@@ -158,7 +178,8 @@ export class SessionManager {
     this.unsubscribeLaunchExit?.();
     this.unsubscribeLaunchExit = undefined;
     this.activeLaunchSession = undefined;
-    this.lastProjectSnapshot = null;
+    this.liveProjectSnapshot = null;
+    this.importedProjectReference = null;
     this.flushBridgeConnectionWaiters(false);
     await this.bridgeServer.stop();
   }
@@ -201,17 +222,38 @@ export class SessionManager {
     });
   }
 
+  async saveCustomAiPrompt(prompt: string) {
+    this.config = await this.configStore.saveCustomAiPrompt(prompt);
+    this.stateStore.update({
+      ...this.getAiStatePatch(),
+      aiError: undefined
+    });
+  }
+
+  async clearCustomAiPrompt() {
+    this.config = await this.configStore.clearCustomAiPrompt();
+    this.stateStore.update({
+      ...this.getAiStatePatch(),
+      aiError: undefined
+    });
+  }
+
   async requestAiHint(goal?: string) {
     await this.refreshAiConfig();
 
-    if (!this.lastProjectSnapshot) {
+    const currentState = this.stateStore.getState();
+    const liveSnapshot = this.liveProjectSnapshot;
+    const importedProjectReference = this.importedProjectReference;
+    const activeSnapshot = liveSnapshot ?? importedProjectReference?.snapshot ?? null;
+
+    if (!activeSnapshot) {
       this.stateStore.update({
         ...this.getAiStatePatch(),
         aiStatus: "error",
         aiProvider: undefined,
         aiCoachResponse: undefined,
         aiLastUpdatedAt: undefined,
-        aiError: "还没有读取到可分析的 Scratch 项目，请先从伴随程序打开 Scratch 并进入作品。"
+        aiError: "还没读取到可分析的 Scratch 项目，请先从伴随程序打开已选 Scratch 并进入作品。"
       });
       return;
     }
@@ -225,8 +267,7 @@ export class SessionManager {
       aiError: undefined
     });
 
-    const currentState = this.stateStore.getState();
-    const trimmedGoal = typeof goal === "string" ? goal.trim() : "";
+    const trimmedGoal = trimText(goal) ?? importedProjectReference?.goal;
     const aiConfig = this.aiConfig;
     if (!aiConfig) {
       this.stateStore.update({
@@ -236,13 +277,37 @@ export class SessionManager {
       return;
     }
 
+    const currentTargetPrograms = liveSnapshot
+      ? currentState.currentTargetPrograms
+      : importedProjectReference?.currentTargetPrograms ?? [];
+    const programAreaModules = liveSnapshot
+      ? currentState.programAreaModules
+      : importedProjectReference?.programAreaModules ?? [];
+    const usedExtensions = liveSnapshot
+      ? currentState.usedExtensions
+      : importedProjectReference?.usedExtensions ?? [];
+    const loadedExtensions = liveSnapshot
+      ? currentState.loadedExtensions
+      : importedProjectReference?.loadedExtensions ?? [];
+
     const result = await this.coachService.generateHint({
-      snapshot: this.lastProjectSnapshot,
-      currentTargetPrograms: currentState.currentTargetPrograms,
-      programAreaModules: currentState.programAreaModules,
-      usedExtensions: currentState.usedExtensions,
-      loadedExtensions: currentState.loadedExtensions,
+      snapshot: activeSnapshot,
+      currentTargetPrograms,
+      programAreaModules,
+      usedExtensions,
+      loadedExtensions,
       aiConfig,
+      customSystemPrompt: this.config.customAiPrompt,
+      ...(liveSnapshot && importedProjectReference
+        ? {
+            referenceSnapshot: importedProjectReference.snapshot,
+            referenceCurrentTargetPrograms: importedProjectReference.currentTargetPrograms,
+            referenceProgramAreaModules: importedProjectReference.programAreaModules,
+            referenceUsedExtensions: importedProjectReference.usedExtensions,
+            referenceLoadedExtensions: importedProjectReference.loadedExtensions,
+            referenceSourceLabel: importedProjectReference.sourceLabel
+          }
+        : {}),
       ...(trimmedGoal ? { goal: trimmedGoal } : {})
     });
 
@@ -297,9 +362,28 @@ export class SessionManager {
 
     try {
       const loadedProject = await this.projectUrlLoader.load(trimmedProjectUrl);
-      this.lastProjectSnapshot = loadedProject.snapshot;
+      const trimmedGoal = trimText(goal);
 
-      const trimmedGoal = typeof goal === "string" ? goal.trim() : "";
+      this.importedProjectReference = {
+        snapshot: loadedProject.snapshot,
+        currentTargetName: loadedProject.currentTargetName,
+        currentTargetIsStage: loadedProject.currentTargetIsStage,
+        currentTargetPrograms: loadedProject.currentTargetPrograms,
+        programAreaModules: loadedProject.programAreaModules,
+        usedExtensions: loadedProject.usedExtensions,
+        loadedExtensions: loadedProject.loadedExtensions,
+        sourceLabel: loadedProject.sourceLabel,
+        ...(trimmedGoal ? { goal: trimmedGoal } : {})
+      };
+
+      if (this.liveProjectSnapshot) {
+        this.stateStore.update({
+          detail: `已导入教师参考作品：${loadedProject.sourceLabel}。现在会结合学生当前 Scratch 进度，生成下一步提示。`
+        });
+        await this.requestAiHint(trimmedGoal);
+        return;
+      }
+
       const result = await this.coachService.generateHint({
         snapshot: loadedProject.snapshot,
         currentTargetPrograms: loadedProject.currentTargetPrograms,
@@ -307,6 +391,7 @@ export class SessionManager {
         usedExtensions: loadedProject.usedExtensions,
         loadedExtensions: loadedProject.loadedExtensions,
         aiConfig,
+        customSystemPrompt: this.config.customAiPrompt,
         ...(trimmedGoal ? { goal: trimmedGoal } : {})
       });
 
@@ -316,7 +401,7 @@ export class SessionManager {
 
       this.stateStore.update({
         status: "waiting",
-        statusText: "已加载网页作品，可直接查看提示",
+        statusText: "已读取教师参考作品，可直接查看提示",
         detail: `来源：${loadedProject.sourceLabel}`,
         error: undefined,
         scratchPid: undefined,
@@ -399,7 +484,7 @@ export class SessionManager {
         injectionMode: "cdp-runtime-evaluate",
         scratchExecutablePath: this.config.scratchExecutablePath,
         error: error instanceof Error ? error.message : "Unknown launch error",
-        detail: "请确认已选择正确的 Scratch 可执行文件（Scratch.exe 或 Scratch 3.exe），并允许伴随程序代为启动。"
+        detail: "请确认已经选择正确的 Scratch 可执行文件（Scratch.exe 或 Scratch 3.exe），并允许伴随程序代为启动。"
       });
     } finally {
       this.isLaunching = false;
@@ -452,7 +537,7 @@ export class SessionManager {
     }
 
     if (snapshot) {
-      this.lastProjectSnapshot = snapshot;
+      this.liveProjectSnapshot = snapshot;
     }
 
     this.stateStore.update({
@@ -472,7 +557,7 @@ export class SessionManager {
       programAreaModules,
       currentTargetPrograms,
       lastUpdatedAt: payload.capturedAt ?? new Date().toISOString(),
-      detail: `最近更新来源：${payload.source ?? "unknown"}`,
+      detail: this.buildConnectedDetail(payload.source, currentTargetPrograms),
       ...this.getAiStatePatch()
     });
 
@@ -480,6 +565,9 @@ export class SessionManager {
       this.log(
         `Scratch bridge connected pid=${payload.scratchPid ?? this.activeLaunchSession?.pid ?? "unknown"} target=${JSON.stringify(payload.currentTargetName ?? "unknown")} toolboxCategories=${toolboxCategories.length} loadedExtensions=${loadedExtensions.length} programAreaModules=${programAreaModules.length}`
       );
+      void this.requestAiHint(trimText(this.importedProjectReference?.goal)).catch((error) => {
+        this.log("Automatic hint refresh after Scratch connect failed", error);
+      });
     }
     this.flushBridgeConnectionWaiters(true);
   }
@@ -529,7 +617,7 @@ export class SessionManager {
       launchMode: "controlled-launch",
       injectionMode: "cdp-runtime-evaluate",
       error: lastError instanceof Error ? lastError.message : "Unknown injection error",
-      detail: "Scratch 已启动，但伴随程序还没有成功把读取脚本稳定注入到 renderer。"
+      detail: "Scratch 已启动，但伴随程序还没成功把读取脚本稳定注入到 renderer。"
     });
   }
 
@@ -613,39 +701,49 @@ export class SessionManager {
     this.unsubscribeLaunchExit?.();
     this.unsubscribeLaunchExit = undefined;
     this.activeLaunchSession = undefined;
-    this.lastProjectSnapshot = null;
+    this.liveProjectSnapshot = null;
     this.flushBridgeConnectionWaiters(false);
-    this.setWaitingState("Scratch 已关闭，请重新点击“打开 Scratch”。");
+    this.setWaitingState("Scratch 已关闭，请重新点击“打开已选 Scratch”。");
   }
 
   private setWaitingState(detail?: string) {
-    this.lastProjectSnapshot = null;
+    this.liveProjectSnapshot = null;
 
+    const currentState = this.stateStore.getState();
+    const reference = this.importedProjectReference;
     const scratchExecutablePath = this.config.scratchExecutablePath;
     const hasScratchPath = typeof scratchExecutablePath === "string" && scratchExecutablePath.length > 0;
+    const preserveReferenceHint =
+      Boolean(reference) &&
+      Boolean(currentState.aiCoachResponse) &&
+      currentState.aiStatus === "ready";
 
     const nextState: DesktopCompanionState = {
       status: "waiting",
-      statusText: hasScratchPath ? "请从伴随程序启动 Scratch Desktop" : "请先选择 Scratch 路径",
+      statusText: hasScratchPath ? "请从伴随程序打开已选 Scratch" : "请先选择 Scratch 软件",
       launchMode: "controlled-launch",
       injectionMode: "cdp-runtime-evaluate",
-      toolboxCategories: [],
-      usedExtensions: [],
-      loadedExtensions: [],
-      programAreaModules: [],
-      currentTargetPrograms: [],
+      toolboxCategories: reference?.snapshot.toolboxCategories ?? [],
+      usedExtensions: reference?.usedExtensions ?? [],
+      loadedExtensions: reference?.loadedExtensions ?? [],
+      programAreaModules: reference?.programAreaModules ?? [],
+      currentTargetPrograms: reference?.currentTargetPrograms ?? [],
       aiConfigured: this.aiConfig?.configured ?? false,
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
-      aiStatus: "idle",
-      detail:
-        detail ??
-        (hasScratchPath
-          ? `已配置 Scratch 程序：${scratchExecutablePath}。点击“打开 Scratch”后，伴随程序会自动连接调试端口。`
-          : `本地监听端已启动：${this.bridgeServer.getBaseUrl()}。请先选择老师机上的 Scratch 可执行文件（Scratch.exe 或 Scratch 3.exe）。`)
+      aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
+      aiStatus: preserveReferenceHint ? currentState.aiStatus : "idle",
+      detail: detail ?? this.buildWaitingDetail(hasScratchPath, scratchExecutablePath, reference)
     };
 
     if (hasScratchPath) {
       nextState.scratchExecutablePath = scratchExecutablePath;
+    }
+
+    if (reference) {
+      nextState.currentTargetId = reference.snapshot.currentTargetId;
+      nextState.currentTargetName = reference.currentTargetName ?? reference.snapshot.currentTarget;
+      nextState.currentTargetIsStage = reference.currentTargetIsStage;
+      nextState.lastUpdatedAt = reference.snapshot.updatedAt;
     }
 
     if (this.aiConfig?.configPath) {
@@ -658,6 +756,17 @@ export class SessionManager {
 
     if (this.aiConfig?.model) {
       nextState.aiModel = this.aiConfig.model;
+    }
+
+    if (this.config.customAiPrompt) {
+      nextState.aiCustomPrompt = this.config.customAiPrompt;
+    }
+
+    if (preserveReferenceHint) {
+      nextState.aiProvider = currentState.aiProvider;
+      nextState.aiCoachResponse = currentState.aiCoachResponse;
+      nextState.aiLastUpdatedAt = currentState.aiLastUpdatedAt;
+      nextState.aiError = currentState.aiError;
     }
 
     this.stateStore.setState(desktopCompanionStateSchema.parse(nextState));
@@ -676,6 +785,8 @@ export class SessionManager {
       aiConfigPath: this.aiConfig?.configPath,
       aiConfigSource: this.aiConfig?.source,
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
+      aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
+      aiCustomPrompt: this.config.customAiPrompt,
       aiModel: this.aiConfig?.model
     };
   }
@@ -694,5 +805,34 @@ export class SessionManager {
       this.log("Failed to build project snapshot", error);
       return null;
     }
+  }
+
+  private buildConnectedDetail(source?: string, currentTargetPrograms: string[] = []) {
+    const base = `最近更新来源：${source ?? "unknown"}`;
+    if (!this.importedProjectReference) {
+      return base;
+    }
+
+    if (currentTargetPrograms.length === 0) {
+      return `${base}；当前 Scratch 还是新项目。先看自动生成的第一步提示；学生补完后，再点“更新下一步提示”，会继续参考已导入的教师参考作品一步一步引导。`;
+    }
+
+    return `${base}；AI 会继续结合已导入的教师参考作品和学生当前进度，给出下一步建议。`;
+  }
+
+  private buildWaitingDetail(
+    hasScratchPath: boolean,
+    scratchExecutablePath: string | undefined,
+    reference: ImportedProjectReference | null
+  ) {
+    if (hasScratchPath && reference) {
+      return `已导入教师参考作品：${reference.sourceLabel}。点击“打开已选 Scratch”后，即使打开的是新项目，AI 也会继续参考这个作品一步一步引导学生完成。`;
+    }
+
+    if (hasScratchPath && scratchExecutablePath) {
+      return `已配置 Scratch 软件：${scratchExecutablePath}。点击“打开已选 Scratch”后，伴随程序会自动连接调试端口。`;
+    }
+
+    return `本地监听端已启动：${this.bridgeServer.getBaseUrl()}。请先选择老师机上的 Scratch 软件（Scratch.exe 或 Scratch 3.exe）。`;
   }
 }

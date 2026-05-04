@@ -15,6 +15,7 @@ export class StateStore {
     currentTargetPrograms: [],
     aiConfigured: false,
     aiCustomKeyConfigured: false,
+    aiCustomPromptConfigured: false,
     aiStatus: "idle"
   };
 
@@ -44,6 +45,8 @@ export class StateStore {
     nextState.currentTargetPrograms = patch.currentTargetPrograms ?? this.state.currentTargetPrograms;
     nextState.aiConfigured = patch.aiConfigured ?? this.state.aiConfigured;
     nextState.aiCustomKeyConfigured = patch.aiCustomKeyConfigured ?? this.state.aiCustomKeyConfigured;
+    nextState.aiCustomPromptConfigured =
+      patch.aiCustomPromptConfigured ?? this.state.aiCustomPromptConfigured;
     nextState.aiStatus = patch.aiStatus ?? this.state.aiStatus;
 
     this.setState(nextState as DesktopCompanionState);

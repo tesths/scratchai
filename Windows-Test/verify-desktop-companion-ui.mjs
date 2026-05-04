@@ -32,6 +32,7 @@ const debugPort = Number(argv.get('--port') ?? '9344');
 const timeoutMs = Number(argv.get('--timeout-ms') ?? '15000');
 const screenshotPath = argv.get('--screenshot') ?? screenshotPathDefault;
 const automationScratchPath = argv.get('--automation-scratch-path') ?? 'C:\\Automation\\Scratch 3.exe';
+const userDataDir = path.join(workspaceRoot, 'Windows-Test', 'tmp-desktop-companion-ui-userdata');
 const expectedProgram =
     '脚本 1: event_whenflagclicked -> control_forever -> motion_movesteps -> pen_clear';
 
@@ -384,7 +385,8 @@ async function main() {
                 ...process.env,
                 DESKTOP_COMPANION_MOCK_STATE_FILE: mockStateFile,
                 DESKTOP_COMPANION_AUTOMATION_ACTIONS: '1',
-                DESKTOP_COMPANION_AUTOMATION_SCRATCH_PATH: automationScratchPath
+                DESKTOP_COMPANION_AUTOMATION_SCRATCH_PATH: automationScratchPath,
+                SCRATCH_AI_USER_DATA_DIR: userDataDir
             },
             stdio: 'ignore',
             windowsHide: false

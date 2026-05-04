@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  formatDefaultDetail,
+  formatDefaultNextStep,
   formatCurrentTarget,
   formatCurrentTargetPrograms,
   renderList,
@@ -53,6 +55,35 @@ test("formats current target programs with script labels", () => {
       "脚本 1: event_whenflagclicked -> control_forever -> motion_movesteps",
       "脚本 2: event_whenkeypressed -> looks_say"
     ]
+  );
+});
+
+test("formats default detail and next step for the new scratch-first flow", () => {
+  assert.equal(
+    formatDefaultDetail({}),
+    "先选择本机的 Scratch 软件；选过一次后，之后会继续使用这个路径。"
+  );
+  assert.equal(
+    formatDefaultDetail({
+      scratchExecutablePath: "C:\\Scratch 3.exe"
+    }),
+    "已经记住上次选择的 Scratch 软件了。现在点“打开已选 Scratch”即可继续使用。"
+  );
+  assert.equal(
+    formatDefaultNextStep({}),
+    "下一步：先选择 Scratch 软件。"
+  );
+  assert.equal(
+    formatDefaultNextStep({
+      scratchExecutablePath: "C:\\Scratch 3.exe"
+    }),
+    "下一步：点击“打开已选 Scratch”。"
+  );
+  assert.equal(
+    formatDefaultNextStep({
+      status: "connected"
+    }),
+    "下一步：先看当前提示完成这一小步；学生补完后，再点击“更新下一步提示”。"
   );
 });
 

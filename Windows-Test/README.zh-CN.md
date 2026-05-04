@@ -7,24 +7,31 @@
 当前已经对齐并验证的主流程是：
 
 1. 打开伴随程序，自动识别是否已安装 Scratch。
-2. 如果没有自动识别到路径，手动选择 `Scratch.exe` 或 `Scratch 3.exe`。
-3. 从伴随程序里点击 `打开 Scratch`，由伴随程序受控启动并建立连接。
-4. 连接成功后，界面实时显示：
+2. 如果没有自动识别到路径，手动选择 `Scratch.exe` 或 `Scratch 3.exe`；如果之前已经选过，就继续使用上次保存的路径。
+3. 从伴随程序里点击 `打开已选 Scratch`，由伴随程序受控启动并建立连接。
+4. 在首页 `教师 sb3 地址` 输入框里粘贴教师参考作品地址。
+5. 连接成功后，界面实时显示：
    - `当前角色`
    - `当前角色程序`
+   - `AI 当前一步提示`
 
-界面重点已经不是“模块 / 扩展面板”，而是“角色 + 角色程序”。
+界面重点已经不是“模块 / 扩展面板”，而是“Scratch 软件 + 教师参考作品 + AI 当前一步提示”。
 
 ## 当前交付物口径
 
 截至 2026-04-28，当前最新且已验证通过的交付物以这里为准：
 
-- `ScratchDesktopCompanion-setup.exe`
+- `installers/ScratchDesktopCompanion-setup.exe`
+- `installers/ScratchDesktopCompanion-portable.exe`
+- `installers/ScratchDesktopCompanion-with-key-setup.exe`
+- `installers/ScratchDesktopCompanion-with-key-portable.exe`
+- `installers/SHA256SUMS.txt`
+- `installers/RELEASE-NOTES.md`
 - `apps/desktop-companion/release-installer/ScratchDesktopCompanion-setup.exe`
 - `apps/desktop-companion/release-single/win-unpacked/ScratchDesktopCompanion.exe`
 - `apps/desktop-companion/release-single/ScratchDesktopCompanion-portable.exe`
 
-`Windows-Test` 现在不再保留历史 `portable.exe` / `setup.exe` 副本；最新安装包入口看仓库根目录 `ScratchDesktopCompanion-setup.exe`，源产物回到 `apps/desktop-companion/release-installer/` 和 `apps/desktop-companion/release-single/` 查找。
+`Windows-Test` 现在不再保留历史 `portable.exe` / `setup.exe` 副本；最新分发入口统一看仓库根目录 `installers/`。如果要验证“已内置 DeepSeek 配置”的安装包或便携包，优先使用 `installers/ScratchDesktopCompanion-with-key-setup.exe` 和 `installers/ScratchDesktopCompanion-with-key-portable.exe`；源产物回到 `apps/desktop-companion/release-installer/` 和 `apps/desktop-companion/release-single/` 查找。分发或验收前可对照 `installers/SHA256SUMS.txt` 做校验，并查看 `installers/RELEASE-NOTES.md` 确认交付批次。
 
 ## 目录内容
 
@@ -48,6 +55,11 @@
   - 教学工作流提示词模板、本地校验器和说明文档
 - `run-scratch-regression.ps1`
   - 批量执行 Scratch bridge 场景回归
+- `artifacts/`
+  - 保留需要回看的命名验证结果
+- `tmp-*`
+  - 本地回归运行时目录和缓存
+  - 复跑前后都可以清理
 - `last-sb3-capture.json`
   - 最近一次本地 `.sb3` 读取结果
 - `fixtures/desktop-companion-mock-state.json`
@@ -67,8 +79,8 @@
 
 打包版真实 E2E 当前已经验证：
 
-- 首屏能进入 `请从伴随程序启动 Scratch Desktop`
-- 点击 `打开 Scratch` 后能自动启动 Scratch
+- 首屏能进入 `请从伴随程序打开已选 Scratch`
+- 点击 `打开已选 Scratch` 后能自动启动 Scratch
 - 状态能进入 `已连接到 Scratch Desktop`
 - 真实项目加载后能显示 `当前角色 = 角色1`
 - 真实项目加载后能显示 `当前角色程序 = 脚本 1: event_whenflagclicked -> control_forever`
@@ -139,8 +151,8 @@ Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -like 
 1. 运行 `apps/desktop-companion/release-single/win-unpacked/ScratchDesktopCompanion.exe`。
 2. 确认窗口能正常打开。
 3. 观察是否自动识别到 Scratch 路径。
-4. 如果没有识别到，点击 `选择 Scratch` 并手动选中真实 exe。
-5. 点击 `打开 Scratch`。
+4. 如果没有识别到，点击 `选择 Scratch 软件` 并手动选中真实 exe。
+5. 点击 `打开已选 Scratch`。
 6. 观察页面顶部状态是否变成 `已连接到 Scratch Desktop`。
 7. 检查 `当前角色` 是否正确。
 8. 检查 `当前角色程序` 是否能列出脚本序列。
@@ -182,9 +194,9 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 - `当前角色程序`
 - 最后 30 到 50 行日志
 
-## 2026-05-03 补充：网页 URL 功能与截图测试
+## 2026-05-03 补充：教师参考作品 URL 功能与截图测试
 
-本轮新增了一个专门覆盖“网页作品地址 -> 远程项目加载 -> AI 提示”链路的 UI 自动化脚本：
+本轮新增了一个专门覆盖“教师参考作品地址 -> 远程项目加载 -> AI 提示”链路的 UI 自动化脚本：
 
 ```powershell
 node Windows-Test\verify-desktop-companion-project-url-ui.mjs
@@ -194,24 +206,27 @@ node Windows-Test\verify-desktop-companion-project-url-ui.mjs
 
 - 启动桌面伴随程序
 - 填入远程 `.sb3` 地址
-- 填入教学目标
-- 点击 `分析网页作品并生成提示`
+- 选择课堂模式
+- 点击 `读取 sb3，生成跟做步骤`
 - 断言页面最终能显示 `当前角色`、`当前角色程序` 和 AI 提示
 - 保存前后两张截图
 
 截图输出：
 
-- `C:\Users\Administrator\Desktop\scratch\current-ui-project-url-before.png`
-- `C:\Users\Administrator\Desktop\scratch\current-ui-project-url-after.png`
+- `C:\Users\Administrator\Desktop\scratch\docs\assets\screenshots\current-ui-project-url-before.png`
+- `C:\Users\Administrator\Desktop\scratch\docs\assets\screenshots\current-ui-project-url-after.png`
+
+建议补一轮人工点检：
+- 在 `教师 sb3 地址` 输入框里点一次鼠标右键，确认能看到复制、粘贴、全选菜单
 
 已有脚本 `verify-desktop-companion-ui.mjs` 也补充了两个断言：
 
-- 页面存在网页作品 URL 输入框
-- 页面存在网页作品分析按钮
+- 页面存在 `教师 sb3 地址` 输入框
+- 页面存在 `读取 sb3，生成跟做步骤` 按钮
 
 它会额外保存一张静态界面截图：
 
-- `C:\Users\Administrator\Desktop\scratch\current-ui-desktop-companion-mock.png`
+- `C:\Users\Administrator\Desktop\scratch\docs\assets\screenshots\current-ui-desktop-companion-mock.png`
 
 建议回归顺序：
 

@@ -70,6 +70,72 @@ function createSnapshot() {
   };
 }
 
+function createReferenceSnapshot() {
+  return {
+    projectId: "reference-project",
+    currentTarget: "cheese",
+    currentTargetId: "sprite-cheese",
+    toolboxCategories: ["事件", "控制", "侦测", "变量"],
+    loadedExtensions: [],
+    programAreaModules: [
+      {
+        id: "event",
+        label: "事件",
+        blockCount: 1
+      },
+      {
+        id: "control",
+        label: "控制",
+        blockCount: 1
+      },
+      {
+        id: "sensing",
+        label: "侦测",
+        blockCount: 1
+      }
+    ],
+    sprites: [
+      {
+        name: "cheese",
+        isStage: false,
+        blockCount: 4,
+        variables: [],
+        scripts: [
+          {
+            spriteName: "cheese",
+            event: "when green flag clicked",
+            blockSequence: [
+              "event_whenflagclicked",
+              "control_forever",
+              "sensing_touchingobject",
+              "data_changevariableby"
+            ],
+            blockOpcodes: [
+              "event_whenflagclicked",
+              "control_forever",
+              "sensing_touchingobject",
+              "data_changevariableby"
+            ]
+          }
+        ]
+      }
+    ],
+    blocks: [
+      {
+        id: "ref-block-1",
+        opcode: "event_whenflagclicked",
+        category: "事件",
+        label: "当绿旗被点击",
+        spriteName: "cheese",
+        topLevel: true
+      }
+    ],
+    globalVariables: [],
+    detectedConcepts: ["event", "control", "sensing", "data"],
+    updatedAt: "2026-05-03T12:00:00.000Z"
+  };
+}
+
 function createDeepSeekResponse(content) {
   return new Response(
     JSON.stringify({
@@ -174,6 +240,102 @@ test("CoachService falls back when DeepSeek returns invalid JSON content", async
   assert.equal(result.model, "local-heuristic");
   assert.equal(typeof result.warning, "string");
   assert.equal(result.coachResponse.recommendedBlocks.length > 0, true);
+});
+
+test("CoachService includes imported teaching reference context in DeepSeek prompts", async () => {
+  let capturedRequest;
+
+  const service = new CoachService(async (_url, init) => {
+    capturedRequest = JSON.parse(init.body);
+
+    return createDeepSeekResponse(
+      JSON.stringify({
+        answerText: "先补起步脚本。",
+        recommendedBlocks: [],
+        nextStep: "先补一个最小脚本。",
+        detectedIssues: [],
+        followUpQuestion: "你想先做哪一步？"
+      })
+    );
+  });
+
+  const result = await service.generateHint({
+    snapshot: createSnapshot(),
+    currentTargetPrograms: ["event_whenflagclicked -> motion_movesteps"],
+    programAreaModules: [
+      {
+        id: "motion",
+        label: "运动",
+        blockCount: 1
+      }
+    ],
+    usedExtensions: [],
+    loadedExtensions: [],
+    referenceSnapshot: createReferenceSnapshot(),
+    referenceCurrentTargetPrograms: [
+      "event_whenflagclicked -> control_forever -> sensing_touchingobject -> data_changevariableby"
+    ],
+    referenceProgramAreaModules: [
+      { id: "event", label: "事件", blockCount: 1 },
+      { id: "control", label: "控制", blockCount: 1 },
+      { id: "sensing", label: "侦测", blockCount: 1 },
+      { id: "data", label: "变量", blockCount: 1 }
+    ],
+    referenceUsedExtensions: [],
+    referenceLoadedExtensions: [],
+    referenceSourceLabel: "https://example.com/reference.sb3",
+    goal: "让学生从新项目一步一步做出来",
+    aiConfig: createAiConfig()
+  });
+
+  assert.equal(result.source, "deepseek");
+  assert.equal(capturedRequest.messages[1].content.includes('"teachingReference"'), true);
+  assert.equal(capturedRequest.messages[1].content.includes("https://example.com/reference.sb3"), true);
+  assert.equal(
+    capturedRequest.messages[1].content.includes("compare_current_student_project_with_imported_reference"),
+    true
+  );
+});
+
+test("CoachService uses the saved custom teacher prompt while keeping JSON output requirements", async () => {
+  let capturedRequest;
+
+  const service = new CoachService(async (_url, init) => {
+    capturedRequest = JSON.parse(init.body);
+
+    return createDeepSeekResponse(
+      JSON.stringify({
+        answerText: "先补一段碰撞判断。",
+        recommendedBlocks: [],
+        nextStep: "先补一段碰撞判断。",
+        detectedIssues: [],
+        followUpQuestion: "你想先在哪个角色里做？"
+      })
+    );
+  });
+
+  await service.generateHint({
+    snapshot: createSnapshot(),
+    currentTargetPrograms: ["event_whenflagclicked -> motion_movesteps"],
+    programAreaModules: [
+      {
+        id: "motion",
+        label: "运动",
+        blockCount: 1
+      }
+    ],
+    usedExtensions: [],
+    loadedExtensions: [],
+    goal: "让小猫碰到奶酪后加分",
+    aiConfig: createAiConfig(),
+    customSystemPrompt: "请优先提醒碰撞、得分和变量变化，每次只给一个教学步骤。"
+  });
+
+  assert.equal(
+    capturedRequest.messages[0].content.includes("请优先提醒碰撞、得分和变量变化，每次只给一个教学步骤。"),
+    true
+  );
+  assert.equal(capturedRequest.messages[0].content.includes("输出必须是一个 JSON 对象"), true);
 });
 
 test("CoachService normalizes non-schema severity values from DeepSeek", async () => {

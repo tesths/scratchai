@@ -7,15 +7,18 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #f7f0e1;
-        --panel: rgba(255, 252, 247, 0.94);
+        --bg: #e8f3ff;
+        --panel: rgba(244, 249, 255, 0.94);
         --panel-strong: #ffffff;
-        --ink: #143732;
-        --muted: #5d716c;
-        --accent: #0e8d68;
-        --accent-soft: rgba(14, 141, 104, 0.1);
-        --warning: #b25534;
-        --border: rgba(20, 55, 50, 0.12);
+        --ink: #112a46;
+        --muted: #5b7292;
+        --accent: #1777ff;
+        --accent-strong: #0d59d8;
+        --accent-soft: rgba(23, 119, 255, 0.12);
+        --warning: #c96a28;
+        --border: rgba(17, 42, 70, 0.1);
+        --border-strong: rgba(17, 42, 70, 0.16);
+        --shadow: 0 28px 70px rgba(16, 58, 118, 0.16);
       }
 
       * {
@@ -28,9 +31,9 @@
         font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", sans-serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at top left, rgba(14, 141, 104, 0.2), transparent 36%),
-          radial-gradient(circle at bottom right, rgba(194, 111, 64, 0.15), transparent 30%),
-          linear-gradient(180deg, #fffaf1 0%, var(--bg) 100%);
+          radial-gradient(circle at top right, rgba(23, 119, 255, 0.24), transparent 32%),
+          radial-gradient(circle at bottom left, rgba(74, 161, 255, 0.16), transparent 28%),
+          linear-gradient(180deg, #f7fbff 0%, var(--bg) 100%);
         padding: 18px;
       }
 
@@ -45,7 +48,7 @@
         border: 1px solid var(--border);
         border-radius: 28px;
         background: var(--panel);
-        box-shadow: 0 24px 60px rgba(20, 55, 50, 0.15);
+        box-shadow: var(--shadow);
         backdrop-filter: blur(18px);
         padding: 20px;
         display: grid;
@@ -79,8 +82,8 @@
       .teacher-note {
         padding: 12px 14px;
         border-radius: 18px;
-        background: rgba(20, 55, 50, 0.04);
-        border: 1px solid rgba(20, 55, 50, 0.08);
+        background: rgba(17, 42, 70, 0.04);
+        border: 1px solid rgba(17, 42, 70, 0.08);
         font-size: 12px;
         line-height: 1.6;
         color: var(--muted);
@@ -129,8 +132,8 @@
       .meta-card {
         padding: 12px 14px;
         border-radius: 16px;
-        background: rgba(20, 55, 50, 0.04);
-        border: 1px solid rgba(20, 55, 50, 0.08);
+        background: rgba(17, 42, 70, 0.04);
+        border: 1px solid rgba(17, 42, 70, 0.08);
       }
 
       .meta-card span {
@@ -147,15 +150,22 @@
         word-break: break-word;
       }
 
-      input[type="password"] {
+      input[type="password"],
+      textarea {
         width: 100%;
-        border: 1px solid var(--border);
+        border: 1px solid var(--border-strong);
         border-radius: 16px;
         padding: 12px 14px;
         font: inherit;
         font-size: 13px;
         color: var(--ink);
         background: rgba(255, 255, 255, 0.96);
+      }
+
+      textarea {
+        min-height: 180px;
+        resize: vertical;
+        line-height: 1.7;
       }
 
       .action-row {
@@ -190,13 +200,17 @@
 
       .action-button.primary {
         color: #fff;
-        background: linear-gradient(135deg, #0e8d68 0%, #107157 100%);
-        box-shadow: 0 14px 32px rgba(14, 141, 104, 0.22);
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+        box-shadow: 0 14px 32px rgba(23, 119, 255, 0.24);
       }
 
       .action-button.secondary {
         color: var(--ink);
-        background: rgba(20, 55, 50, 0.08);
+        background: rgba(17, 42, 70, 0.08);
+      }
+
+      .action-button.secondary:hover {
+        background: rgba(17, 42, 70, 0.12);
       }
 
       .note {
@@ -254,6 +268,10 @@
             <span>程序自带配置文件</span>
             <strong id="settings-config-path">正在读取…</strong>
           </div>
+          <div class="meta-card">
+            <span>教师提示词</span>
+            <strong id="settings-current-prompt-status">正在读取…</strong>
+          </div>
         </div>
       </section>
 
@@ -280,6 +298,26 @@
         </p>
         <p id="settings-feedback" hidden></p>
         <p id="settings-error" hidden></p>
+      </section>
+
+      <section class="panel">
+        <div class="panel-heading">
+          <h2>教师提示词</h2>
+          <p>这里可以改传给 DeepSeek 的教学提示词。程序会自动补上固定的 JSON 输出要求，避免首页解析失败。</p>
+        </div>
+        <textarea
+          id="settings-custom-ai-prompt"
+          placeholder="例如：请优先提醒碰撞、得分和变量变化；每次只给一个很小的教学步骤。"
+        ></textarea>
+        <div class="action-row">
+          <button id="settings-save-custom-ai-prompt-button" class="action-button primary" type="button">
+            保存提示词
+          </button>
+          <button id="settings-clear-custom-ai-prompt-button" class="action-button secondary" type="button">
+            恢复默认提示词
+          </button>
+        </div>
+        <p class="note">保存后，后续“下一步提示”和“更新下一步提示”都会使用这里的内容。</p>
       </section>
     </main>
     <script type="module" src="./settings-renderer.js"></script>

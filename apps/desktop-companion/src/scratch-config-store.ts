@@ -15,6 +15,7 @@ export class ScratchExecutableConfigStore {
     const nextConfig: {
       scratchExecutablePath?: string;
       customAiApiKey?: string;
+      customAiPrompt?: string;
     } = {};
 
     if (typeof parsed.scratchExecutablePath === "string" && parsed.scratchExecutablePath.trim()) {
@@ -23,6 +24,10 @@ export class ScratchExecutableConfigStore {
 
     if (typeof parsed.customAiApiKey === "string" && parsed.customAiApiKey.trim()) {
       nextConfig.customAiApiKey = parsed.customAiApiKey.trim();
+    }
+
+    if (typeof parsed.customAiPrompt === "string" && parsed.customAiPrompt.trim()) {
+      nextConfig.customAiPrompt = parsed.customAiPrompt.trim();
     }
 
     return nextConfig;
@@ -57,6 +62,29 @@ export class ScratchExecutableConfigStore {
     };
 
     delete nextConfig.customAiApiKey;
+
+    await this.writeConfig(nextConfig);
+    return nextConfig;
+  }
+
+  async saveCustomAiPrompt(customAiPrompt: string) {
+    const currentConfig = await this.load();
+    const nextConfig = {
+      ...currentConfig,
+      customAiPrompt: customAiPrompt.trim()
+    };
+
+    await this.writeConfig(nextConfig);
+    return nextConfig;
+  }
+
+  async clearCustomAiPrompt() {
+    const currentConfig = await this.load();
+    const nextConfig = {
+      ...currentConfig
+    };
+
+    delete nextConfig.customAiPrompt;
 
     await this.writeConfig(nextConfig);
     return nextConfig;

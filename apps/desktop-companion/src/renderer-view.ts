@@ -35,8 +35,8 @@ export interface RendererElements {
   chooseScratchButton?: HTMLButtonElement | null;
   generateAiButton?: HTMLButtonElement | null;
   analyzeProjectUrlButton?: HTMLButtonElement | null;
-  goalInput?: HTMLTextAreaElement | null;
   projectUrlInput?: HTMLInputElement | null;
+  learningModeInputs?: Array<HTMLInputElement | null | undefined>;
 }
 
 export function renderList(
@@ -69,7 +69,7 @@ export function renderList(
 
 export function formatTimestamp(value?: string) {
   if (!value) {
-    return "还没有收到数据";
+    return "还没收到数据";
   }
 
   return new Date(value).toLocaleString();
@@ -90,7 +90,7 @@ export function formatCurrentTargetPrograms(programs: string[]) {
 export function formatProgramAreaModules(
   modules: Array<{ label: string; blockCount: number }>
 ) {
-  return modules.map((module) => `${module.label} × ${module.blockCount}`);
+  return modules.map((module) => `${module.label} x ${module.blockCount}`);
 }
 
 export function formatAiStatus(state: DesktopCompanionState) {
@@ -109,20 +109,24 @@ export function formatAiStatus(state: DesktopCompanionState) {
 
   if (state.aiCoachResponse && state.aiProvider === "fallback") {
     return state.aiError
-      ? "DeepSeek 暂时不可用，已自动切换到基础提示。"
+      ? "DeepSeek 暂时不可用，已自动切到基础提示。"
       : "当前提示来源：基础提示。老师需要更完整结果时，可到“老师设置”里配置 DeepSeek。";
   }
 
-  if (!state.aiConfigured) {
-    return "还没配置 DeepSeek 也可以先用。程序会先给基础提示；老师需要更完整结果时，再到“老师设置”里配置。";
+  if (state.status === "connected") {
+    return "Scratch 已连接。程序会先给当前这一小步；学生补完后，可点击“更新下一步提示”。";
   }
 
-  return "准备好了：分析当前 Scratch 作品，或直接分析网页作品。";
+  if (!state.aiConfigured) {
+    return "还没配置 DeepSeek 也可以先用。完成前 3 步后，程序会先给基础提示；老师需要更完整结果时，再到“老师设置”里配置。";
+  }
+
+  return "准备好了：先选择 Scratch 软件，打开已选 Scratch，再填入教师的 sb3 地址。";
 }
 
 export function formatAiConfigSourceLabel(source?: DesktopCompanionState["aiConfigSource"]) {
   if (source === "custom") {
-    return "设置窗口里的自定义 Key";
+    return "设置窗口里保存的自定义 Key";
   }
 
   if (source === "env") {
@@ -158,14 +162,14 @@ export function formatDefaultDetail(state: DesktopCompanionState) {
   }
 
   if (state.status === "connected") {
-    return "已经连接成功，直接点“分析当前 Scratch 作品”就可以。";
+    return "Scratch 已连接。现在填入教师的 sb3 地址，学生就可以跟着做。";
   }
 
   if (state.scratchExecutablePath) {
-    return "已经记住 Scratch 程序了。现在点“打开 Scratch”即可。";
+    return "已经记住上次选择的 Scratch 软件了。现在点“打开已选 Scratch”即可继续使用。";
   }
 
-  return "第一次使用先选一次 Scratch 程序，然后点“打开 Scratch”。";
+  return "先选择本机的 Scratch 软件；选过一次后，之后会继续使用这个路径。";
 }
 
 export function formatDefaultNextStep(state: DesktopCompanionState) {
@@ -174,10 +178,14 @@ export function formatDefaultNextStep(state: DesktopCompanionState) {
   }
 
   if (state.status === "connected") {
-    return "下一步：直接点“分析当前 Scratch 作品”。";
+    return "下一步：先看当前提示完成这一小步；学生补完后，再点击“更新下一步提示”。";
   }
 
-  return "下一步：先打开 Scratch，或者粘贴一个作品链接。";
+  if (state.scratchExecutablePath) {
+    return "下一步：点击“打开已选 Scratch”。";
+  }
+
+  return "下一步：先选择 Scratch 软件。";
 }
 
 export function formatRecommendedBlocks(state: DesktopCompanionState) {
@@ -227,7 +235,7 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     elements.documentRef,
     elements.currentTargetProgramsElement,
     formatCurrentTargetPrograms(state.currentTargetPrograms),
-    "当前角色还没有可读取的程序。",
+    "当前角色还没有可读取的脚本。",
     "program-item"
   );
 
@@ -235,7 +243,7 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     elements.documentRef,
     elements.programAreaModulesElement,
     formatProgramAreaModules(state.programAreaModules),
-    "当前角色还没有识别到模块使用。",
+    "当前角色还没有识别到模块使用情况。",
     "module-item"
   );
 
@@ -249,7 +257,7 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
 
   if (elements.aiAnswerElement) {
     elements.aiAnswerElement.textContent =
-      state.aiCoachResponse?.answerText ?? "写下目标后，我会根据当前作品给出下一步建议。";
+      state.aiCoachResponse?.answerText ?? "填入教师的 sb3 地址后，我会按课堂节奏给出当前这一小步。";
   }
 
   if (elements.aiNextStepElement) {
@@ -260,7 +268,7 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     elements.documentRef,
     elements.aiRecommendedBlocksElement,
     formatRecommendedBlocks(state),
-    "这里会显示推荐积木和原因。",
+    "这里会显示适合当前这一步的积木和原因。",
     "hint-item"
   );
 
@@ -268,13 +276,14 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     elements.documentRef,
     elements.aiDetectedIssuesElement,
     formatDetectedIssues(state),
-    "当前没有额外风险提示。",
+    "当前这一步没有额外风险提示。",
     "issue-item"
   );
 
   if (elements.aiFollowUpQuestionElement) {
     elements.aiFollowUpQuestionElement.textContent =
-      state.aiCoachResponse?.followUpQuestion ?? "追问：你想让这个角色下一步完成什么？";
+      state.aiCoachResponse?.followUpQuestion ??
+      "如果要继续推进，我会继续提醒下一段积木，避免一次把整套答案讲完。";
   }
 
   const isBusy = state.status === "injecting";
@@ -295,10 +304,14 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
   if (elements.analyzeProjectUrlButton) {
     elements.analyzeProjectUrlButton.disabled = state.aiStatus === "loading";
   }
-  if (elements.goalInput) {
-    elements.goalInput.disabled = state.aiStatus === "loading";
-  }
   if (elements.projectUrlInput) {
     elements.projectUrlInput.disabled = state.aiStatus === "loading";
+  }
+  if (elements.learningModeInputs) {
+    for (const input of elements.learningModeInputs) {
+      if (input) {
+        input.disabled = state.aiStatus === "loading";
+      }
+    }
   }
 }

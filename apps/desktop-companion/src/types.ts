@@ -126,6 +126,8 @@ export interface DesktopCompanionState {
   aiConfigPath?: string;
   aiConfigSource?: AiConfigSource;
   aiCustomKeyConfigured: boolean;
+  aiCustomPromptConfigured: boolean;
+  aiCustomPrompt?: string;
   aiStatus: AiHintStatus;
   aiProvider?: AiHintProvider;
   aiModel?: string;

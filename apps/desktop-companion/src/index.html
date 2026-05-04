@@ -7,19 +7,19 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #f6efdf;
-        --panel: rgba(255, 252, 247, 0.94);
+        --bg: #e8f3ff;
+        --panel: rgba(244, 249, 255, 0.94);
         --panel-strong: #ffffff;
-        --ink: #16332d;
-        --muted: #61726d;
-        --accent: #0c8e68;
-        --accent-soft: rgba(12, 142, 104, 0.1);
-        --accent-strong: #0b6f53;
-        --warning: #b45834;
-        --warning-soft: rgba(180, 88, 52, 0.12);
-        --line: rgba(22, 51, 45, 0.1);
-        --line-strong: rgba(22, 51, 45, 0.14);
-        --shadow: 0 28px 70px rgba(22, 51, 45, 0.14);
+        --ink: #112a46;
+        --muted: #5b7292;
+        --accent: #1777ff;
+        --accent-soft: rgba(23, 119, 255, 0.12);
+        --accent-strong: #0d59d8;
+        --warning: #c96a28;
+        --warning-soft: rgba(201, 106, 40, 0.14);
+        --line: rgba(17, 42, 70, 0.1);
+        --line-strong: rgba(17, 42, 70, 0.16);
+        --shadow: 0 28px 70px rgba(16, 58, 118, 0.16);
       }
 
       * {
@@ -34,12 +34,16 @@
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", sans-serif;
+        font-family:
+          "Segoe UI Variable Display",
+          "Segoe UI Variable Text",
+          "Microsoft YaHei UI",
+          sans-serif;
         color: var(--ink);
         background:
-          radial-gradient(circle at top right, rgba(12, 142, 104, 0.2), transparent 34%),
-          radial-gradient(circle at bottom left, rgba(194, 111, 64, 0.16), transparent 30%),
-          linear-gradient(180deg, #fffaf1 0%, var(--bg) 100%);
+          radial-gradient(circle at top right, rgba(23, 119, 255, 0.24), transparent 32%),
+          radial-gradient(circle at bottom left, rgba(74, 161, 255, 0.16), transparent 28%),
+          linear-gradient(180deg, #f7fbff 0%, var(--bg) 100%);
         padding: 20px;
       }
 
@@ -58,7 +62,6 @@
 
       button,
       input,
-      textarea,
       summary {
         font: inherit;
       }
@@ -102,8 +105,8 @@
         display: grid;
         gap: 18px;
         background:
-          linear-gradient(140deg, rgba(12, 142, 104, 0.14), rgba(255, 255, 255, 0.82)),
-          linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.74));
+          linear-gradient(140deg, rgba(23, 119, 255, 0.16), rgba(255, 255, 255, 0.82)),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(245, 250, 255, 0.78));
       }
 
       .hero-head {
@@ -127,7 +130,7 @@
       }
 
       h1 {
-        max-width: 14ch;
+        max-width: 12ch;
         font-size: clamp(28px, 4vw, 42px);
         line-height: 1.08;
       }
@@ -167,17 +170,25 @@
         color: var(--warning);
       }
 
-      .step-strip {
+      .step-strip,
+      .source-grid,
+      .result-grid,
+      .detail-grid,
+      .mini-metrics,
+      .mode-grid {
         display: grid;
+        gap: 14px;
+      }
+
+      .step-strip {
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
       }
 
       .step-chip {
-        padding: 14px 16px;
+        padding: 15px 16px;
         border-radius: 20px;
-        background: rgba(255, 255, 255, 0.76);
-        border: 1px solid rgba(12, 142, 104, 0.12);
+        background: rgba(255, 255, 255, 0.78);
+        border: 1px solid rgba(23, 119, 255, 0.14);
         display: grid;
         gap: 5px;
       }
@@ -219,9 +230,9 @@
         font-weight: 700;
       }
 
-      textarea,
       input[type="url"] {
         width: 100%;
+        min-height: 52px;
         border: 1px solid var(--line-strong);
         border-radius: 20px;
         padding: 14px 16px;
@@ -230,19 +241,8 @@
         background: rgba(255, 255, 255, 0.98);
       }
 
-      textarea {
-        min-height: 112px;
-        resize: vertical;
-        line-height: 1.7;
-      }
-
-      input[type="url"] {
-        min-height: 52px;
-      }
-
-      textarea::placeholder,
       input[type="url"]::placeholder {
-        color: #80908b;
+        color: #7d93b4;
       }
 
       .field-note,
@@ -255,12 +255,58 @@
         color: var(--muted);
       }
 
-      .source-grid,
-      .result-grid,
-      .detail-grid,
-      .mini-metrics {
+      .mode-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .mode-option {
+        position: relative;
+        display: block;
+        cursor: pointer;
+      }
+
+      .mode-option input {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .mode-copy {
+        min-height: 128px;
+        padding: 16px 18px;
+        border-radius: 22px;
+        border: 1px solid rgba(17, 42, 70, 0.1);
+        background: linear-gradient(180deg, rgba(243, 248, 255, 0.92), rgba(255, 255, 255, 0.98));
         display: grid;
-        gap: 14px;
+        align-content: start;
+        gap: 8px;
+        transition:
+          transform 180ms ease,
+          border-color 180ms ease,
+          box-shadow 180ms ease,
+          background 180ms ease;
+      }
+
+      .mode-option:hover .mode-copy {
+        transform: translateY(-1px);
+      }
+
+      .mode-option input:checked + .mode-copy {
+        border-color: rgba(23, 119, 255, 0.35);
+        background: linear-gradient(180deg, rgba(232, 242, 255, 0.98), rgba(255, 255, 255, 0.98));
+        box-shadow: 0 16px 34px rgba(23, 119, 255, 0.12);
+      }
+
+      .mode-copy strong {
+        font-size: 18px;
+        line-height: 1.2;
+      }
+
+      .mode-copy span {
+        font-size: 13px;
+        line-height: 1.7;
+        color: var(--muted);
       }
 
       .source-grid {
@@ -276,7 +322,7 @@
         width: fit-content;
         padding: 7px 10px;
         border-radius: 999px;
-        background: rgba(22, 51, 45, 0.06);
+        background: rgba(17, 42, 70, 0.06);
         color: var(--muted);
         font-size: 11px;
         font-weight: 700;
@@ -321,21 +367,21 @@
       .action-button.primary {
         color: #fff;
         background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
-        box-shadow: 0 14px 32px rgba(12, 142, 104, 0.22);
+        box-shadow: 0 14px 32px rgba(23, 119, 255, 0.24);
       }
 
       .action-button.secondary {
         color: var(--ink);
-        background: rgba(22, 51, 45, 0.08);
+        background: rgba(17, 42, 70, 0.08);
       }
 
       .action-button.secondary:hover {
-        background: rgba(22, 51, 45, 0.12);
+        background: rgba(17, 42, 70, 0.12);
       }
 
       .action-button.ghost {
         color: var(--muted);
-        background: rgba(22, 51, 45, 0.04);
+        background: rgba(17, 42, 70, 0.04);
       }
 
       .mini-metrics {
@@ -345,8 +391,8 @@
       .mini-metric {
         padding: 14px 16px;
         border-radius: 20px;
-        background: linear-gradient(180deg, rgba(12, 142, 104, 0.07), rgba(12, 142, 104, 0.03));
-        border: 1px solid rgba(12, 142, 104, 0.1);
+        background: linear-gradient(180deg, rgba(23, 119, 255, 0.08), rgba(23, 119, 255, 0.03));
+        border: 1px solid rgba(23, 119, 255, 0.12);
         display: grid;
         gap: 6px;
       }
@@ -370,8 +416,8 @@
       .ai-highlight {
         padding: 18px;
         border-radius: 22px;
-        background: linear-gradient(145deg, rgba(12, 142, 104, 0.12), rgba(255, 255, 255, 0.76));
-        border: 1px solid rgba(12, 142, 104, 0.14);
+        background: linear-gradient(145deg, rgba(23, 119, 255, 0.12), rgba(255, 255, 255, 0.8));
+        border: 1px solid rgba(23, 119, 255, 0.14);
         display: grid;
         gap: 8px;
       }
@@ -397,8 +443,8 @@
       .sub-panel {
         padding: 16px;
         border-radius: 22px;
-        background: rgba(22, 51, 45, 0.03);
-        border: 1px solid rgba(22, 51, 45, 0.08);
+        background: rgba(17, 42, 70, 0.03);
+        border: 1px solid rgba(17, 42, 70, 0.08);
         display: grid;
         gap: 12px;
       }
@@ -420,8 +466,8 @@
       #ai-detected-issues li {
         padding: 13px 15px;
         border-radius: 18px;
-        background: linear-gradient(180deg, rgba(12, 142, 104, 0.08), rgba(12, 142, 104, 0.04));
-        border: 1px solid rgba(12, 142, 104, 0.12);
+        background: linear-gradient(180deg, rgba(23, 119, 255, 0.08), rgba(23, 119, 255, 0.04));
+        border: 1px solid rgba(23, 119, 255, 0.12);
         font-size: 13px;
         line-height: 1.7;
         white-space: normal;
@@ -431,8 +477,8 @@
       #program-area-modules li {
         padding: 11px 13px;
         border-radius: 16px;
-        background: rgba(22, 51, 45, 0.05);
-        border: 1px solid rgba(22, 51, 45, 0.08);
+        background: rgba(17, 42, 70, 0.05);
+        border: 1px solid rgba(17, 42, 70, 0.08);
         font-size: 12px;
         line-height: 1.6;
       }
@@ -466,7 +512,7 @@
         justify-self: start;
         padding: 6px 10px;
         border-radius: 999px;
-        background: rgba(22, 51, 45, 0.06);
+        background: rgba(17, 42, 70, 0.06);
         color: var(--muted);
         font-size: 12px;
         font-weight: 700;
@@ -514,8 +560,8 @@
       .info-card {
         padding: 16px;
         border-radius: 22px;
-        background: rgba(22, 51, 45, 0.03);
-        border: 1px solid rgba(22, 51, 45, 0.08);
+        background: rgba(17, 42, 70, 0.03);
+        border: 1px solid rgba(17, 42, 70, 0.08);
         display: grid;
         gap: 10px;
       }
@@ -552,6 +598,7 @@
       }
 
       @media (max-width: 980px) {
+        .mode-grid,
         .source-grid,
         .result-grid,
         .detail-grid {
@@ -615,9 +662,10 @@
         <div class="hero-head">
           <div class="hero-copy">
             <p class="eyebrow">Scratch AI Coach</p>
-            <h1>先说你想做什么，我再告诉你下一步。</h1>
+            <h1>先选 Scratch，再按老师的 sb3 一步一步做。</h1>
             <p>
-              首页只保留最关键的提示流程。小学生可以直接在这里输入目标、选择作品来源，然后马上拿到下一步建议。
+              首页只保留课堂里最关键的 4 步：先选择 Scratch 软件；如果之前已经选过就继续使用；
+              再打开 Scratch；然后填入教师的 `.sb3` 地址；最后边编写边让学生跟着做。
             </p>
           </div>
           <div class="hero-side">
@@ -630,39 +678,30 @@
 
         <div class="step-strip">
           <article class="step-chip">
-            <strong>1. 写下目标</strong>
-            <span>比如：让小猫碰到球就加 1 分。</span>
+            <strong>1. 选择 Scratch 软件</strong>
+            <span>第一次选一次就行；以后会继续使用上次保存的路径。</span>
           </article>
           <article class="step-chip">
-            <strong>2. 选作品来源</strong>
-            <span>可以分析正在编辑的 Scratch，也可以贴网页作品链接。</span>
+            <strong>2. 打开 Scratch</strong>
+            <span>通过伴随程序打开 Scratch，准备让学生开始搭程序。</span>
           </article>
           <article class="step-chip">
-            <strong>3. 照着下一步做</strong>
-            <span>AI 会给出下一步、推荐积木和需要先注意的地方。</span>
+            <strong>3. 填入教师 sb3 地址</strong>
+            <span>把老师准备好的 `.sb3` 链接或作品页地址贴进来。</span>
+          </article>
+          <article class="step-chip">
+            <strong>4. 编写程序，学生跟着做</strong>
+            <span>AI 只给当前这一小步，方便课堂同步推进，不会一次讲完整答案。</span>
           </article>
         </div>
-      </section>
-
-      <section class="panel">
-        <div class="section-heading">
-          <h2>你想让作品实现什么？</h2>
-          <p>不会写完整句子也没关系，说出想做的效果就行。</p>
-        </div>
-        <label class="field-label" for="goal-input">目标说明</label>
-        <textarea
-          id="goal-input"
-          placeholder="例如：让小猫碰到球就加 1 分，分数到 10 分就赢。"
-        ></textarea>
-        <p class="field-note">这一步可以空着，但写得越清楚，提示通常越好用。</p>
       </section>
 
       <section class="source-grid">
         <article class="panel source-card">
-          <p class="card-tag">方式 A</p>
+          <p class="card-tag">第 1 步和第 2 步</p>
           <div class="section-heading">
-            <h2>分析正在编辑的 Scratch</h2>
-            <p id="detail">第一次使用先选一次 Scratch 程序，然后点“打开 Scratch”。</p>
+            <h2>选择并打开 Scratch 软件</h2>
+            <p id="detail">第一次使用先选择 Scratch 软件；如果之前已经选过，这次会继续使用。</p>
           </div>
 
           <div class="mini-metrics">
@@ -672,75 +711,117 @@
             </article>
             <article class="mini-metric">
               <span>最近更新时间</span>
-              <strong id="updated-at">还没有收到数据</strong>
+              <strong id="updated-at">还没收到数据</strong>
             </article>
           </div>
 
           <div class="action-bar">
-            <button id="generate-ai-button" class="action-button primary" type="button">
-              分析当前 Scratch 作品
+            <button id="choose-scratch-button" class="action-button primary" type="button">
+              选择 Scratch 软件
             </button>
             <button id="launch-button" class="action-button secondary" type="button">
-              打开 Scratch
+              打开已选 Scratch
             </button>
-            <button id="choose-scratch-button" class="action-button secondary" type="button">
-              选择 Scratch 程序
+            <button id="generate-ai-button" class="action-button secondary" type="button">
+              更新下一步提示
             </button>
             <button id="retry-button" class="action-button ghost" type="button">
               重新连接
             </button>
           </div>
+
+          <p class="sub-note">连上 Scratch 后会先自动给出第一步提示；学生补完后，再点“更新下一步提示”。</p>
         </article>
 
         <article class="panel source-card">
-          <p class="card-tag">方式 B</p>
+          <p class="card-tag">第 3 步</p>
           <div class="section-heading">
-            <h2>分析网页里的作品</h2>
-            <p>如果你只有作品链接，把地址贴进来，再点下面的按钮。</p>
+            <h2>填入教师的 sb3 地址</h2>
+            <p>把老师准备好的 `.sb3` 地址贴进来，我会先读作品，再生成适合学生跟做的当前步骤。</p>
           </div>
 
-          <label class="field-label" for="project-url-input">作品链接</label>
+          <label class="field-label" for="project-url-input">教师 sb3 地址</label>
           <input
             id="project-url-input"
             type="url"
             placeholder="例如：https://.../Cat%20and%20a%20Mouse.sb3"
           />
           <button id="analyze-project-url-button" class="action-button primary" type="button">
-            分析这个网页作品
+            读取 sb3，生成跟做步骤
           </button>
-          <p class="sub-note">支持 Scratch 作品页、Scratch API 地址，或可下载的 `.sb3` 链接。</p>
+          <p class="sub-note">支持 Scratch 作品页、Scratch API 地址，或可直接下载的 `.sb3` 链接。</p>
         </article>
+      </section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <h2>第 4 步默认怎么带着学生做？</h2>
+          <p>默认推荐“跟老师做”：老师先给 sb3 参考，学生在 Scratch 里按提示同步搭建；需要时也可以切换成“自己先做”。</p>
+        </div>
+
+        <div class="mode-grid">
+          <label class="mode-option" for="learning-mode-follow-teacher">
+            <input
+              id="learning-mode-follow-teacher"
+              name="learning-mode"
+              type="radio"
+              value="follow-teacher"
+              checked
+            />
+            <span class="mode-copy">
+              <strong>跟老师做</strong>
+              <span>默认课堂模式。老师给出参考 sb3，学生跟着当前提示一步一步搭积木。</span>
+            </span>
+          </label>
+
+          <label class="mode-option" for="learning-mode-self-paced">
+            <input
+              id="learning-mode-self-paced"
+              name="learning-mode"
+              type="radio"
+              value="self-paced"
+            />
+            <span class="mode-copy">
+              <strong>自己先做</strong>
+              <span>学生先自己尝试，AI 仍然只给下一小步，不会直接把完整答案写出来。</span>
+            </span>
+          </label>
+        </div>
+
+        <p id="learning-mode-note" class="field-note">
+          默认推荐“跟老师做”：更符合“老师给 sb3，学生在 Scratch 里同步跟做”的课堂流程。
+        </p>
       </section>
 
       <section class="panel result-panel">
         <div class="section-heading">
-          <h2>AI 提示结果</h2>
-          <p id="ai-status">先写目标，再选择一种作品来源，就能开始拿提示。</p>
+          <h2>第 4 步：开始编写，学生跟着做</h2>
+          <p id="ai-status">先完成前 3 步：选择 Scratch 软件、打开 Scratch、填入教师的 sb3 地址。</p>
         </div>
 
         <article class="ai-highlight">
-          <span class="highlight-label">下一步</span>
-          <p id="ai-next-step">下一步：先打开 Scratch，或者粘贴一个作品链接。</p>
+          <span class="highlight-label">当前该做</span>
+          <p id="ai-next-step">下一步：先选择 Scratch 软件。</p>
         </article>
 
         <div class="result-grid">
           <article class="sub-panel">
-            <h3>现在可以怎么做</h3>
-            <p id="ai-answer">写下目标后，我会根据当前作品给出下一步建议。</p>
+            <h3>学生现在先做什么</h3>
+            <p id="ai-answer">填入教师的 sb3 地址后，我会按课堂节奏给出当前这一小步。</p>
           </article>
 
           <article class="sub-panel">
-            <h3>继续追问</h3>
-            <p id="ai-follow-up-question">追问：你想让这个角色下一步完成什么？</p>
+            <h3>下一小步之后</h3>
+            <p id="ai-follow-up-question">如果要继续推进，我会继续提醒下一段积木，避免一次把整套答案讲完。</p>
           </article>
 
           <article class="sub-panel">
-            <h3>推荐积木</h3>
+            <h3>建议先用这些积木</h3>
             <ul id="ai-recommended-blocks"></ul>
           </article>
 
           <article class="sub-panel">
-            <h3>先注意这些</h3>
+            <h3>上手前先注意</h3>
             <ul id="ai-detected-issues"></ul>
           </article>
         </div>
@@ -750,20 +831,20 @@
         <summary>
           <div class="summary-copy">
             <h2>老师查看的作品详情</h2>
-            <p>这里放进阶信息，学生平时可以不用看，避免首屏太拥挤。</p>
+            <p>这里保留进阶信息，学生平时不用看，避免首屏太拥挤。</p>
           </div>
         </summary>
 
         <div class="detail-body">
           <div class="detail-grid">
             <article class="sub-panel">
-              <h3>当前角色程序</h3>
+              <h3>当前角色脚本</h3>
               <ul id="current-target-programs"></ul>
             </article>
 
             <div class="detail-stack">
               <article class="info-card">
-                <span>Scratch 程序</span>
+                <span>Scratch 软件</span>
                 <strong id="scratch-path">还没有选择</strong>
               </article>
 

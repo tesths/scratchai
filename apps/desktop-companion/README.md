@@ -1,23 +1,20 @@
 # Scratch Desktop Companion
 
-这是主工程里的 Windows 桌面伴随程序，用来连接 `Scratch Desktop`，读取当前角色、当前角色程序和已用模块，并基于这些上下文给学生生成 AI 开发提示。
+这是主工程里的 Windows 桌面伴随程序，用来连接 `Scratch Desktop`，读取当前角色、当前角色程序和教师参考作品，并基于这些上下文给学生生成 AI 跟做提示。
 
 ## 当前产品流程
 
 当前已经对齐并验证的流程是：
 
 1. 打开伴随程序，自动识别本机是否已安装 Scratch。
-2. 如果没有识别到路径，手动选择 `Scratch.exe` 或 `Scratch 3.exe`。
-3. 点击 `打开 Scratch`，由伴随程序受控启动 Scratch。
+2. 如果没有识别到路径，手动选择 `Scratch.exe` 或 `Scratch 3.exe`；如果之前已经选过，就继续使用上次保存的路径。
+3. 点击 `打开已选 Scratch`，由伴随程序受控启动 Scratch。
 4. 伴随程序通过 CDP 注入只读桥接脚本并建立连接。
-5. 界面实时显示：
-   - `当前角色`
-   - `当前角色程序`
-   - `当前已用模块`
-6. 学生或老师如需配置 DeepSeek Key，可打开单独的 `DeepSeek 设置` 窗口。
-7. 点击 `生成 AI 提示`，桌面端把当前项目快照发送给 DeepSeek，并返回下一步建议、推荐积木和风险提醒。
+5. 在首页 `教师 sb3 地址` 输入框里粘贴老师准备好的 `.sb3`、Scratch 作品页或 Scratch API 地址。
+6. 默认使用 `跟老师做` 模式；如有需要，也可以切到 `自己先做`。
+7. 点击 `读取 sb3，生成跟做步骤`，桌面端把当前项目快照和教师参考作品上下文发送给 DeepSeek，并返回下一步建议、推荐积木和风险提醒。
 
-当前界面重点已经从“模块 / 扩展面板”收敛为“角色 + 角色程序 + AI 提示”。
+当前界面重点已经从“模块 / 扩展面板”收敛为“Scratch 软件 + 教师参考作品 + AI 当前一步提示”。
 
 如果你不是直接在桌面端里做实时提示，而是想拿一个已有 `.sb3` 先整理成教学材料，请改走：
 
@@ -28,15 +25,16 @@
 
 典型状态有：
 
-- `请先选择 Scratch 路径`
-- `请从伴随程序启动 Scratch Desktop`
+- `请先选择 Scratch 软件`
+- `请从伴随程序打开已选 Scratch`
 - `已连接到 Scratch Desktop`
+- `已读取教师参考作品，可直接查看提示`
 
 连接成功后，界面重点展示：
 
 - 当前正在编辑哪个角色
 - 这个角色当前有哪些脚本，以及脚本里的 opcode 顺序
-- 当前角色已经用了哪些模块
+- 已导入的教师参考作品会不会继续作为课堂参考
 - AI 给出的下一步建议、推荐积木和追问
 
 例如：
@@ -100,9 +98,11 @@
 - 只要把 `apiKey` 改成你自己的 DeepSeek Key，再执行打包命令即可。
 - 当前默认模型是 DeepSeek 官方 V4 模型 `deepseek-v4-flash`；如果你更关注质量，也可以改成 `deepseek-v4-pro`。
 - 桌面端当前显式使用 JSON Output，并把 `thinking` 设为 `disabled`，这样更适合当前 Scratch 教练提示这种低延迟、稳定 JSON 返回的场景。
-- 如果不填 key，界面里的 `生成 AI 提示` 仍可用，但会自动走本地 fallback 提示，而不是线上 DeepSeek。
+- 如果不填 key，界面里的 `读取当前 Scratch 进度` 和 `读取 sb3，生成跟做步骤` 仍可用，但会自动走本地 fallback 提示，而不是线上 DeepSeek。
 - 程序现在通过单独的 `DeepSeek 设置` 窗口保存 `自定义 DeepSeek API Key`。优先级是：`设置窗口保存的 Key > 环境变量 DEEPSEEK_API_KEY > 程序自带 deepseek.config.json`。
 - 清除设置窗口里保存的 Key 后，会按 `DEEPSEEK_API_KEY > deepseek.config.json` 的顺序继续回退。
+- `DeepSeek 设置` 窗口已和主界面统一为蓝色主题，避免老师配置入口和学生首页出现两套视觉风格。
+- 主窗口与设置窗口都提供鼠标右键菜单；`教师 sb3 地址` 输入框和设置页 API Key 输入框都支持复制、粘贴、全选。
 - DeepSeek 官方文档入口：<https://api-docs.deepseek.com/zh-cn/>
 
 ## 2026-04-29 已验证结果
@@ -135,6 +135,7 @@ npm run dev
 npm run package:win
 npm run package:win:single
 npm run package:win:installer
+npm run package:win:bundle
 ```
 
 ## 从现成 `.sb3` 生成教学草稿
@@ -171,7 +172,13 @@ node Windows-Test\verify-desktop-companion-real-e2e.mjs
 
 当前这轮实际生成并验证过的产物是：
 
-- `../../ScratchDesktopCompanion-setup.exe`
+- `../../installers/`
+- `../../installers/ScratchDesktopCompanion-setup.exe`
+- `../../installers/ScratchDesktopCompanion-portable.exe`
+- `../../installers/ScratchDesktopCompanion-with-key-setup.exe`
+- `../../installers/ScratchDesktopCompanion-with-key-portable.exe`
+- `../../installers/SHA256SUMS.txt`
+- `../../installers/RELEASE-NOTES.md`
 - `release-installer/ScratchDesktopCompanion-setup.exe`
 - `apps/desktop-companion/release-single/win-unpacked/ScratchDesktopCompanion.exe`
 - `apps/desktop-companion/release-single/ScratchDesktopCompanion-portable.exe`
@@ -179,7 +186,11 @@ node Windows-Test\verify-desktop-companion-real-e2e.mjs
 说明：
 
 - `npm run icons:generate` 会根据当前图标源文件刷新 `src/assets/*.png` 和 `buildResources/ScratchDesktop.ico`
-- 根目录 `../../ScratchDesktopCompanion-setup.exe` 是对外分发时优先使用的最新安装包入口
+- 根目录 `../../installers/` 是 4 个最终分发文件的统一收口目录，对外分发时优先从这里取包
+- 常用入口是 `../../installers/ScratchDesktopCompanion-setup.exe`、`../../installers/ScratchDesktopCompanion-portable.exe`、`../../installers/ScratchDesktopCompanion-with-key-setup.exe`、`../../installers/ScratchDesktopCompanion-with-key-portable.exe`
+- 如果交付目标是“开箱即可直接使用内置 DeepSeek 配置”，应优先发 `../../installers/ScratchDesktopCompanion-with-key-setup.exe` 或 `../../installers/ScratchDesktopCompanion-with-key-portable.exe`
+- `../../installers/SHA256SUMS.txt` 提供最终分发文件的 SHA256 校验值，`../../installers/RELEASE-NOTES.md` 记录本轮打包说明
+- 不带 `with-key` 的同名包按当前打包约定属于 `no-key` 版本，不应再被当作“已内置 DeepSeek Key”的安装包
 - `release-installer/` 保留安装包原始输出和 blockmap
 - `win-unpacked` 是当前最稳的交付形态
 - `portable.exe` 启动速度通常慢于 `win-unpacked`
@@ -200,7 +211,7 @@ node Windows-Test\verify-desktop-companion-real-e2e.mjs
 UI 自动化当前重点断言：
 
 - 软件窗口能正常打开
-- `选择 Scratch`、`打开 Scratch`、`重新连接` 3 个按钮都能点击
+- `选择 Scratch 软件`、`打开已选 Scratch`、`重新连接` 3 个按钮都能点击
 - `DeepSeek 设置` 按钮能打开独立设置窗口
 - 页面能显示 `当前角色`
 - 页面能显示 `当前角色程序`
@@ -234,9 +245,9 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 - [Windows 测试说明](../../Windows-Test/README.zh-CN.md)
 - [DeepSeek 教学工作流说明](../../Windows-Test/deepseek-workflow/README.zh-CN.md)
 
-## 2026-05-03 补充：从网页地址生成 AI 提示
+## 2026-05-03 补充：从教师参考作品地址生成 AI 提示
 
-当前界面新增了一个网页作品地址输入框和 `分析网页作品并生成提示` 按钮。这个入口不要求本机已经连接到 Scratch Desktop，适合老师直接拿一个远程 `.sb3` 或 Scratch 作品页做诊断。
+当前界面新增了一个 `教师 sb3 地址` 输入框和 `读取 sb3，生成跟做步骤` 按钮。这个入口不要求本机已经连接到 Scratch Desktop，适合老师直接拿一个远程 `.sb3` 或 Scratch 作品页做参考引导。
 
 支持的地址类型：
 
@@ -250,7 +261,7 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 
 内部链路：
 
-1. `renderer.ts` 收集 URL 和可选教学目标
+1. `renderer.ts` 收集作品 URL 和课堂模式对应的提示目标
 2. IPC 调用 `desktop-companion:request-ai-hint-from-project-url`
 3. `SessionManager.requestAiHintFromProjectUrl` 调用 `ProjectUrlLoader.load`
 4. `project-url-loader.ts` 下载远程项目并提取 `project.json`
@@ -267,8 +278,60 @@ node Windows-Test\verify-desktop-companion-ui.mjs
 node Windows-Test\verify-desktop-companion-project-url-ui.mjs
 ```
 
+当前交互补充：
+- `教师 sb3 地址` 输入框支持鼠标右键复制、粘贴、全选，老师现场从群里、文档里复制 `.sb3` 或 Scratch 页面地址时不需要额外记快捷键
+
 截图输出：
 
-- `C:\Users\Administrator\Desktop\scratch\current-ui-desktop-companion-mock.png`
-- `C:\Users\Administrator\Desktop\scratch\current-ui-project-url-before.png`
-- `C:\Users\Administrator\Desktop\scratch\current-ui-project-url-after.png`
+- `C:\Users\Administrator\Desktop\scratch\docs\assets\screenshots\current-ui-desktop-companion-mock.png`
+- `C:\Users\Administrator\Desktop\scratch\docs\assets\screenshots\current-ui-project-url-before.png`
+- `C:\Users\Administrator\Desktop\scratch\docs\assets\screenshots\current-ui-project-url-after.png`
+
+## 2026-05-04 补充：统一打包目录与双版本产物
+
+现在提供了一个统一打包脚本，会在 `apps/desktop-companion/release-bundles/<时间戳>/` 下集中放好 4 个最终交付文件，同时把这 4 个最终分发文件同步复制到仓库根目录 `installers/`：
+
+- `ScratchDesktopCompanion-setup.exe`
+- `ScratchDesktopCompanion-portable.exe`
+- `ScratchDesktopCompanion-with-key-setup.exe`
+- `ScratchDesktopCompanion-with-key-portable.exe`
+- `../../installers/ScratchDesktopCompanion-setup.exe`
+- `../../installers/ScratchDesktopCompanion-portable.exe`
+- `../../installers/ScratchDesktopCompanion-with-key-setup.exe`
+- `../../installers/ScratchDesktopCompanion-with-key-portable.exe`
+- `../../installers/SHA256SUMS.txt`
+- `../../installers/RELEASE-NOTES.md`
+
+执行命令：
+
+```powershell
+cd apps\desktop-companion
+npm run package:win:bundle
+```
+
+说明：
+
+- `ScratchDesktopCompanion-setup.exe` 和 `ScratchDesktopCompanion-portable.exe` 会强制打成“不内置 DeepSeek Key”的版本。
+- `ScratchDesktopCompanion-with-key-setup.exe` 和 `ScratchDesktopCompanion-with-key-portable.exe` 会打成“内置 DeepSeek Key”的版本。
+- 每次打包后，最新 4 个最终分发文件都会同步复制到根目录 `installers/`，方便直接分发。
+- 每次执行 `npm run package:win:bundle` 时，还会生成 `SHA256SUMS.txt` 和 `RELEASE-NOTES.md`，并分别写入 bundle 目录与根目录 `installers/`。
+- `with-key` 版本优先读取环境变量 `SCRATCH_AI_PACKAGED_DEEPSEEK_API_KEY`；如果没传，就回退到 `src/deepseek.config.json` 里的 `apiKey`。
+- 如果 `with-key` 版本找不到可用 key，脚本会直接失败，避免误发一个看起来像“带 key”但实际上没带 key 的包。
+- 每次执行都会新建一个时间戳文件夹，不覆盖上一次的整包结果。
+
+推荐做法：
+
+```powershell
+$env:SCRATCH_AI_PACKAGED_DEEPSEEK_API_KEY="sk-你的真实key"
+cd apps\desktop-companion
+npm run package:win:bundle
+```
+
+如果只想单独打某一种包，也可以继续使用下面这些命令：
+
+```powershell
+npm run package:win:single:no-key
+npm run package:win:installer:no-key
+npm run package:win:single:with-key
+npm run package:win:installer:with-key
+```
