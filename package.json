@@ -9,7 +9,9 @@
     "desktop:test": "npm --prefix apps/desktop-companion run test",
     "desktop:package:portable": "npm --prefix apps/desktop-companion run package:win:single",
     "desktop:package:installer": "npm --prefix apps/desktop-companion run package:win:installer",
-    "desktop:package:bundle": "npm --prefix apps/desktop-companion run package:win:bundle"
+    "desktop:package:bundle": "npm --prefix apps/desktop-companion run package:win:bundle",
+    "workspace:clean": "powershell -ExecutionPolicy Bypass -File scripts/cleanup-workspace.ps1",
+    "workspace:clean:dry-run": "powershell -ExecutionPolicy Bypass -File scripts/cleanup-workspace.ps1 -DryRun"
   },
   "dependencies": {
     "yauzl": "^3.3.0"

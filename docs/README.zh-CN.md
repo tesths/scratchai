@@ -1,9 +1,10 @@
 # 主工程文档索引
 
-这份索引负责两件事：
+这份索引负责三件事：
 
 - 给维护者一个稳定的阅读顺序
 - 说明当前工作区里文档、产物和临时目录的收口位置
+- 给出整理和清理当前工作区的统一入口
 
 ## 1. 推荐阅读顺序
 
@@ -30,7 +31,29 @@
 - `../Windows-Test/tmp-*/` 和 `../Windows-Test/generated/` 是可再生临时目录，复跑前后都可以清理
 - 根目录不再放零散截图和单独分发安装包
 
-## 4. 这次整理后的常用入口
+## 4. 工作区整理与清理
+
+优先使用根目录统一入口：
+
+```powershell
+npm run workspace:clean:dry-run
+npm run workspace:clean
+```
+
+当前清理脚本会处理这些可再生产物：
+
+- 根目录、`apps/desktop-companion/`、`packages/shared/` 下的 `node_modules/`
+- `apps/desktop-companion/dist/`
+- `apps/desktop-companion/release-single/`
+- `apps/desktop-companion/release-installer/`
+- `apps/desktop-companion/release-bundles/`
+- `docs/assets/screenshots/*.png`
+- `Windows-Test/generated/`
+- `Windows-Test/tmp-*`
+- `Windows-Test/last-*.json`
+- `installers/` 下除 `.gitkeep` 之外的分发产物
+
+## 5. 这次整理后的常用入口
 
 - 文档总导航：本文件
 - 主架构文档：`./architecture.zh-CN.md`
