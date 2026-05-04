@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { build } from "esbuild";
+import { resolvePackagedDeepSeekConfig } from "./scripts/package-variant.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.join(__dirname, "dist");
@@ -89,11 +90,19 @@ const buildConfigs = [
 async function copyStatic() {
   const html = await readFile(path.join(__dirname, "src/index.html"), "utf8");
   const settingsHtml = await readFile(path.join(__dirname, "src/settings.html"), "utf8");
-  const deepSeekConfig = await readFile(path.join(__dirname, "src/deepseek.config.json"), "utf8");
+  const deepSeekConfigRaw = await readFile(path.join(__dirname, "src/deepseek.config.json"), "utf8");
+  const sourceDeepSeekConfig = JSON.parse(deepSeekConfigRaw);
+  const packagedDeepSeekConfig = resolvePackagedDeepSeekConfig(sourceDeepSeekConfig, process.env);
   await writeFile(path.join(distDir, "index.html"), html);
   await writeFile(path.join(distDir, "settings.html"), settingsHtml);
-  await writeFile(path.join(distDir, "deepseek.config.json"), deepSeekConfig);
+  await writeFile(
+    path.join(distDir, "deepseek.config.json"),
+    `${JSON.stringify(packagedDeepSeekConfig.config, null, 2)}\n`
+  );
   await cp(path.join(__dirname, "src/assets"), path.join(distDir, "assets"), { recursive: true });
+  process.stdout.write(
+    `Packaged DeepSeek config mode=${packagedDeepSeekConfig.mode} configured=${packagedDeepSeekConfig.configured ? "yes" : "no"}\n`
+  );
 }
 
 await rm(distDir, { recursive: true, force: true });

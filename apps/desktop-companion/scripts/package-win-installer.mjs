@@ -1,15 +1,27 @@
-import {copyFile} from 'node:fs/promises';
+import {mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import {build} from 'electron-builder';
+import {copyFileWithRetry} from './copy-with-retry.mjs';
+import {getPackageVariantMeta, hasCliFlag, parsePackageVariantArg, runBuildForVariant} from './package-variant.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appDir = path.resolve(__dirname, '..');
-const outputDir = path.join(appDir, 'release-installer');
 const iconPath = path.join(appDir, 'buildResources', 'ScratchDesktop.ico');
-const installerFileName = 'ScratchDesktopCompanion-setup.exe';
-const rootInstallerPath = path.resolve(appDir, '..', '..', installerFileName);
+const variant = parsePackageVariantArg(process.argv);
+const variantMeta = getPackageVariantMeta(variant);
+const outputDir = path.join(appDir, `release-installer${variantMeta.outputDirSuffix}`);
+const installerFileName = `${variantMeta.artifactBaseName}-setup.exe`;
+const distributionInstallerFileName = variant === 'no-key'
+    ? 'ScratchDesktopCompanion-setup.exe'
+    : installerFileName;
+const rootInstallersDir = path.resolve(appDir, '..', '..', 'installers');
+const rootInstallerPath = path.join(rootInstallersDir, distributionInstallerFileName);
+
+if (!hasCliFlag(process.argv, '--skip-build')) {
+    runBuildForVariant(appDir, variant);
+}
 
 await build({
     projectDir: appDir,
@@ -48,11 +60,16 @@ await build({
             uninstallerIcon: iconPath,
             installerHeaderIcon: iconPath
         },
-        artifactName: 'ScratchDesktopCompanion-setup.${ext}'
+        artifactName: `${variantMeta.artifactBaseName}-setup.\${ext}`
     }
 });
 
-await copyFile(path.join(outputDir, installerFileName), rootInstallerPath);
+if (!hasCliFlag(process.argv, '--skip-installers-copy') && !hasCliFlag(process.argv, '--skip-root-copy')) {
+    await mkdir(rootInstallersDir, {recursive: true});
+    await copyFileWithRetry(path.join(outputDir, installerFileName), rootInstallerPath);
+}
 
-process.stdout.write(`Installer build written to ${outputDir}\n`);
-process.stdout.write(`Root installer copied to ${rootInstallerPath}\n`);
+process.stdout.write(`Installer build (${variantMeta.displayName}) written to ${outputDir}\n`);
+if (!hasCliFlag(process.argv, '--skip-installers-copy') && !hasCliFlag(process.argv, '--skip-root-copy')) {
+    process.stdout.write(`Installer copied to root installers folder: ${rootInstallerPath}\n`);
+}

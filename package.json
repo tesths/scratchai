@@ -8,7 +8,8 @@
     "desktop:build": "npm --prefix apps/desktop-companion run build",
     "desktop:test": "npm --prefix apps/desktop-companion run test",
     "desktop:package:portable": "npm --prefix apps/desktop-companion run package:win:single",
-    "desktop:package:installer": "npm --prefix apps/desktop-companion run package:win:installer"
+    "desktop:package:installer": "npm --prefix apps/desktop-companion run package:win:installer",
+    "desktop:package:bundle": "npm --prefix apps/desktop-companion run package:win:bundle"
   },
   "dependencies": {
     "yauzl": "^3.3.0"

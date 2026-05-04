@@ -28,9 +28,12 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Electron packaging artifacts
-ScratchDesktopCompanion-setup.exe
-**/release-installer/
-**/release-single/
+ScratchDesktopCompanion*-setup.exe
+ScratchDesktopCompanion*-portable.exe
+installers/*
+!installers/.gitkeep
+apps/desktop-companion/release*/
+apps/desktop-companion/release-bundles/
 
 # Local test artifacts
 current-ui-*.png

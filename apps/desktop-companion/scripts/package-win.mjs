@@ -3,11 +3,18 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 import packager from '@electron/packager';
+import {getPackageVariantMeta, hasCliFlag, parsePackageVariantArg, runBuildForVariant} from './package-variant.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appDir = path.resolve(__dirname, '..');
-const outputDir = path.join(appDir, 'release');
 const iconPath = path.join(appDir, 'buildResources', 'ScratchDesktop.ico');
+const variant = parsePackageVariantArg(process.argv);
+const variantMeta = getPackageVariantMeta(variant);
+const outputDir = path.join(appDir, `release${variantMeta.outputDirSuffix}`);
+
+if (!hasCliFlag(process.argv, '--skip-build')) {
+    runBuildForVariant(appDir, variant);
+}
 
 await rm(outputDir, {recursive: true, force: true});
 
@@ -23,11 +30,9 @@ await packager({
     executableName: 'ScratchDesktopCompanion',
     name: 'ScratchDesktopCompanion',
     ignore: [
-        /\/release($|\/)/,
-        /\/release-single($|\/)/,
-        /\/release-installer($|\/)/,
+        /\/release(?:-(?:single|installer))?(?:-(?:with-key|no-key))?($|\/)/,
         /\/test($|\/)/
     ]
 });
 
-process.stdout.write(`Packaged directory build written to ${outputDir}\n`);
+process.stdout.write(`Packaged directory build (${variantMeta.displayName}) written to ${outputDir}\n`);
