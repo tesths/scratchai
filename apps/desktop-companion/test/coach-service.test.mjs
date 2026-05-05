@@ -291,10 +291,12 @@ test("CoachService includes imported teaching reference context in DeepSeek prom
   assert.equal(result.source, "deepseek");
   assert.equal(capturedRequest.messages[1].content.includes('"teachingReference"'), true);
   assert.equal(capturedRequest.messages[1].content.includes("https://example.com/reference.sb3"), true);
-  assert.equal(
-    capturedRequest.messages[1].content.includes("compare_current_student_project_with_imported_reference"),
-    true
-  );
+  assert.equal(capturedRequest.messages[0].content.includes("所有自然语言必须使用中文"), true);
+  assert.equal(capturedRequest.messages[0].content.includes("必须先判断学生当前项目已经做到哪一步"), true);
+  assert.equal(capturedRequest.messages[1].content.includes("先看学生当前 Scratch 项目"), true);
+  assert.equal(capturedRequest.messages[1].content.includes("对照教师参考作品补当前还缺的一小步"), true);
+  assert.equal(capturedRequest.messages[1].content.includes("当绿旗被点击 -> 移动 10 步"), true);
+  assert.equal(capturedRequest.messages[1].content.includes("event_whenflagclicked -> motion_movesteps"), false);
 });
 
 test("CoachService uses the saved custom teacher prompt while keeping JSON output requirements", async () => {

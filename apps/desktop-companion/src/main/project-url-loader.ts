@@ -7,7 +7,7 @@ import {
   summarizeProgramAreaModulesFromProject
 } from "@scratch-ai/shared";
 
-import type { ProgramAreaModule, ProjectSnapshot } from "./types";
+import type { ProgramAreaModule, ProjectSnapshot } from "../common/types";
 
 const require = createRequire(import.meta.url);
 const yauzl = require("yauzl");

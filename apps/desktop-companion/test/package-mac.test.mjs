@@ -1,11 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { mkdtemp, mkdir, readlink, symlink, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 
 import {
   MAC_SIGN_IDENTITY_ENV_NAME,
   buildMacBuilderConfig,
+  copyMacDirBundleToInstallers,
   getMacPackageArtifactInfo,
-  parseMacPackageTargetArg
+  parseMacPackageTargetArg,
+  resolveMacBuildCacheEnv
 } from "../scripts/package-mac.mjs";
 
 test("parseMacPackageTargetArg defaults to dir", () => {
@@ -19,6 +24,15 @@ test("getMacPackageArtifactInfo builds dmg names without colliding with Windows 
     artifactFileName: "ScratchDesktopCompanion-no-key.dmg",
     distributionFileName: "ScratchDesktopCompanion-mac.dmg",
     bundleFileName: "ScratchDesktopCompanion.app"
+  });
+});
+
+test("getMacPackageArtifactInfo exposes the root app bundle name for dir targets", () => {
+  assert.deepEqual(getMacPackageArtifactInfo("no-key", "dir"), {
+    target: "dir",
+    outputDirName: "release-mac-no-key",
+    bundleFileName: "ScratchDesktopCompanion.app",
+    distributionBundleFileName: "ScratchDesktopCompanion-mac.app"
   });
 });
 
@@ -58,4 +72,41 @@ test("buildMacBuilderConfig allows explicit signing identity overrides", () => {
   });
 
   assert.equal(config.mac.identity, "Apple Development: Example (ABCDE12345)");
+});
+
+test("resolveMacBuildCacheEnv provides writable temp cache defaults", () => {
+  const env = resolveMacBuildCacheEnv({}, "/private/tmp");
+
+  assert.equal(env.ELECTRON_CACHE, "/private/tmp/scratchai-electron-cache");
+  assert.equal(env.ELECTRON_BUILDER_CACHE, "/private/tmp/scratchai-electron-builder-cache");
+});
+
+test("copyMacDirBundleToInstallers preserves relative framework symlinks in the copied app bundle", async () => {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), "package-mac-copy-"));
+  const outputDir = path.join(rootDir, "release-mac-no-key");
+  const sourceBundleDir = path.join(outputDir, "mac-arm64", "ScratchDesktopCompanion.app");
+  const frameworksDir = path.join(sourceBundleDir, "Contents", "Frameworks", "Electron Framework.framework");
+  const targetBundleDir = path.join(rootDir, "installers", "ScratchDesktopCompanion-mac.app");
+
+  await mkdir(path.join(frameworksDir, "Versions", "A"), { recursive: true });
+  await writeFile(path.join(frameworksDir, "Versions", "A", "payload.txt"), "ok");
+  await symlink("Versions/Current/payload.txt", path.join(frameworksDir, "Electron Framework"));
+  await symlink("A", path.join(frameworksDir, "Versions", "Current"));
+
+  await copyMacDirBundleToInstallers({
+    outputDir,
+    rootInstallersDir: path.join(rootDir, "installers"),
+    bundleFileName: "ScratchDesktopCompanion.app",
+    distributionBundleFileName: "ScratchDesktopCompanion-mac.app",
+    arch: "arm64"
+  });
+
+  assert.equal(
+    await readlink(path.join(targetBundleDir, "Contents", "Frameworks", "Electron Framework.framework", "Electron Framework")),
+    "Versions/Current/payload.txt"
+  );
+  assert.equal(
+    await readlink(path.join(targetBundleDir, "Contents", "Frameworks", "Electron Framework.framework", "Versions", "Current")),
+    "A"
+  );
 });

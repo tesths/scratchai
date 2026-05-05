@@ -1,4 +1,4 @@
-import type { DesktopCompanionState } from "./types";
+import type { DesktopCompanionState } from "../common/types";
 
 interface MinimalElement {
   textContent: string | null;
@@ -191,7 +191,7 @@ export function formatDefaultNextStep(state: DesktopCompanionState) {
 export function formatRecommendedBlocks(state: DesktopCompanionState) {
   return (state.aiCoachResponse?.recommendedBlocks ?? []).map((block) => {
     const exampleText = block.example ? `；示例：${block.example}` : "";
-    return `${block.category} / ${block.label}（${block.opcode}）：${block.reason}${exampleText}`;
+    return `${block.category} / ${block.label}：${block.reason}${exampleText}`;
   });
 }
 

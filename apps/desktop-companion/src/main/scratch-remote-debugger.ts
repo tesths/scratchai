@@ -47,22 +47,27 @@ function isScratchPageTarget(target: ScratchRemoteDebuggerTarget) {
     return false;
   }
 
-  const normalizedTitle = typeof target.title === "string" ? target.title.trim() : "";
-  if (/^Scratch\b/i.test(normalizedTitle)) {
-    return true;
-  }
-
   const normalizedUrl = target.url!.toLowerCase();
   if (!normalizedUrl.includes("/index.html")) {
     return false;
   }
 
-  return !normalizedUrl.includes("?route=about") && !normalizedUrl.includes("?route=privacy");
+  return !normalizedUrl.includes("?route=about") &&
+    !normalizedUrl.includes("?route=privacy") &&
+    !normalizedUrl.includes("?route=usb");
+}
+
+function isPrimaryScratchEditorTarget(target: ScratchRemoteDebuggerTarget) {
+  return isInspectablePageTarget(target) &&
+    typeof target.url === "string" &&
+    target.url.toLowerCase().endsWith("/index.html");
 }
 
 function pickScratchPageTarget(targets: ScratchRemoteDebuggerTarget[]) {
   const inspectableTargets = targets.filter((target) => isInspectablePageTarget(target));
-  return inspectableTargets.find((target) => isScratchPageTarget(target)) ?? inspectableTargets[0];
+  return inspectableTargets.find((target) => isPrimaryScratchEditorTarget(target)) ??
+    inspectableTargets.find((target) => isScratchPageTarget(target)) ??
+    inspectableTargets[0];
 }
 
 class CdpConnection {

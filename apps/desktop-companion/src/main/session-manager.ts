@@ -8,7 +8,7 @@ import {
 
 import { buildDesktopInjectionScript } from "./bridge-script";
 import { ScratchBridgeServer } from "./bridge-server";
-import { CoachService } from "./coach-service";
+import { CoachService, DEFAULT_HINT_ONLY_SYSTEM_PROMPT } from "./coach-service";
 import { loadDeepSeekConfig } from "./deepseek-config";
 import { ProjectUrlLoader } from "./project-url-loader";
 import { createScratchPlatformAdapter } from "./platform-adapter";
@@ -19,7 +19,7 @@ import { ScratchRemoteDebugger } from "./scratch-remote-debugger";
 import { StateStore } from "./state-store";
 import type { LoadedDeepSeekConfig } from "./deepseek-config";
 import type { ScratchPlatformAdapter } from "./platform-adapter";
-import type { DesktopCompanionState, ProgramAreaModule, ProjectSnapshot, ScratchStatePayload } from "./types";
+import type { DesktopCompanionState, ProgramAreaModule, ProjectSnapshot, ScratchStatePayload } from "../common/types";
 
 const CDP_INJECTION_TIMEOUT_MS = 15_000;
 const BRIDGE_CONNECTION_SETTLE_MS = 6_000;
@@ -171,6 +171,7 @@ export class SessionManager {
         aiConfigured: false,
         aiCustomKeyConfigured: false,
         aiCustomPromptConfigured: false,
+        aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
         aiStatus: "idle"
       });
       return;
@@ -739,6 +740,7 @@ export class SessionManager {
       aiConfigured: this.aiConfig?.configured ?? false,
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
       aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
+      aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
       aiStatus: preserveReferenceHint ? currentState.aiStatus : "idle",
       detail: detail ?? this.buildWaitingDetail(hasScratchPath, scratchExecutablePath, reference)
     };
@@ -795,6 +797,7 @@ export class SessionManager {
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
       aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
       aiCustomPrompt: this.config.customAiPrompt,
+      aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
       aiModel: this.aiConfig?.model
     };
   }

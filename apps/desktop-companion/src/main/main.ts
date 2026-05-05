@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { desktopCompanionStateSchema } from "@scratch-ai/shared";
 import { BrowserWindow, Menu, Tray, app, clipboard, dialog, ipcMain, shell } from "electron";
 
-import { getLaunchOptions } from "./launch-options";
+import { getLaunchOptions } from "../common/launch-options";
 import { createScratchPlatformAdapter } from "./platform-adapter";
 import { getRuntimeLogPath, initializeRuntimeLog, writeRuntimeLog } from "./runtime-log";
 import { ScratchExecutableConfigStore } from "./scratch-config-store";
@@ -13,7 +13,7 @@ import { SessionManager } from "./session-manager";
 import { StateStore } from "./state-store";
 import { getIconAssetPath } from "./icon-assets";
 import { createTrayIcon } from "./tray-icon";
-import type { DesktopCompanionState } from "./types";
+import type { DesktopCompanionState } from "../common/types";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 

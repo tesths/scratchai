@@ -1,8 +1,8 @@
 import { desktopCompanionStateSchema } from "@scratch-ai/shared";
 
-import type { DesktopCompanionApi } from "./desktop-companion-api";
+import type { DesktopCompanionApi } from "../common/desktop-companion-api";
 import { renderState } from "./renderer-view";
-import type { DesktopCompanionState } from "./types";
+import type { DesktopCompanionState } from "../common/types";
 
 declare global {
   interface Window {

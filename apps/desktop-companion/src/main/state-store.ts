@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 
-import type { DesktopCompanionState } from "./types";
+import type { DesktopCompanionState } from "../common/types";
 
 export class StateStore {
   private readonly emitter = new EventEmitter();

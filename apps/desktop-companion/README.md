@@ -18,8 +18,8 @@
 
 如果你不是直接在桌面端里做实时提示，而是想拿一个已有 `.sb3` 先整理成教学材料，请改走：
 
-- `Windows-Test/generate-teaching-brief-from-sb3.mjs`
-- `Windows-Test/deepseek-workflow/`
+- `tools/verification/scripts/generate-teaching-brief-from-sb3.mjs`
+- `tools/verification/workflows/deepseek-teaching/`
 
 ## 当前界面状态口径
 
@@ -47,7 +47,7 @@
 
 - 自动识别常见安装目录下的 `Scratch.exe` / `Scratch 3.exe`
 - 支持解析桌面快捷方式 `.lnk`
-- 支持识别 `/Applications` 和 `~/Applications` 下的 `Scratch.app` / `Scratch Desktop.app`
+- 支持识别 `/Applications` 和 `~/Applications` 下的 `Scratch.app` / `Scratch Desktop.app` / `Scratch 3.app`
 - 受控启动 Scratch，并附带 `--remote-debugging-port=<port>`
 - 通过 Chrome DevTools Protocol 向 Scratch renderer 注入只读桥接脚本
 - 桌面端基于 `projectData` 推导 `currentTargetPrograms`
@@ -81,7 +81,7 @@
 
 打包前请先填写：
 
-- `apps/desktop-companion/src/deepseek.config.json`
+- `apps/desktop-companion/src/main/deepseek.config.json`
 
 当前默认内容如下：
 
@@ -106,9 +106,11 @@
 - 主窗口与设置窗口都提供鼠标右键菜单；`教师 sb3 地址` 输入框和设置页 API Key 输入框都支持复制、粘贴、全选。
 - DeepSeek 官方文档入口：<https://api-docs.deepseek.com/zh-cn/>
 
-## 2026-04-29 已验证结果
+## 2026-05-05 已验证结果
 
-本地真实 Windows 联调已验证通过：
+当前已验证结果同时覆盖 Windows 和 macOS。
+
+Windows 真实联调已验证通过：
 
 - 能自动识别 `C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe`
 - 能解析桌面快捷方式 `Scratch 3.lnk`
@@ -122,6 +124,14 @@
 - Electron UI 自动化已覆盖新窗口标题和新界面结构
 - `npm run package:win:single` 已在当前工作区成功生成可执行目录包和便携包
 - `npm run package:win:installer` 已在当前工作区成功生成 NSIS 安装包，并自动复制一份到仓库根目录
+
+macOS 已验证通过：
+
+- 能定位并启动 `/Applications/Scratch 3.app/Contents/MacOS/Scratch 3`
+- `tools/verification/scripts/verify-scratch-local.mjs` 可读到 Scratch 主编辑页 `/json/list`
+- `tools/verification/scripts/verify-scratch-bridge.mjs` 可完成基线、`cat-motion` 和本地 `.sb3` 加载验证
+- 打包版 `.app` UI 冒烟可通过
+- 打包版真实 E2E 可完成受控启动、连接、项目加载与重连
 
 ## 本地开发命令
 
@@ -145,20 +155,21 @@ npm run package:mac:dmg
 说明：
 
 - `npm run test:desktop-ui` 可在 Windows 和 macOS 跑源码版 UI 自动化
-- `npm run test:windows-ui`、`verify-scratch-bridge.mjs` 和 `verify-desktop-companion-real-e2e.mjs` 仍然以 Windows 真机链路为主
+- `npm run test:windows-ui` 这个脚本名沿用历史命名，但当前源码版 UI 自动化已可在 Windows 和 macOS 跑
+- `tools/verification/scripts/verify-scratch-local.mjs`、`tools/verification/scripts/verify-scratch-bridge.mjs` 和 `tools/verification/scripts/verify-desktop-companion-real-e2e.mjs` 现在都按当前平台自动选择默认二进制路径；建议需要复现时仍显式传 `--exe` / `--scratch-exe` / `--companion-exe`
 
 ## 从现成 `.sb3` 生成教学草稿
 
 如果老师先给你一个 Scratch 项目文件，希望你先整理成可编辑的教学 `brief`，从仓库根目录执行：
 
 ```powershell
-node Windows-Test\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administrator\Desktop\Scratch作品.sb3"
+node tools/verification\scripts\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administrator\Desktop\Scratch作品.sb3"
 ```
 
 如果已经配置好 DeepSeek Key，还可以继续直接接完整教学工作流：
 
 ```powershell
-node Windows-Test\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administrator\Desktop\Scratch作品.sb3" --run-workflow
+node tools/verification\scripts\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administrator\Desktop\Scratch作品.sb3" --run-workflow
 ```
 
 这个入口会先生成 `project-summary.json` 和 `brief-draft.json`，再由老师人工确认题目、学生层级、胜负条件和教学目标。
@@ -168,16 +179,28 @@ node Windows-Test\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administr
 从仓库根目录执行：
 
 ```powershell
-node Windows-Test\verify-scratch-local.mjs --exe="C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe" --launch-debug --test-cdp-eval --kill-on-exit --timeout-ms=12000 --expression="window.location.href"
-node Windows-Test\verify-scratch-bridge.mjs --exe="C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --injection-attempts=5 --injection-settle-ms=6000
-node Windows-Test\verify-scratch-bridge.mjs --exe="C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --post-action-payload-timeout-ms=20000 --post-action-settle-ms=1200 --injection-attempts=5 --injection-settle-ms=6000 --scenario=cat-motion
-node Windows-Test\verify-scratch-bridge.mjs --exe="C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --load-project-file="C:\Users\Administrator\Desktop\Scratch作品.sb3"
-node Windows-Test\verify-desktop-companion-ui.mjs
-node Windows-Test\verify-desktop-companion-ui.mjs --packaged-app --electron-exe="C:\Users\Administrator\Desktop\scratch\apps\desktop-companion\release-single\win-unpacked\ScratchDesktopCompanion.exe"
-node Windows-Test\verify-desktop-companion-real-e2e.mjs
+node tools/verification\scripts\verify-scratch-local.mjs --exe="C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe" --launch-debug --test-cdp-eval --kill-on-exit --timeout-ms=12000 --expression="window.location.href"
+node tools/verification\scripts\verify-scratch-bridge.mjs --exe="C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --injection-attempts=5 --injection-settle-ms=6000
+node tools/verification\scripts\verify-scratch-bridge.mjs --exe="C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --post-action-payload-timeout-ms=20000 --post-action-settle-ms=1200 --injection-attempts=5 --injection-settle-ms=6000 --scenario=cat-motion
+node tools/verification\scripts\verify-scratch-bridge.mjs --exe="C:\Users\Administrator\AppData\Local\Programs\Scratch 3\Scratch 3.exe" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --load-project-file="C:\Users\Administrator\Desktop\Scratch作品.sb3"
+node tools/verification\scripts\verify-desktop-companion-ui.mjs
+node tools/verification\scripts\verify-desktop-companion-ui.mjs --packaged-app --electron-exe="C:\Users\Administrator\Desktop\scratch\installers\ScratchDesktopCompanion-win-unpacked\ScratchDesktopCompanion.exe"
+node tools/verification\scripts\verify-desktop-companion-real-e2e.mjs
 ```
 
-## 当前已验证交付物（Windows 主线）
+macOS 对应入口：
+
+```bash
+node tools/verification/scripts/verify-scratch-local.mjs --exe="/Applications/Scratch 3.app/Contents/MacOS/Scratch 3" --launch-debug --test-cdp-eval --kill-on-exit --timeout-ms=20000 --expression="window.location.href"
+node tools/verification/scripts/verify-scratch-bridge.mjs --exe="/Applications/Scratch 3.app/Contents/MacOS/Scratch 3" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --injection-attempts=5 --injection-settle-ms=6000
+node tools/verification/scripts/verify-scratch-bridge.mjs --exe="/Applications/Scratch 3.app/Contents/MacOS/Scratch 3" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --post-action-payload-timeout-ms=20000 --post-action-settle-ms=1200 --injection-attempts=5 --injection-settle-ms=6000 --scenario=cat-motion
+node tools/verification/scripts/verify-scratch-bridge.mjs --exe="/Applications/Scratch 3.app/Contents/MacOS/Scratch 3" --kill-on-exit --timeout-ms=20000 --payload-timeout-ms=30000 --load-project-file="/absolute/path/to/project.sb3"
+node tools/verification/scripts/verify-desktop-companion-ui.mjs
+node tools/verification/scripts/verify-desktop-companion-ui.mjs --packaged-app --electron-exe="./installers/ScratchDesktopCompanion-mac.app/Contents/MacOS/ScratchDesktopCompanion"
+node tools/verification/scripts/verify-desktop-companion-real-e2e.mjs --project-file="/absolute/path/to/project.sb3"
+```
+
+## 当前已验证交付物（Windows + macOS）
 
 当前这轮实际生成并验证过的产物是：
 
@@ -186,8 +209,11 @@ node Windows-Test\verify-desktop-companion-real-e2e.mjs
 - `../../installers/ScratchDesktopCompanion-portable.exe`
 - `../../installers/ScratchDesktopCompanion-with-key-setup.exe`
 - `../../installers/ScratchDesktopCompanion-with-key-portable.exe`
+- `../../installers/ScratchDesktopCompanion-win-unpacked/ScratchDesktopCompanion.exe`
+- `../../installers/ScratchDesktopCompanion-with-key-win-unpacked/ScratchDesktopCompanion.exe`
 - `../../installers/SHA256SUMS.txt`
 - `../../installers/RELEASE-NOTES.md`
+- `../../installers/ScratchDesktopCompanion-mac.app`
 - `release-installer/ScratchDesktopCompanion-setup.exe`
 - `apps/desktop-companion/release-single/win-unpacked/ScratchDesktopCompanion.exe`
 - `apps/desktop-companion/release-single/ScratchDesktopCompanion-portable.exe`
@@ -195,15 +221,16 @@ node Windows-Test\verify-desktop-companion-real-e2e.mjs
 说明：
 
 - `npm run icons:generate` 会根据当前图标源文件刷新 `src/assets/*.png` 和 `buildResources/ScratchDesktop.ico`
-- 根目录 `../../installers/` 是 4 个最终分发文件的统一收口目录，对外分发时优先从这里取包
+- 根目录 `../../installers/` 是最终分发产物的统一收口目录，对外分发和验收都优先从这里取包
 - 常用入口是 `../../installers/ScratchDesktopCompanion-setup.exe`、`../../installers/ScratchDesktopCompanion-portable.exe`、`../../installers/ScratchDesktopCompanion-with-key-setup.exe`、`../../installers/ScratchDesktopCompanion-with-key-portable.exe`
+- 目录型产物也会同步收口到根目录，例如 `../../installers/ScratchDesktopCompanion-win-unpacked/`、`../../installers/ScratchDesktopCompanion-with-key-win-unpacked/` 和 `../../installers/ScratchDesktopCompanion-mac.app`
 - 如果交付目标是“开箱即可直接使用内置 DeepSeek 配置”，应优先发 `../../installers/ScratchDesktopCompanion-with-key-setup.exe` 或 `../../installers/ScratchDesktopCompanion-with-key-portable.exe`
 - `../../installers/SHA256SUMS.txt` 提供最终分发文件的 SHA256 校验值，`../../installers/RELEASE-NOTES.md` 记录本轮打包说明
 - 不带 `with-key` 的同名包按当前打包约定属于 `no-key` 版本，不应再被当作“已内置 DeepSeek Key”的安装包
-- `release-installer/` 保留安装包原始输出和 blockmap
-- `win-unpacked` 是当前最稳的交付形态
+- `release-installer/` 和 `release-*` 目录保留原始打包输出，主要用于排查或二次检查
+- `win-unpacked` 是当前最稳的交付形态，分发时优先使用根目录里的 `../../installers/ScratchDesktopCompanion-win-unpacked/`
 - `portable.exe` 启动速度通常慢于 `win-unpacked`
-- `Windows-Test` 目录现在不再保留历史 exe 副本
+- `tools/verification` 目录现在不再保留历史 exe 副本
 
 ## 自动化测试覆盖
 
@@ -234,6 +261,12 @@ UI 自动化当前重点断言：
 C:\Users\<当前用户名>\AppData\Roaming\@scratch-ai\desktop-companion\desktop-companion.log
 ```
 
+macOS 默认位置：
+
+```text
+~/Library/Application Support/@scratch-ai/desktop-companion/desktop-companion.log
+```
+
 兼容旧版本时，也可以顺手检查：
 
 ```text
@@ -242,19 +275,19 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 
 ## 当前限制
 
-- 真实 Scratch 联调与打包版端到端回归目前仍以 Windows 为主
-- macOS 现阶段以开发、源码版 UI 自动化和内测包为主
+- `verify-deepseek-live-seq.mjs` 这类依赖真实线上模型的脚本仍需要可用的 DeepSeek Key
+- 部分机房部署与开机自启 SOP 仍以 Windows 环境为例，macOS 对应运维文档还不完整
 - 当前主路线仍然是“受控启动 Scratch + CDP 注入”，不是“用户手工打开 Scratch 后再附着”
 - 界面不再展示模块和扩展，但这些字段仍作为兼容状态保留
-- `verify-scratch-local.mjs` 更适合做 CDP 冒烟检查，不是最终产品验收结论
+- `tools/verification/scripts/verify-scratch-local.mjs` 更适合做 CDP 冒烟检查，不是最终产品验收结论
 
 ## 文档入口
 
 - [根工作区总览](../../README.md)
 - [开发交接文档](DEVELOPMENT_STATUS.zh-CN.md)
 - [部署与排查 SOP](SOP.zh-CN.md)
-- [Windows 测试说明](../../Windows-Test/README.zh-CN.md)
-- [DeepSeek 教学工作流说明](../../Windows-Test/deepseek-workflow/README.zh-CN.md)
+- [验证与回归说明](../../tools/verification/README.zh-CN.md)
+- [DeepSeek 教学工作流说明](../../tools/verification/workflows/deepseek-teaching/README.zh-CN.md)
 
 ## 2026-05-03 补充：从教师参考作品地址生成 AI 提示
 
@@ -268,7 +301,7 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 
 推荐验证地址：
 
-- `https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3`
+- `https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/tools/verification/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3`
 
 内部链路：
 
@@ -285,8 +318,8 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 cd apps\desktop-companion
 npm test
 cd ..\..
-node Windows-Test\verify-desktop-companion-ui.mjs
-node Windows-Test\verify-desktop-companion-project-url-ui.mjs
+node tools/verification\scripts\verify-desktop-companion-ui.mjs
+node tools/verification\scripts\verify-desktop-companion-project-url-ui.mjs
 ```
 
 当前交互补充：
@@ -359,14 +392,15 @@ npm run package:mac:dmg:no-key
 
 当前已验证过的输出包括：
 
-- `release-mac-no-key/<mac 或 mac-arm64>/ScratchDesktopCompanion.app`
+- `../../installers/ScratchDesktopCompanion-mac.app`
 - `release-dmg-no-key/ScratchDesktopCompanion-no-key.dmg`
 - `../../installers/ScratchDesktopCompanion-mac.dmg`
 
 说明：
 
 - 如果你想复现上面这组已验证输出，优先使用 `:no-key` 变体。
-- 目录里的 `<mac 或 mac-arm64>` 取决于当前机器架构。
+- `npm run package:mac:app:*` 现在会把 `.app` 同步复制到根目录 `../../installers/`，默认 no-key 变体路径是 `../../installers/ScratchDesktopCompanion-mac.app`。
+- `npm run package:mac:dmg:*` 会把 `.dmg` 同步复制到根目录 `../../installers/`。
 - 如果你要按 `src/deepseek.config.json` 当前内容直接打 source 变体，再改用 `npm run package:mac:app` 和 `npm run package:mac:dmg`。
 - macOS 内测包当前默认不做签名，目的是先稳定把 `.app` 和 `.dmg` 产物打出来。
 - 如果确实要带签名测试，可以显式设置环境变量 `SCRATCH_AI_MAC_SIGN_IDENTITY`。

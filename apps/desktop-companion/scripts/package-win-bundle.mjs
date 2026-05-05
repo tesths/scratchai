@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { copyFileWithRetry } from './copy-with-retry.mjs';
+import { getWindowsDistributionArtifactInfo } from './package-artifact-layout.mjs';
 import {
   PACKAGED_KEY_MODE_ENV_NAME,
   getPackageVariantMeta,
@@ -34,15 +35,16 @@ function getBundleTimestamp() {
 
 function getArtifactBuildInfo(kind, variant) {
   const variantMeta = getPackageVariantMeta(variant);
+  const distributionInfo = getWindowsDistributionArtifactInfo(variant);
   const outputDirName = kind === 'installer'
     ? `release-installer${variantMeta.outputDirSuffix}`
     : `release-single${variantMeta.outputDirSuffix}`;
   const artifactFileName = kind === 'installer'
     ? `${variantMeta.artifactBaseName}-setup.exe`
     : `${variantMeta.artifactBaseName}-portable.exe`;
-  const bundleFileName = variant === 'no-key'
-    ? (kind === 'installer' ? 'ScratchDesktopCompanion-setup.exe' : 'ScratchDesktopCompanion-portable.exe')
-    : artifactFileName;
+  const bundleFileName = kind === 'installer'
+    ? distributionInfo.installerFileName
+    : distributionInfo.portableFileName;
   const scriptFileName = kind === 'installer' ? 'package-win-installer.mjs' : 'package-win-single.mjs';
 
   return {

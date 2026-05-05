@@ -1,8 +1,8 @@
 import { desktopCompanionStateSchema } from "@scratch-ai/shared";
 
 import { formatAiConfigSourceLabel, formatAiConfigSummary } from "./renderer-view";
-import type { DesktopCompanionApi } from "./desktop-companion-api";
-import type { DesktopCompanionState } from "./types";
+import type { DesktopCompanionApi } from "../common/desktop-companion-api";
+import type { DesktopCompanionState } from "../common/types";
 
 declare global {
   interface Window {
@@ -33,6 +33,19 @@ const clearCustomAiPromptButton = document.getElementById(
 const errorElement = document.getElementById("settings-error");
 const feedbackElement = document.getElementById("settings-feedback");
 let lastPromptFromState = "";
+let lastDefaultPromptFromState = "";
+
+function resolvePromptEditorValue(savedPrompt?: string, defaultPrompt?: string) {
+  if (typeof savedPrompt === "string" && savedPrompt.trim()) {
+    return savedPrompt;
+  }
+
+  if (typeof defaultPrompt === "string" && defaultPrompt.trim()) {
+    return defaultPrompt;
+  }
+
+  return "";
+}
 
 function getDesktopCompanionApi() {
   if (!window.desktopCompanionApi) {
@@ -61,12 +74,12 @@ function clearError() {
   }
 }
 
-function syncCustomPromptInput(savedPrompt?: string) {
+function syncCustomPromptInput(savedPrompt?: string, defaultPrompt?: string) {
   if (!customAiPromptInput) {
     return;
   }
 
-  const nextPrompt = savedPrompt ?? "";
+  const nextPrompt = resolvePromptEditorValue(savedPrompt, defaultPrompt);
   const hasLocalEdits = customAiPromptInput.value !== lastPromptFromState;
   const isEditing = document.activeElement === customAiPromptInput;
 
@@ -75,6 +88,8 @@ function syncCustomPromptInput(savedPrompt?: string) {
   }
 
   lastPromptFromState = nextPrompt;
+  lastDefaultPromptFromState =
+    typeof defaultPrompt === "string" && defaultPrompt.trim() ? defaultPrompt : "";
 }
 
 function normalizeState(rawState: unknown): DesktopCompanionState {
@@ -122,7 +137,7 @@ function renderState(state: DesktopCompanionState) {
     clearCustomAiApiKeyButton.disabled = state.aiStatus === "loading" || !state.aiCustomKeyConfigured;
   }
 
-  syncCustomPromptInput(state.aiCustomPrompt);
+  syncCustomPromptInput(state.aiCustomPrompt, state.aiDefaultPrompt);
 
   if (customAiPromptInput) {
     customAiPromptInput.disabled = state.aiStatus === "loading";
@@ -234,9 +249,9 @@ clearCustomAiPromptButton?.addEventListener("click", () => {
     })
     .then(() => {
       if (customAiPromptInput) {
-        customAiPromptInput.value = "";
+        customAiPromptInput.value = lastDefaultPromptFromState;
       }
-      lastPromptFromState = "";
+      lastPromptFromState = lastDefaultPromptFromState;
       showMessage("已恢复默认教师提示词。", "success");
     })
     .catch((error) => {

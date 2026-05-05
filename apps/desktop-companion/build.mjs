@@ -11,82 +11,82 @@ const enableSourceMaps = false;
 
 const buildConfigs = [
   {
-    entryPoints: [path.join(__dirname, "src/main.ts")],
+    entryPoints: [path.join(__dirname, "src/main/main.ts")],
     outfile: path.join(distDir, "main.js"),
     platform: "node",
     format: "esm",
     external: ["electron"]
   },
   {
-    entryPoints: [path.join(__dirname, "src/preload.ts")],
+    entryPoints: [path.join(__dirname, "src/renderer/preload.ts")],
     outfile: path.join(distDir, "preload.cjs"),
     platform: "node",
     format: "cjs",
     external: ["electron"]
   },
   {
-    entryPoints: [path.join(__dirname, "src/renderer.ts")],
+    entryPoints: [path.join(__dirname, "src/renderer/renderer.ts")],
     outfile: path.join(distDir, "renderer.js"),
     platform: "browser",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/settings-renderer.ts")],
+    entryPoints: [path.join(__dirname, "src/renderer/settings-renderer.ts")],
     outfile: path.join(distDir, "settings-renderer.js"),
     platform: "browser",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/renderer-view.ts")],
+    entryPoints: [path.join(__dirname, "src/renderer/renderer-view.ts")],
     outfile: path.join(distDir, "renderer-view.js"),
     platform: "browser",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/coach-service.ts")],
+    entryPoints: [path.join(__dirname, "src/main/coach-service.ts")],
     outfile: path.join(distDir, "coach-service.js"),
     platform: "node",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/deepseek-config.ts")],
+    entryPoints: [path.join(__dirname, "src/main/deepseek-config.ts")],
     outfile: path.join(distDir, "deepseek-config.js"),
     platform: "node",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/state-store.ts")],
+    entryPoints: [path.join(__dirname, "src/main/state-store.ts")],
     outfile: path.join(distDir, "state-store.js"),
     platform: "node",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/session-manager.ts")],
+    entryPoints: [path.join(__dirname, "src/main/session-manager.ts")],
     outfile: path.join(distDir, "session-manager.js"),
     platform: "node",
     format: "esm",
     external: ["electron"]
   },
   {
-    entryPoints: [path.join(__dirname, "src/project-url-loader.ts")],
+    entryPoints: [path.join(__dirname, "src/main/project-url-loader.ts")],
     outfile: path.join(distDir, "project-url-loader.js"),
     platform: "node",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/scratch-remote-debugger.ts")],
+    entryPoints: [path.join(__dirname, "src/main/scratch-remote-debugger.ts")],
     outfile: path.join(distDir, "scratch-remote-debugger.js"),
     platform: "node",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/platform-adapter.ts")],
+    entryPoints: [path.join(__dirname, "src/main/platform-adapter.ts")],
     outfile: path.join(distDir, "platform-adapter.js"),
     platform: "node",
     format: "esm"
   },
   {
-    entryPoints: [path.join(__dirname, "src/scratch-executable-finder.ts")],
+    entryPoints: [path.join(__dirname, "src/main/scratch-executable-finder.ts")],
     outfile: path.join(distDir, "scratch-executable-finder.js"),
     platform: "node",
     format: "esm"
@@ -94,9 +94,12 @@ const buildConfigs = [
 ];
 
 async function copyStatic() {
-  const html = await readFile(path.join(__dirname, "src/index.html"), "utf8");
-  const settingsHtml = await readFile(path.join(__dirname, "src/settings.html"), "utf8");
-  const deepSeekConfigRaw = await readFile(path.join(__dirname, "src/deepseek.config.json"), "utf8");
+  const html = await readFile(path.join(__dirname, "src/renderer/index.html"), "utf8");
+  const settingsHtml = await readFile(path.join(__dirname, "src/renderer/settings.html"), "utf8");
+  const deepSeekConfigRaw = await readFile(
+    path.join(__dirname, "src/main/deepseek.config.json"),
+    "utf8"
+  );
   const sourceDeepSeekConfig = JSON.parse(deepSeekConfigRaw);
   const packagedDeepSeekConfig = resolvePackagedDeepSeekConfig(sourceDeepSeekConfig, process.env);
   await writeFile(path.join(distDir, "index.html"), html);

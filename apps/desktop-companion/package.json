@@ -12,8 +12,8 @@
     "dev": "node build.mjs && electron dist/main.js",
     "start": "electron dist/main.js",
     "test": "npm run build && node --test test/**/*.test.mjs",
-    "test:windows-ui": "node ../../Windows-Test/verify-desktop-companion-ui.mjs",
-    "test:desktop-ui": "node ../../Windows-Test/verify-desktop-companion-ui.mjs",
+    "test:windows-ui": "node ../../tools/verification/scripts/verify-desktop-companion-ui.mjs",
+    "test:desktop-ui": "node ../../tools/verification/scripts/verify-desktop-companion-ui.mjs",
     "package:win": "node scripts/package-win.mjs",
     "package:win:no-key": "node scripts/package-win.mjs --variant=no-key",
     "package:win:with-key": "node scripts/package-win.mjs --variant=with-key",
@@ -35,7 +35,7 @@
     "package:mac:dmg:with-key": "node scripts/package-mac.mjs --target=dmg --variant=with-key"
   },
   "dependencies": {
-    "@scratch-ai/shared": "file:../../packages/shared",
+    "@scratch-ai/shared": "0.1.0",
     "yauzl": "^2.10.0",
     "zod": "^3.24.3"
   },

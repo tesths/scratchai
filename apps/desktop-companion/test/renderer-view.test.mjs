@@ -6,6 +6,7 @@ import {
   formatDefaultNextStep,
   formatCurrentTarget,
   formatCurrentTargetPrograms,
+  formatRecommendedBlocks,
   renderList,
   renderState
 } from "../dist/renderer-view.js";
@@ -48,13 +49,31 @@ test("formats current target with stage label", () => {
 test("formats current target programs with script labels", () => {
   assert.deepEqual(
     formatCurrentTargetPrograms([
-      "event_whenflagclicked -> control_forever -> motion_movesteps",
-      "event_whenkeypressed -> looks_say"
+      "当绿旗被点击 -> 一直重复 -> 移动 10 步",
+      "当按下空格键 -> 说 2 秒"
     ]),
     [
-      "脚本 1: event_whenflagclicked -> control_forever -> motion_movesteps",
-      "脚本 2: event_whenkeypressed -> looks_say"
+      "脚本 1: 当绿旗被点击 -> 一直重复 -> 移动 10 步",
+      "脚本 2: 当按下空格键 -> 说 2 秒"
     ]
+  );
+});
+
+test("formats recommended blocks without exposing English opcodes", () => {
+  assert.deepEqual(
+    formatRecommendedBlocks({
+      aiCoachResponse: {
+        recommendedBlocks: [
+          {
+            opcode: "event_whenflagclicked",
+            category: "事件",
+            label: "当绿旗被点击",
+            reason: "先给脚本一个开始时机。"
+          }
+        ]
+      }
+    }),
+    ["事件 / 当绿旗被点击：先给脚本一个开始时机。"]
   );
 });
 
@@ -113,7 +132,7 @@ test("renderState updates current role and program text", () => {
       detail: "来自测试",
       currentTargetName: "Cat",
       currentTargetPrograms: [
-        "event_whenflagclicked -> control_forever -> motion_movesteps -> pen_clear"
+        "当绿旗被点击 -> 一直重复 -> 移动 10 步 -> 清空"
       ],
       toolboxCategories: [],
       usedExtensions: [],
@@ -137,7 +156,7 @@ test("renderState updates current role and program text", () => {
   assert.equal(currentTargetElement.textContent, "Cat");
   assert.deepEqual(
     currentTargetProgramsElement.children.map((child) => child.textContent),
-    ["脚本 1: event_whenflagclicked -> control_forever -> motion_movesteps -> pen_clear"]
+    ["脚本 1: 当绿旗被点击 -> 一直重复 -> 移动 10 步 -> 清空"]
   );
   assert.equal(scratchPathElement.textContent, "C:\\Scratch 3.exe");
 });

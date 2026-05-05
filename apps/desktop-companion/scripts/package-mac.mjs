@@ -1,10 +1,13 @@
 import { mkdir } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { build } from "electron-builder";
 
-import { copyFileWithRetry } from "./copy-with-retry.mjs";
+import { probeMacDmgSupport } from "../../../tools/verification/scripts/runtime-support.mjs";
+import { copyFileWithRetry, copyPathWithRetry } from "./copy-with-retry.mjs";
+import { getMacDistributionArtifactInfo } from "./package-artifact-layout.mjs";
 import {
   getPackageVariantMeta,
   hasCliFlag,
@@ -21,6 +24,18 @@ const currentArch = process.arch === "arm64" ? "arm64" : "x64";
 const VALID_MAC_PACKAGE_TARGETS = new Set(["dir", "dmg"]);
 export const MAC_SIGN_IDENTITY_ENV_NAME = "SCRATCH_AI_MAC_SIGN_IDENTITY";
 
+export function resolveMacBuildCacheEnv(env = process.env, tempDir = os.tmpdir()) {
+  const nextEnv = { ...env };
+  nextEnv.ELECTRON_CACHE = nextEnv.ELECTRON_CACHE || path.join(tempDir, "scratchai-electron-cache");
+  nextEnv.ELECTRON_BUILDER_CACHE =
+    nextEnv.ELECTRON_BUILDER_CACHE || path.join(tempDir, "scratchai-electron-builder-cache");
+  return nextEnv;
+}
+
+export function getMacBundleOutputDirName(arch = currentArch) {
+  return arch === "arm64" ? "mac-arm64" : "mac";
+}
+
 export function parseMacPackageTargetArg(argv, defaultTarget = "dir") {
   const rawArg = argv.find((arg) => arg.startsWith("--target="));
   const target = rawArg ? rawArg.slice("--target=".length).trim() : defaultTarget;
@@ -34,11 +49,13 @@ export function parseMacPackageTargetArg(argv, defaultTarget = "dir") {
 
 export function getMacPackageArtifactInfo(variant, target) {
   const variantMeta = getPackageVariantMeta(variant);
+  const distributionInfo = getMacDistributionArtifactInfo(variant);
   if (target === "dir") {
     return {
       target,
       outputDirName: `release-mac${variantMeta.outputDirSuffix}`,
-      bundleFileName: "ScratchDesktopCompanion.app"
+      bundleFileName: "ScratchDesktopCompanion.app",
+      distributionBundleFileName: distributionInfo.appBundleName
     };
   }
 
@@ -46,10 +63,7 @@ export function getMacPackageArtifactInfo(variant, target) {
     target,
     outputDirName: `release-dmg${variantMeta.outputDirSuffix}`,
     artifactFileName: `${variantMeta.artifactBaseName}.dmg`,
-    distributionFileName:
-      variant === "no-key"
-        ? "ScratchDesktopCompanion-mac.dmg"
-        : `${variantMeta.artifactBaseName}-mac.dmg`,
+    distributionFileName: distributionInfo.dmgFileName,
     bundleFileName: "ScratchDesktopCompanion.app"
   };
 }
@@ -93,15 +107,48 @@ export function buildMacBuilderConfig({
   return config;
 }
 
+export async function copyMacDirBundleToInstallers({
+  outputDir,
+  rootInstallersDir,
+  bundleFileName,
+  distributionBundleFileName,
+  arch = currentArch
+}) {
+  await copyPathWithRetry(
+    path.join(outputDir, getMacBundleOutputDirName(arch), bundleFileName),
+    path.join(rootInstallersDir, distributionBundleFileName)
+  );
+}
+
 async function main() {
   const target = parseMacPackageTargetArg(process.argv);
   const variant = parsePackageVariantArg(process.argv);
   const variantMeta = getPackageVariantMeta(variant);
   const artifactInfo = getMacPackageArtifactInfo(variant, target);
   const outputDir = path.join(appDir, artifactInfo.outputDirName);
+  const buildEnv = resolveMacBuildCacheEnv(process.env);
+
+  process.env.ELECTRON_CACHE = buildEnv.ELECTRON_CACHE;
+  process.env.ELECTRON_BUILDER_CACHE = buildEnv.ELECTRON_BUILDER_CACHE;
+  await mkdir(process.env.ELECTRON_CACHE, { recursive: true });
+  await mkdir(process.env.ELECTRON_BUILDER_CACHE, { recursive: true });
 
   if (!hasCliFlag(process.argv, "--skip-build")) {
     runBuildForVariant(appDir, variant);
+  }
+
+  if (target === "dmg") {
+    const dmgSupport = probeMacDmgSupport({
+      tempDir: process.env.ELECTRON_BUILDER_CACHE ?? process.env.ELECTRON_CACHE ?? os.tmpdir()
+    });
+    if (!dmgSupport.supported) {
+      const message = `Skipping macOS dmg build (${variantMeta.displayName}): ${dmgSupport.reason}`;
+      if (hasCliFlag(process.argv, "--require-dmg")) {
+        throw new Error(message);
+      }
+      process.stdout.write(`${message}\n`);
+      return;
+    }
   }
 
   const config = buildMacBuilderConfig({
@@ -121,19 +168,35 @@ async function main() {
     config
   });
 
-  if (target === "dmg" && !hasCliFlag(process.argv, "--skip-installers-copy")) {
+  if (!hasCliFlag(process.argv, "--skip-installers-copy")) {
     await mkdir(rootInstallersDir, { recursive: true });
-    await copyFileWithRetry(
-      path.join(outputDir, artifactInfo.artifactFileName),
-      path.join(rootInstallersDir, artifactInfo.distributionFileName)
-    );
+
+    if (target === "dir") {
+      await copyMacDirBundleToInstallers({
+        outputDir,
+        rootInstallersDir,
+        bundleFileName: artifactInfo.bundleFileName,
+        distributionBundleFileName: artifactInfo.distributionBundleFileName
+      });
+    } else {
+      await copyFileWithRetry(
+        path.join(outputDir, artifactInfo.artifactFileName),
+        path.join(rootInstallersDir, artifactInfo.distributionFileName)
+      );
+    }
   }
 
   process.stdout.write(`macOS ${target} build (${variantMeta.displayName}) written to ${outputDir}\n`);
-  if (target === "dmg" && !hasCliFlag(process.argv, "--skip-installers-copy")) {
-    process.stdout.write(
-      `macOS dmg copied to root installers folder: ${path.join(rootInstallersDir, artifactInfo.distributionFileName)}\n`
-    );
+  if (!hasCliFlag(process.argv, "--skip-installers-copy")) {
+    if (target === "dir") {
+      process.stdout.write(
+        `macOS app copied to root installers folder: ${path.join(rootInstallersDir, artifactInfo.distributionBundleFileName)}\n`
+      );
+    } else {
+      process.stdout.write(
+        `macOS dmg copied to root installers folder: ${path.join(rootInstallersDir, artifactInfo.distributionFileName)}\n`
+      );
+    }
   }
 }
 

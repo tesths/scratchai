@@ -1,16 +1,16 @@
-import { coachResponseSchema, projectSnapshotSchema } from "@scratch-ai/shared";
+import { coachResponseSchema, getDisplayLabelForOpcode, projectSnapshotSchema } from "@scratch-ai/shared";
 
 import type { LoadedDeepSeekConfig } from "./deepseek-config";
-import type { CoachResponse, ProgramAreaModule, ProjectSnapshot, RecommendedBlock, SpriteSnapshot } from "./types";
+import type { CoachResponse, ProgramAreaModule, ProjectSnapshot, RecommendedBlock, SpriteSnapshot } from "../common/types";
 
 const DEFAULT_FALLBACK_MODEL = "local-heuristic";
 const DEFAULT_DEEPSEEK_MAX_TOKENS = 2048;
-const DEFAULT_HINT_ONLY_SYSTEM_PROMPT =
-  "你是 Scratch 小学编程助教。请根据学生当前作品，给出具体、可执行、面向小学生的中文提示，但不要直接给完整答案，不要写完整脚本，也不要把积木顺序一次性全部告诉学生。你只能做诊断、缩小下一步范围、提示关键积木和追问。如果上下文里有 teachingReference，它表示老师先导入的参考作品；current context 表示学生当前 Scratch 进度。请优先比较两者差异，只给学生下一小步。";
+export const DEFAULT_HINT_ONLY_SYSTEM_PROMPT =
+  "你是 Scratch 小学编程助教。请根据学生当前作品，给出具体、可执行、面向小学生的中文提示，但不要直接给完整答案，不要写完整脚本，也不要把积木顺序一次性全部告诉学生。你只能做诊断、缩小下一步范围、提示关键积木和追问。即使上下文里有 teachingReference，它也只是老师先导入的参考作品；你必须先判断学生当前项目已经做到哪一步，再只补当前最缺的一小步。所有自然语言必须使用中文，不要出现英文 opcode、英文积木名、英文字段解释，避免中英混杂。";
 const HINT_ONLY_OUTPUT_REQUIREMENTS =
   "输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 里每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 里每个元素必须包含 severity、title、description，可选 spriteName，其中 severity 只能是 info 或 warning。不要输出 Markdown，不要输出额外解释。";
 const HINT_ONLY_USER_PROMPT =
-  "请根据下面的 Scratch 项目上下文，给出“下一步做什么”的提示。优先基于学生已经使用过的模块继续推进，不要让学生一下子大改，也不要直接泄露完整答案。";
+  "请根据下面的 Scratch 项目上下文，给出“下一步做什么”的提示。先看学生当前 Scratch 项目，再在必要时对照教师参考作品补当前还缺的一小步。优先基于学生已经使用过的模块继续推进，不要让学生一下子大改，也不要直接泄露完整答案。";
 
 interface GenerateCoachHintOptions {
   snapshot: ProjectSnapshot;
@@ -100,6 +100,29 @@ function buildCompactSprites(snapshot: ProjectSnapshot, currentTargetName?: stri
         ? sprite.scripts.map((script) => script.blockSequence)
         : sprite.scripts.slice(0, 2).map((script) => script.blockSequence)
   }));
+}
+
+function localizeProgramDescription(program: string) {
+  if (typeof program !== "string") {
+    return "";
+  }
+
+  const parts = program
+    .split("->")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      if (/[\u4e00-\u9fff]/.test(part)) {
+        return part;
+      }
+      return getDisplayLabelForOpcode(part);
+    });
+
+  return parts.join(" -> ");
+}
+
+function localizeProgramDescriptions(programs: string[]) {
+  return programs.map((program) => localizeProgramDescription(program)).filter(Boolean);
 }
 
 function buildReferenceProgramList(snapshot: ProjectSnapshot) {
@@ -354,11 +377,11 @@ function buildPromptContext(options: GenerateCoachHintOptions) {
 
   const context = {
     goal: goal?.trim() || snapshot.goal || "",
-    guidanceMode: options.referenceSnapshot
-      ? "compare_current_student_project_with_imported_reference"
-      : "analyze_current_project_only",
+    analysisPriority: options.referenceSnapshot
+      ? "先看学生当前 Scratch 项目，再对照教师参考作品补当前还缺的一小步。"
+      : "只分析学生当前 Scratch 项目，先判断已经完成了什么，再补下一小步。",
     currentTarget: snapshot.currentTarget || "",
-    currentTargetPrograms,
+    currentTargetPrograms: localizeProgramDescriptions(currentTargetPrograms),
     programAreaModules,
     usedExtensions,
     loadedExtensions,
@@ -375,8 +398,11 @@ function buildPromptContext(options: GenerateCoachHintOptions) {
   }
 
   const referenceTarget = getCurrentTargetSprite(options.referenceSnapshot);
+  const localizedReferencePrograms = localizeProgramDescriptions(options.referenceCurrentTargetPrograms?.filter(Boolean) ?? []);
   const referenceCurrentTargetPrograms =
-    options.referenceCurrentTargetPrograms?.filter(Boolean) ?? buildReferenceProgramList(options.referenceSnapshot);
+    localizedReferencePrograms.length > 0
+      ? localizedReferencePrograms
+      : localizeProgramDescriptions(buildReferenceProgramList(options.referenceSnapshot));
 
   return {
     ...context,
@@ -492,10 +518,13 @@ function normalizeCoachResponse(rawPayload: unknown) {
         .map((item) => {
           const opcode = normalizeTextValue(item.opcode) ?? "unknown_block";
           const category = normalizeTextValue(item.category) ?? "其他";
-          const label =
+          const rawLabel =
             normalizeTextValue(item.label) ??
-            normalizeTextValue(item.blockName) ??
-            opcode;
+            normalizeTextValue(item.blockName);
+          const label =
+            rawLabel && !/^[a-z0-9_]+$/i.test(rawLabel)
+              ? rawLabel
+              : getDisplayLabelForOpcode(opcode);
           const reason =
             normalizeTextValue(item.reason) ??
             normalizeTextValue(item.description) ??

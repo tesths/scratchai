@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, "..", "..", "..");
 const sb3FixturePath = path.join(
   workspaceRoot,
-  "Windows-Test",
+  "tools/verification",
   "fixtures",
   "projects",
   "cat-and-a-mouse",
@@ -19,7 +19,7 @@ const sb3FixturePath = path.join(
 );
 const projectJsonFixturePath = path.join(
   workspaceRoot,
-  "Windows-Test",
+  "tools/verification",
   "fixtures",
   "projects",
   "cat-and-a-mouse",
@@ -30,7 +30,7 @@ const projectJsonFixturePath = path.join(
 test("ProjectUrlLoader can load a direct sb3 URL", async () => {
   const sb3Buffer = await readFile(sb3FixturePath);
   const fixtureUrl =
-    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3";
+    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/tools/verification/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3";
 
   const loader = new ProjectUrlLoader(async (url) => {
     assert.equal(url, fixtureUrl);

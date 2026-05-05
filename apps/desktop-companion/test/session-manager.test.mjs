@@ -94,7 +94,7 @@ function createImportedProjectResult(projectUrl = "https://example.com/reference
     currentTargetName: "cheese",
     currentTargetIsStage: false,
     currentTargetPrograms: [
-      "event_whenflagclicked -> control_forever -> sensing_touchingobject -> data_changevariableby"
+      "当绿旗被点击 -> 一直重复 -> 碰到对象？ -> 将变量增加"
     ],
     programAreaModules: sharedModules,
     usedExtensions: [],
@@ -113,17 +113,17 @@ function createImportedProjectResult(projectUrl = "https://example.com/reference
           blockCount: 4,
           variables: [],
           scripts: [
-            {
-              spriteName: "cheese",
-              event: "when green flag clicked",
-              blockSequence: [
-                "event_whenflagclicked",
-                "control_forever",
-                "sensing_touchingobject",
-                "data_changevariableby"
-              ],
-              blockOpcodes: [
-                "event_whenflagclicked",
+          {
+            spriteName: "cheese",
+            event: "当绿旗被点击",
+            blockSequence: [
+              "当绿旗被点击",
+              "一直重复",
+              "碰到对象？",
+              "将变量增加"
+            ],
+            blockOpcodes: [
+              "event_whenflagclicked",
                 "control_forever",
                 "sensing_touchingobject",
                 "data_changevariableby"
@@ -328,7 +328,7 @@ test("SessionManager derives current target programs from projectData", async ()
     ]
   );
   assert.deepEqual(nextState.currentTargetPrograms, [
-    "event_whenflagclicked -> motion_movesteps -> motion_turnright -> pen_clear"
+    "当绿旗被点击 -> 移动 10 步 -> 右转 15 度 -> 清空"
   ]);
 });
 
@@ -395,7 +395,7 @@ test("SessionManager returns fallback AI hints when DeepSeek key is not configur
 test("SessionManager can generate hints from a project URL without a live Scratch connection", async () => {
   const stateStore = new StateStore();
   const importedProject = createImportedProjectResult(
-    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3"
+    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/tools/verification/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3"
   );
 
   const manager = new SessionManager(stateStore, {
@@ -413,7 +413,7 @@ test("SessionManager can generate hints from a project URL without a live Scratc
 
   await manager.start();
   await manager.requestAiHintFromProjectUrl(
-    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/Windows-Test/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
+    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/tools/verification/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
     "让奶酪被碰到以后加分"
   );
 
@@ -421,7 +421,7 @@ test("SessionManager can generate hints from a project URL without a live Scratc
   assert.equal(nextState.status, "waiting");
   assert.equal(nextState.currentTargetName, "cheese");
   assert.deepEqual(nextState.currentTargetPrograms, [
-    "event_whenflagclicked -> control_forever -> sensing_touchingobject -> data_changevariableby"
+    "当绿旗被点击 -> 一直重复 -> 碰到对象？ -> 将变量增加"
   ]);
   assert.equal(nextState.statusText, "已读取教师参考作品，可直接查看提示");
   assert.equal(nextState.detail, `来源：${importedProject.sourceLabel}`);
@@ -596,6 +596,8 @@ test("SessionManager saves a custom teacher prompt and reuses it for hint genera
   });
 
   await manager.start();
+  assert.equal(stateStore.getState().aiDefaultPrompt?.includes("你是 Scratch 小学编程助教"), true);
+  assert.equal(stateStore.getState().aiCustomPrompt, undefined);
   await manager.saveCustomAiPrompt("请优先提醒碰撞和加分。");
 
   manager.handlePayload({
@@ -640,4 +642,9 @@ test("SessionManager saves a custom teacher prompt and reuses it for hint genera
   assert.equal(lastOptions.customSystemPrompt, "请优先提醒碰撞和加分。");
   assert.equal(stateStore.getState().aiCustomPromptConfigured, true);
   assert.equal(stateStore.getState().aiCustomPrompt, "请优先提醒碰撞和加分。");
+
+  await manager.clearCustomAiPrompt();
+  assert.equal(stateStore.getState().aiCustomPromptConfigured, false);
+  assert.equal(stateStore.getState().aiCustomPrompt, undefined);
+  assert.equal(stateStore.getState().aiDefaultPrompt?.includes("你是 Scratch 小学编程助教"), true);
 });
