@@ -29,11 +29,12 @@
 
 ### `apps/desktop-companion`
 
-Windows Electron 桌面伴随程序。
+Windows + macOS Electron 桌面伴随程序。
 
 职责：
 
 - 探测 `Scratch.exe`、`Scratch 3.exe` 或桌面快捷方式 `.lnk`
+- 在 macOS 上探测 `Scratch.app`、`Scratch Desktop.app` 及其 app bundle 可执行文件
 - 以受控方式启动 Scratch Desktop
 - 通过 Chrome DevTools Protocol 向 Scratch renderer 注入只读桥接脚本
 - 接收 Scratch 回传状态
@@ -174,7 +175,9 @@ Windows Electron 桌面伴随程序。
 
 ## 7. 当前已验证能力
 
-截至 2026-04-28，真实 Windows 环境已验证：
+截至 2026-05-05：
+
+Windows 真实环境已验证：
 
 - 能解析桌面 `Scratch 3.lnk`
 - 能受控启动 `Scratch 3.exe`
@@ -187,9 +190,18 @@ Windows Electron 桌面伴随程序。
 - 能打开本地 `.sb3` 并抓取项目信息
 - Electron 源码版和打包版都能自动化验证窗口与按钮交互
 
+macOS 当前已补齐：
+
+- 平台适配层
+- `Scratch.app` / `Scratch Desktop.app` 自动探测与手动选择
+- 受控启动所需的 app bundle 可执行文件解析
+- 源码版 UI 自动化入口
+- `.app` / `.dmg` 内测打包命令
+
 ## 8. 当前边界与风险
 
-- 目前只支持 Windows
+- 当前正式真机回归仍以 Windows 为主
+- macOS 虽已支持开发、基础测试和打包，但真实 Scratch 回归深度仍低于 Windows
 - 当前主路线是“受控启动 Scratch + CDP 注入”，不是“附着到用户手工启动的 Scratch”
 - Scratch 没有提供稳定公开 API 直接给外部程序读取这些状态
 - `apps/server` 仍不是本轮已完成交付物

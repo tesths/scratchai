@@ -11,12 +11,14 @@ import { ScratchBridgeServer } from "./bridge-server";
 import { CoachService } from "./coach-service";
 import { loadDeepSeekConfig } from "./deepseek-config";
 import { ProjectUrlLoader } from "./project-url-loader";
+import { createScratchPlatformAdapter } from "./platform-adapter";
 import { writeRuntimeLog } from "./runtime-log";
 import { ScratchExecutableConfigStore } from "./scratch-config-store";
 import { ScratchLauncher } from "./scratch-launcher";
 import { ScratchRemoteDebugger } from "./scratch-remote-debugger";
 import { StateStore } from "./state-store";
 import type { LoadedDeepSeekConfig } from "./deepseek-config";
+import type { ScratchPlatformAdapter } from "./platform-adapter";
 import type { DesktopCompanionState, ProgramAreaModule, ProjectSnapshot, ScratchStatePayload } from "./types";
 
 const CDP_INJECTION_TIMEOUT_MS = 15_000;
@@ -36,6 +38,7 @@ interface SessionManagerDependencies {
   projectUrlLoader?: Pick<ProjectUrlLoader, "load">;
   loadAiConfig?: typeof loadDeepSeekConfig;
   platform?: string;
+  platformAdapter?: ScratchPlatformAdapter;
 }
 
 type ScratchLaunchSession = Awaited<ReturnType<ScratchLauncher["launch"]>>;
@@ -94,6 +97,8 @@ export class SessionManager {
 
   private readonly platform: string;
 
+  private readonly platformAdapter: ScratchPlatformAdapter;
+
   private config: { scratchExecutablePath?: string; customAiApiKey?: string; customAiPrompt?: string } = {};
 
   private activeLaunchSession?: ScratchLaunchSession;
@@ -142,7 +147,10 @@ export class SessionManager {
     this.coachService = dependencies.coachService ?? new CoachService();
     this.projectUrlLoader = dependencies.projectUrlLoader ?? new ProjectUrlLoader();
     this.loadAiConfig = dependencies.loadAiConfig ?? loadDeepSeekConfig;
-    this.platform = dependencies.platform ?? process.platform;
+    this.platformAdapter =
+      dependencies.platformAdapter ??
+      createScratchPlatformAdapter(dependencies.platform ?? process.platform);
+    this.platform = this.platformAdapter.id;
   }
 
   getCurrentState() {
@@ -150,11 +158,11 @@ export class SessionManager {
   }
 
   async start() {
-    if (this.platform !== "win32") {
+    if (!this.platformAdapter.supported) {
       this.stateStore.setState({
         status: "unsupported",
-        statusText: "当前版本只实现了 Windows 机房模式",
-        detail: "请在 Windows 机器上运行这个伴随程序。",
+        statusText: `当前版本暂不支持 ${this.platformAdapter.displayName}`,
+        detail: "当前版本已支持 Windows 和 macOS，请在受支持的平台运行这个伴随程序。",
         toolboxCategories: [],
         usedExtensions: [],
         loadedExtensions: [],
@@ -484,7 +492,7 @@ export class SessionManager {
         injectionMode: "cdp-runtime-evaluate",
         scratchExecutablePath: this.config.scratchExecutablePath,
         error: error instanceof Error ? error.message : "Unknown launch error",
-        detail: "请确认已经选择正确的 Scratch 可执行文件（Scratch.exe 或 Scratch 3.exe），并允许伴随程序代为启动。"
+        detail: `请确认已经选择正确的 Scratch 软件（${this.platformAdapter.selectionLabel}），并允许伴随程序代为启动。`
       });
     } finally {
       this.isLaunching = false;
@@ -833,6 +841,6 @@ export class SessionManager {
       return `已配置 Scratch 软件：${scratchExecutablePath}。点击“打开已选 Scratch”后，伴随程序会自动连接调试端口。`;
     }
 
-    return `本地监听端已启动：${this.bridgeServer.getBaseUrl()}。请先选择老师机上的 Scratch 软件（Scratch.exe 或 Scratch 3.exe）。`;
+    return `本地监听端已启动：${this.bridgeServer.getBaseUrl()}。请先选择老师机上的 Scratch 软件（${this.platformAdapter.selectionLabel}）。`;
   }
 }

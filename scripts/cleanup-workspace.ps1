@@ -101,6 +101,8 @@ Remove-PathIfExists -RelativePath "apps/desktop-companion/dist"
 Remove-PathIfExists -RelativePath "apps/desktop-companion/release-single"
 Remove-PathIfExists -RelativePath "apps/desktop-companion/release-installer"
 Remove-PathIfExists -RelativePath "apps/desktop-companion/release-bundles"
+Remove-GlobIfExists -RelativePattern "apps/desktop-companion/release-mac*"
+Remove-GlobIfExists -RelativePattern "apps/desktop-companion/release-dmg*"
 Remove-PathIfExists -RelativePath "Windows-Test/generated"
 
 Remove-GlobIfExists -RelativePattern "Windows-Test/tmp-*"

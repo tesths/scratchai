@@ -1,13 +1,13 @@
 # Scratch Desktop Companion
 
-这是主工程里的 Windows 桌面伴随程序，用来连接 `Scratch Desktop`，读取当前角色、当前角色程序和教师参考作品，并基于这些上下文给学生生成 AI 跟做提示。
+这是主工程里的 Windows + macOS 桌面伴随程序，用来连接 `Scratch Desktop`，读取当前角色、当前角色程序和教师参考作品，并基于这些上下文给学生生成 AI 跟做提示。
 
 ## 当前产品流程
 
 当前已经对齐并验证的流程是：
 
 1. 打开伴随程序，自动识别本机是否已安装 Scratch。
-2. 如果没有识别到路径，手动选择 `Scratch.exe` 或 `Scratch 3.exe`；如果之前已经选过，就继续使用上次保存的路径。
+2. 如果没有识别到路径，Windows 手动选择 `Scratch.exe`、`Scratch 3.exe` 或桌面快捷方式；macOS 手动选择 `Scratch.app`、`Scratch Desktop.app` 或应用包里的可执行文件。如果之前已经选过，就继续使用上次保存的路径。
 3. 点击 `打开已选 Scratch`，由伴随程序受控启动 Scratch。
 4. 伴随程序通过 CDP 注入只读桥接脚本并建立连接。
 5. 在首页 `教师 sb3 地址` 输入框里粘贴老师准备好的 `.sb3`、Scratch 作品页或 Scratch API 地址。
@@ -47,6 +47,7 @@
 
 - 自动识别常见安装目录下的 `Scratch.exe` / `Scratch 3.exe`
 - 支持解析桌面快捷方式 `.lnk`
+- 支持识别 `/Applications` 和 `~/Applications` 下的 `Scratch.app` / `Scratch Desktop.app`
 - 受控启动 Scratch，并附带 `--remote-debugging-port=<port>`
 - 通过 Chrome DevTools Protocol 向 Scratch renderer 注入只读桥接脚本
 - 桌面端基于 `projectData` 推导 `currentTargetPrograms`
@@ -130,13 +131,21 @@
 npm run icons:generate
 npm run build
 npm test
+npm run test:desktop-ui
 npm run test:windows-ui
 npm run dev
 npm run package:win
 npm run package:win:single
 npm run package:win:installer
 npm run package:win:bundle
+npm run package:mac:app
+npm run package:mac:dmg
 ```
+
+说明：
+
+- `npm run test:desktop-ui` 可在 Windows 和 macOS 跑源码版 UI 自动化
+- `npm run test:windows-ui`、`verify-scratch-bridge.mjs` 和 `verify-desktop-companion-real-e2e.mjs` 仍然以 Windows 真机链路为主
 
 ## 从现成 `.sb3` 生成教学草稿
 
@@ -168,7 +177,7 @@ node Windows-Test\verify-desktop-companion-ui.mjs --packaged-app --electron-exe=
 node Windows-Test\verify-desktop-companion-real-e2e.mjs
 ```
 
-## 当前交付物
+## 当前已验证交付物（Windows 主线）
 
 当前这轮实际生成并验证过的产物是：
 
@@ -204,6 +213,7 @@ node Windows-Test\verify-desktop-companion-real-e2e.mjs
 - `apps/desktop-companion` 单元测试
 - Electron UI 自动化
 - 打包后 `win-unpacked` UI 自动化
+- 打包后 macOS `.app` UI 冒烟
 - 真实 Windows + Scratch bridge 联调
 - 真实 `.sb3` 读取验证
 - 打包版真实端到端 E2E
@@ -232,7 +242,8 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 
 ## 当前限制
 
-- 只支持 Windows
+- 真实 Scratch 联调与打包版端到端回归目前仍以 Windows 为主
+- macOS 现阶段以开发、源码版 UI 自动化和内测包为主
 - 当前主路线仍然是“受控启动 Scratch + CDP 注入”，不是“用户手工打开 Scratch 后再附着”
 - 界面不再展示模块和扩展，但这些字段仍作为兼容状态保留
 - `verify-scratch-local.mjs` 更适合做 CDP 冒烟检查，不是最终产品验收结论
@@ -335,3 +346,29 @@ npm run package:win:installer:no-key
 npm run package:win:single:with-key
 npm run package:win:installer:with-key
 ```
+
+## 2026-05-05 补充：macOS 内测打包
+
+当前已经补了 macOS 打包入口，适合开发自测和内测发包。和当前已验证输出对应的命令是：
+
+```bash
+cd apps/desktop-companion
+npm run package:mac:app:no-key
+npm run package:mac:dmg:no-key
+```
+
+当前已验证过的输出包括：
+
+- `release-mac-no-key/<mac 或 mac-arm64>/ScratchDesktopCompanion.app`
+- `release-dmg-no-key/ScratchDesktopCompanion-no-key.dmg`
+- `../../installers/ScratchDesktopCompanion-mac.dmg`
+
+说明：
+
+- 如果你想复现上面这组已验证输出，优先使用 `:no-key` 变体。
+- 目录里的 `<mac 或 mac-arm64>` 取决于当前机器架构。
+- 如果你要按 `src/deepseek.config.json` 当前内容直接打 source 变体，再改用 `npm run package:mac:app` 和 `npm run package:mac:dmg`。
+- macOS 内测包当前默认不做签名，目的是先稳定把 `.app` 和 `.dmg` 产物打出来。
+- 如果确实要带签名测试，可以显式设置环境变量 `SCRATCH_AI_MAC_SIGN_IDENTITY`。
+- 即使显式签名，这也不等于已经完成 notarization；正式对外分发前，仍然要补完整 Apple 发布链路。
+- 当前 macOS 更接近“开发可用、UI 自动化可跑、内测包可出”，真实 Scratch 联调深度仍低于 Windows。

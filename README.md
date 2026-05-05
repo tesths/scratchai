@@ -4,14 +4,15 @@
 
 当前主工程只有三块：
 
-- `apps/desktop-companion`：Windows 桌面伴随程序，也是当前持续维护的主应用
+- `apps/desktop-companion`：Windows + macOS 桌面伴随程序，也是当前持续维护的主应用
 - `packages/shared`：共享类型、状态契约和 Scratch 项目解析能力
 - `apps/server`：服务端包保留中，但当前源码快照不完整，不能视为已交付实现
 
 ## 当前边界
 
 - 根目录只保留 workspace 入口、统一脚本和文档导航
-- 真正已经做完 Windows 联调的主要是 `apps/desktop-companion` 和 `packages/shared`
+- 真正持续维护的主要是 `apps/desktop-companion` 和 `packages/shared`
+- 真实 Scratch 联调目前仍以 Windows 为主；macOS 已补齐开发、基础测试和打包入口
 - 如果后续要参考上游 Scratch 实现，应该临时单独 clone，任务结束后清理，不恢复成常驻目录
 
 ## 常用命令
@@ -22,9 +23,12 @@
 npm run desktop:icons
 npm run desktop:build
 npm run desktop:test
+npm run desktop:test:ui
 npm run desktop:package:portable
 npm run desktop:package:installer
 npm run desktop:package:bundle
+npm run desktop:package:mac:app
+npm run desktop:package:mac:dmg
 npm run workspace:clean:dry-run
 npm run workspace:clean
 ```
@@ -79,12 +83,13 @@ npm run workspace:clean:dry-run
 
 ## 当前已验证范围
 
-这条工作线已经在真实 Windows 环境验证过：
+这条工作线已经在真实 Windows 环境完整验证过，并补上了 macOS 开发与打包入口：
 
 - 可定位并启动真实 `Scratch 3.exe`
 - 可用 `--remote-debugging-port=<port>` 受控拉起 Scratch Desktop
 - 可通过 CDP 注入只读桥接脚本并读取当前角色信息
 - 可从本地 `.sb3` 提取项目摘要并生成教学 `brief` 草稿
 - 桌面伴随程序源码版和打包版都做过自动化 UI 验证
+- macOS 现已支持本地开发构建、源码版 UI 自动化，以及 `.app` / `.dmg` 内测打包命令
 
 更细的验证脚本、样例工程和测试 SOP 统一放在 `Windows-Test/` 下维护。

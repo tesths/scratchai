@@ -19,9 +19,9 @@
 - 看工作区范围、常用命令和当前入口：`../README.md`
 - 看组件职责和数据流：`./architecture.zh-CN.md`
 - 看文档应该怎么维护：`./maintenance.zh-CN.md`
-- 看桌面端开发、打包和交接：`../apps/desktop-companion/README.md`
-- 看 Windows 真机验证和回归：`../Windows-Test/README.zh-CN.md`
-- 看机房部署和现场排查：`../apps/desktop-companion/SOP.zh-CN.md`、`../Windows-Test/SOP.zh-CN.md`
+- 看桌面端开发、双平台打包和交接：`../apps/desktop-companion/README.md`
+- 看 Windows 真机验证、当前跨平台 UI 自动化和回归：`../Windows-Test/README.zh-CN.md`
+- 看 Windows 机房部署和现场排查：`../apps/desktop-companion/SOP.zh-CN.md`、`../Windows-Test/SOP.zh-CN.md`
 
 ## 3. 当前目录收口约定
 
@@ -47,6 +47,8 @@ npm run workspace:clean
 - `apps/desktop-companion/release-single/`
 - `apps/desktop-companion/release-installer/`
 - `apps/desktop-companion/release-bundles/`
+- `apps/desktop-companion/release-mac*/`
+- `apps/desktop-companion/release-dmg*/`
 - `docs/assets/screenshots/*.png`
 - `Windows-Test/generated/`
 - `Windows-Test/tmp-*`

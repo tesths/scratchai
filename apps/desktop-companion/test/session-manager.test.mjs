@@ -178,6 +178,47 @@ test("SessionManager enters waiting state when Scratch path is not configured", 
   assert.equal(nextState.detail.includes("请先选择老师机上的 Scratch 软件"), true);
 });
 
+test("SessionManager supports macOS with the same waiting flow", async () => {
+  const stateStore = new StateStore();
+  const manager = new SessionManager(stateStore, {
+    bridgeServer: createBridgeServerMock(),
+    platform: "darwin",
+    log: () => {},
+    configStore: createConfigStoreMock("/Applications/Scratch.app/Contents/MacOS/Scratch"),
+    loadAiConfig: createAiConfigMock(),
+    scratchLauncher: {},
+    scratchRemoteDebugger: {}
+  });
+
+  await manager.start();
+
+  const nextState = stateStore.getState();
+  assert.equal(nextState.status, "waiting");
+  assert.equal(nextState.scratchExecutablePath, "/Applications/Scratch.app/Contents/MacOS/Scratch");
+  assert.equal(nextState.statusText, "请从伴随程序打开已选 Scratch");
+  assert.equal(nextState.detail.includes("已配置 Scratch 软件"), true);
+});
+
+test("SessionManager keeps unsupported status on Linux", async () => {
+  const stateStore = new StateStore();
+  const manager = new SessionManager(stateStore, {
+    bridgeServer: createBridgeServerMock(),
+    platform: "linux",
+    log: () => {},
+    configStore: createConfigStoreMock(),
+    loadAiConfig: createAiConfigMock(),
+    scratchLauncher: {},
+    scratchRemoteDebugger: {}
+  });
+
+  await manager.start();
+
+  const nextState = stateStore.getState();
+  assert.equal(nextState.status, "unsupported");
+  assert.equal(nextState.statusText, "当前版本暂不支持 Linux");
+  assert.equal(nextState.detail, "当前版本已支持 Windows 和 macOS，请在受支持的平台运行这个伴随程序。");
+});
+
 test("SessionManager enters waiting state with the configured Scratch path", async () => {
   const stateStore = new StateStore();
   const manager = new SessionManager(stateStore, {

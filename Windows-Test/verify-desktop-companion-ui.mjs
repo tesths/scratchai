@@ -3,6 +3,12 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 
+import {
+    getDefaultAutomationScratchPath,
+    getDefaultElectronBinaryPath,
+    getDefaultPackagedCompanionBinaryPath
+} from './electron-paths.mjs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..');
 const screenshotDir = path.join(workspaceRoot, 'docs', 'assets', 'screenshots');
@@ -15,10 +21,12 @@ const argv = new Map(
     })
 );
 
+const packagedAppMode = argv.has('--packaged-app');
 const electronExe =
     argv.get('--electron-exe') ??
-    path.join(workspaceRoot, 'apps', 'desktop-companion', 'node_modules', 'electron', 'dist', 'electron.exe');
-const packagedAppMode = argv.has('--packaged-app');
+    (packagedAppMode
+        ? getDefaultPackagedCompanionBinaryPath(workspaceRoot)
+        : getDefaultElectronBinaryPath(workspaceRoot));
 const appMain = packagedAppMode
     ? null
     : (
@@ -31,7 +39,7 @@ const mockStateFile =
 const debugPort = Number(argv.get('--port') ?? '9344');
 const timeoutMs = Number(argv.get('--timeout-ms') ?? '15000');
 const screenshotPath = argv.get('--screenshot') ?? screenshotPathDefault;
-const automationScratchPath = argv.get('--automation-scratch-path') ?? 'C:\\Automation\\Scratch 3.exe';
+const automationScratchPath = argv.get('--automation-scratch-path') ?? getDefaultAutomationScratchPath();
 const userDataDir = path.join(workspaceRoot, 'Windows-Test', 'tmp-desktop-companion-ui-userdata');
 const expectedProgram =
     '脚本 1: event_whenflagclicked -> control_forever -> motion_movesteps -> pen_clear';

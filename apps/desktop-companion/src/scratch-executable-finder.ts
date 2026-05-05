@@ -34,7 +34,7 @@ function pushScratchExecutableCandidate(candidates: string[], baseDir: string | 
     return;
   }
 
-  pushCandidate(candidates, path.join(baseDir, ...segments));
+  pushCandidate(candidates, path.win32.join(baseDir, ...segments));
 }
 
 export function buildScratchExecutableCandidates(env: NodeJS.ProcessEnv = process.env) {
@@ -77,7 +77,7 @@ export async function resolveScratchExecutableSelection(
   dependencies: ResolveScratchExecutableSelectionDependencies = {}
 ) {
   const accessImpl = dependencies.access ?? access;
-  const normalizedSelection = path.normalize(selectedPath.trim());
+  const normalizedSelection = path.win32.normalize(selectedPath.trim());
 
   if (!normalizedSelection) {
     throw new Error("请选择 Scratch Desktop 的程序文件或快捷方式。");
@@ -100,7 +100,7 @@ export async function resolveScratchExecutableSelection(
       throw new Error("这个快捷方式没有指向有效程序，请直接选择 Scratch.exe 或 Scratch 3.exe。");
     }
 
-    resolvedPath = path.normalize(shortcutDetails.target.trim());
+    resolvedPath = path.win32.normalize(shortcutDetails.target.trim());
   }
 
   if (!isScratchExecutablePath(resolvedPath)) {
@@ -137,7 +137,7 @@ export async function findScratchExecutableCandidatesFromShortcuts(
         continue;
       }
 
-      const shortcutPath = path.join(directory, file);
+      const shortcutPath = path.win32.join(directory, file);
       try {
         const resolvedPath = await resolveScratchExecutableSelection(shortcutPath, dependencies);
         if (!candidates.includes(resolvedPath)) {

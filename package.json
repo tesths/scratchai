@@ -7,11 +7,17 @@
     "desktop:icons": "npm --prefix apps/desktop-companion run icons:generate",
     "desktop:build": "npm --prefix apps/desktop-companion run build",
     "desktop:test": "npm --prefix apps/desktop-companion run test",
-    "desktop:package:portable": "npm --prefix apps/desktop-companion run package:win:single",
+    "desktop:test:ui": "npm --prefix apps/desktop-companion run test:desktop-ui",
+    "desktop:package:portable": "npm --prefix apps/desktop-companion run package:win:portable",
     "desktop:package:installer": "npm --prefix apps/desktop-companion run package:win:installer",
     "desktop:package:bundle": "npm --prefix apps/desktop-companion run package:win:bundle",
-    "workspace:clean": "powershell -ExecutionPolicy Bypass -File scripts/cleanup-workspace.ps1",
-    "workspace:clean:dry-run": "powershell -ExecutionPolicy Bypass -File scripts/cleanup-workspace.ps1 -DryRun"
+    "desktop:package:win:portable": "npm --prefix apps/desktop-companion run package:win:portable",
+    "desktop:package:win:installer": "npm --prefix apps/desktop-companion run package:win:installer",
+    "desktop:package:win:bundle": "npm --prefix apps/desktop-companion run package:win:bundle",
+    "desktop:package:mac:app": "npm --prefix apps/desktop-companion run package:mac:app",
+    "desktop:package:mac:dmg": "npm --prefix apps/desktop-companion run package:mac:dmg",
+    "workspace:clean": "node scripts/cleanup-workspace.mjs",
+    "workspace:clean:dry-run": "node scripts/cleanup-workspace.mjs --dry-run"
   },
   "dependencies": {
     "yauzl": "^3.3.0"

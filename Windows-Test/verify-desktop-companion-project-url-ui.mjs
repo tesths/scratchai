@@ -3,6 +3,8 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 
+import {getDefaultElectronBinaryPath} from './electron-paths.mjs';
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..');
 const screenshotDir = path.join(workspaceRoot, 'docs', 'assets', 'screenshots');
@@ -30,7 +32,7 @@ function getTextArg(name, fallbackValue) {
 
 const electronExe =
     argv.get('--electron-exe') ??
-    path.join(workspaceRoot, 'apps', 'desktop-companion', 'node_modules', 'electron', 'dist', 'electron.exe');
+    getDefaultElectronBinaryPath(workspaceRoot);
 const appMain =
     argv.get('--app-main') ??
     path.join(workspaceRoot, 'apps', 'desktop-companion', 'dist', 'main.js');

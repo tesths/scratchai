@@ -6,13 +6,9 @@ import { desktopCompanionStateSchema } from "@scratch-ai/shared";
 import { BrowserWindow, Menu, Tray, app, clipboard, dialog, ipcMain, shell } from "electron";
 
 import { getLaunchOptions } from "./launch-options";
+import { createScratchPlatformAdapter } from "./platform-adapter";
 import { getRuntimeLogPath, initializeRuntimeLog, writeRuntimeLog } from "./runtime-log";
 import { ScratchExecutableConfigStore } from "./scratch-config-store";
-import {
-  findScratchExecutableCandidates,
-  findScratchExecutableCandidatesFromShortcuts,
-  resolveScratchExecutableSelection
-} from "./scratch-executable-finder";
 import { SessionManager } from "./session-manager";
 import { StateStore } from "./state-store";
 import { getIconAssetPath } from "./icon-assets";
@@ -37,15 +33,18 @@ const automationActionCounts = {
 
 const WINDOWS_APP_ID = "com.scratchai.desktopcompanion";
 const WINDOW_BACKGROUND_COLOR = "#f7fbff";
+const scratchPlatformAdapter = createScratchPlatformAdapter(process.platform);
 const USER_DATA_DIR =
   process.env.SCRATCH_AI_USER_DATA_DIR?.trim() ||
-  path.join(app.getPath("appData"), "@scratch-ai", "desktop-companion");
+  scratchPlatformAdapter.getDefaultUserDataDir(app.getPath("appData"));
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 }
 
-app.setAppUserModelId(WINDOWS_APP_ID);
+if (process.platform === "win32") {
+  app.setAppUserModelId(WINDOWS_APP_ID);
+}
 app.setPath("userData", USER_DATA_DIR);
 
 function showMainWindow() {
@@ -279,7 +278,7 @@ function getAutomationScratchExecutablePath() {
   return (
     launchOptions.automationScratchExecutablePath?.trim() ||
     stateStore.getState().scratchExecutablePath ||
-    "C:\\Automation\\Scratch 3.exe"
+    scratchPlatformAdapter.defaultAutomationScratchExecutablePath
   );
 }
 
@@ -414,24 +413,15 @@ function showStartupError(error: unknown) {
 }
 
 async function findScratchExecutableCandidatesWithShortcuts() {
-  const candidates = await findScratchExecutableCandidates();
-  const desktopShortcutDirectories = [app.getPath("desktop")];
   const publicProfile = process.env.PUBLIC?.trim();
-  if (publicProfile) {
-    desktopShortcutDirectories.push(path.join(publicProfile, "Desktop"));
-  }
-
-  const shortcutCandidates = await findScratchExecutableCandidatesFromShortcuts(desktopShortcutDirectories, {
+  const publicDesktopPath = publicProfile ? path.join(publicProfile, "Desktop") : undefined;
+  return await scratchPlatformAdapter.findScratchExecutableCandidates({
+    env: process.env,
+    homeDir: app.getPath("home"),
+    desktopPath: app.getPath("desktop"),
+    publicDesktopPath,
     readShortcutLink: (shortcutPath) => shell.readShortcutLink(shortcutPath)
   });
-
-  for (const candidate of shortcutCandidates) {
-    if (!candidates.includes(candidate)) {
-      candidates.push(candidate);
-    }
-  }
-
-  return candidates;
 }
 
 async function autoConfigureScratchExecutableIfNeeded() {
@@ -523,7 +513,8 @@ app.whenReady()
     }
 
     sessionManager = new SessionManager(stateStore, {
-      configStore: new ScratchExecutableConfigStore(app.getPath("userData"))
+      configStore: new ScratchExecutableConfigStore(app.getPath("userData")),
+      platformAdapter: scratchPlatformAdapter
     });
 
     writeRuntimeLog("session manager start begin");
@@ -578,17 +569,15 @@ async function chooseScratchExecutable(source: "tray" | "window") {
   }
 
   const dialogOptions: Electron.OpenDialogOptions = {
-    title: "选择老师机上的 Scratch 可执行文件（Scratch.exe / Scratch 3.exe）或桌面快捷方式",
+    title: scratchPlatformAdapter.selectionDialogTitle,
     properties: ["openFile"]
   };
 
-  if (currentScratchPath) {
-    dialogOptions.defaultPath = path.dirname(currentScratchPath);
-  } else if (autoDetectedCandidates[0]) {
-    dialogOptions.defaultPath = path.dirname(autoDetectedCandidates[0]);
-  } else {
-    dialogOptions.defaultPath = app.getPath("desktop");
-  }
+  dialogOptions.defaultPath = scratchPlatformAdapter.getDialogDefaultPath({
+    currentScratchPath,
+    autoDetectedCandidates,
+    desktopPath: app.getPath("desktop")
+  });
 
   const wasAlwaysOnTop = windowRef?.isAlwaysOnTop() ?? false;
   if (windowRef) {
@@ -620,9 +609,12 @@ async function chooseScratchExecutable(source: "tray" | "window") {
   }
 
   try {
-    const resolvedScratchExecutablePath = await resolveScratchExecutableSelection(scratchExecutablePath, {
-      readShortcutLink: (shortcutPath) => shell.readShortcutLink(shortcutPath)
-    });
+    const resolvedScratchExecutablePath = await scratchPlatformAdapter.resolveScratchExecutableSelection(
+      scratchExecutablePath,
+      {
+        readShortcutLink: (shortcutPath) => shell.readShortcutLink(shortcutPath)
+      }
+    );
 
     if (resolvedScratchExecutablePath !== scratchExecutablePath) {
       writeRuntimeLog(

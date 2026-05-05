@@ -1,8 +1,10 @@
 # Windows 测试说明
 
-这个目录存放当前这轮 Windows 真机测试、回归验证和现场排查所需的脚本与说明。
+这个目录存放当前这轮桌面端测试、回归验证和现场排查所需的脚本与说明。目录名沿用 `Windows-Test`，但其中一部分源码版 UI 自动化现在也可用于 macOS。真实 Scratch 联调、机房验收和最终分发仍以 Windows 为主；macOS 当前只补源码版 UI 自动化、打包版 UI 冒烟和内测打包入口。
 
 ## 当前产品流程
+
+下面这条主流程仍以 Windows 真机验证口径为准。
 
 当前已经对齐并验证的主流程是：
 
@@ -33,6 +35,12 @@
 
 `Windows-Test` 现在不再保留历史 `portable.exe` / `setup.exe` 副本；最新分发入口统一看仓库根目录 `installers/`。如果要验证“已内置 DeepSeek 配置”的安装包或便携包，优先使用 `installers/ScratchDesktopCompanion-with-key-setup.exe` 和 `installers/ScratchDesktopCompanion-with-key-portable.exe`；源产物回到 `apps/desktop-companion/release-installer/` 和 `apps/desktop-companion/release-single/` 查找。分发或验收前可对照 `installers/SHA256SUMS.txt` 做校验，并查看 `installers/RELEASE-NOTES.md` 确认交付批次。
 
+macOS 内测产物当前不在这个目录做正式分发口径，已验证输出主要看：
+
+- `apps/desktop-companion/release-mac-no-key/<mac 或 mac-arm64>/ScratchDesktopCompanion.app`
+- `apps/desktop-companion/release-dmg-no-key/ScratchDesktopCompanion-no-key.dmg`
+- `installers/ScratchDesktopCompanion-mac.dmg`
+
 ## 目录内容
 
 - `verify-scratch-local.mjs`
@@ -42,9 +50,11 @@
   - 支持空白项目、动态场景、`cat-motion` 场景和本地 `.sb3` 文件加载
 - `verify-desktop-companion-ui.mjs`
   - 验证源码版或打包版 Electron 主窗口、设置窗口、按钮和界面状态
+  - 当前已补齐按平台解析 Electron 可执行文件的入口
 - `verify-desktop-companion-real-e2e.mjs`
   - 验证打包版真实链路
   - 覆盖自动识别路径、受控启动 Scratch、连接建立、真实 `.sb3` 加载、角色与程序显示、`重新连接`
+  - 当前仍是 Windows 专用脚本
 - `run-deepseek-teaching-workflow.mjs`
   - 运行 DeepSeek Scratch 教学工作流
   - 输出规划、分角色脚本、学生提示和课堂排错包
@@ -65,17 +75,25 @@
 - `fixtures/desktop-companion-mock-state.json`
   - UI 自动化使用的模拟状态
 
-## 2026-04-28 已自动化验证通过
+## 2026-05-05 已自动化验证通过
 
-- `apps/desktop-companion` 单测 `13/13`
+- `apps/desktop-companion` 单测
 - 源码版 UI 自动化
 - 打包版 `win-unpacked` UI 自动化
 - 独立 `DeepSeek 设置` 窗口自动化
+- 教师参考作品 URL UI 自动化
 - Scratch 本机 CDP 连通性验证
 - Scratch bridge 基线验证
 - Scratch bridge `cat-motion` 动态场景验证
 - 真实 `.sb3` 文件加载验证
 - 打包版真实端到端 E2E
+
+另外，macOS 当前已额外验证：
+
+- 源码版 UI 自动化
+- 教师参考作品 URL 旁路 UI 自动化
+- 打包后 `.app` UI 冒烟
+- `no-key` 变体 `.app` / `.dmg` 内测打包
 
 打包版真实 E2E 当前已经验证：
 
@@ -137,6 +155,17 @@ node Windows-Test\generate-teaching-brief-from-sb3.mjs --sb3="C:\Users\Administr
 6. `node Windows-Test\verify-scratch-bridge.mjs --scenario=cat-motion ...`
 7. `node Windows-Test\verify-scratch-bridge.mjs --load-project-file="...sb3" ...`
 8. `node Windows-Test\verify-desktop-companion-real-e2e.mjs`
+
+macOS 当前推荐先跑：
+
+1. `cd apps/desktop-companion && npm test`
+2. `node Windows-Test/verify-desktop-companion-ui.mjs`
+3. `node Windows-Test/verify-desktop-companion-project-url-ui.mjs`
+4. `cd apps/desktop-companion && npm run package:mac:app:no-key`
+5. `node Windows-Test/verify-desktop-companion-ui.mjs --packaged-app --electron-exe="./apps/desktop-companion/release-mac-no-key/<mac 或 mac-arm64>/ScratchDesktopCompanion.app/Contents/MacOS/ScratchDesktopCompanion"`
+6. `cd apps/desktop-companion && npm run package:mac:dmg:no-key`
+
+其中第 5 步里的 `<mac 或 mac-arm64>` 取决于当前机器架构。
 
 ### 回归前清理残留进程
 

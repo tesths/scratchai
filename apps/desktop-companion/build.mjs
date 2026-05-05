@@ -80,6 +80,12 @@ const buildConfigs = [
     format: "esm"
   },
   {
+    entryPoints: [path.join(__dirname, "src/platform-adapter.ts")],
+    outfile: path.join(distDir, "platform-adapter.js"),
+    platform: "node",
+    format: "esm"
+  },
+  {
     entryPoints: [path.join(__dirname, "src/scratch-executable-finder.ts")],
     outfile: path.join(distDir, "scratch-executable-finder.js"),
     platform: "node",

@@ -120,11 +120,18 @@
 必须保持：
 
 - 应用用途
+- 平台范围和当前边界
 - 本地开发命令
 - 打包命令与产物
 - 指向接力文档和 SOP 的导航
 
 不要把详细排障步骤塞回这个 README。
+
+出现下面变化时必须更新：
+
+- 支持平台集合变化
+- 打包变体、命令名或输出目录变化
+- UI 自动化和打包冒烟的覆盖范围变化
 
 ### `apps/desktop-companion/DEVELOPMENT_STATUS.zh-CN.md`
 
@@ -172,6 +179,7 @@
 - 本地验证脚本或回归脚本变化
 - 关键日志关键词变化
 - 当前主试验路线变化
+- Windows 主线与 macOS 补充范围的边界变化
 
 ### `Windows-Test/SOP.zh-CN.md`
 
@@ -195,11 +203,14 @@
 
 - 根 README 里的工作区入口描述是否和真实目录一致
 - `docs/README.zh-CN.md` 里的文档导航和目录收口是否与真实目录一致
+- 双平台口径是否在根 README、`apps/desktop-companion/README.md`、`Windows-Test/README.zh-CN.md` 之间保持一致
 - 新增链接是否都能指向真实文件
 - `apps/server/README.md` 的环境变量是否和 `apps/server/src/config.ts` 一致
 - `apps/server/README.md` 的接口名是否和真实路由一致
 - `apps/desktop-companion/README.md`、`DEVELOPMENT_STATUS.zh-CN.md`、`SOP.zh-CN.md` 是否职责清晰、没有明显重复
 - `Windows-Test/README.zh-CN.md`、`Windows-Test/SOP.zh-CN.md` 是否与当前主试验路线一致
+- 打包命令、变体名和输出目录是否与真实脚本一致，比如 `source`、`no-key`、`with-key`
+- 是否明确区分了 Windows 正式回归范围和 macOS 开发 / 冒烟 / 内测范围
 - `npm run workspace:clean:dry-run` 的输出是否仍符合文档描述
 - 是否清楚说明了根目录不是单一 Git 仓库
 - 根目录是否又出现了零散截图或单独分发安装包
