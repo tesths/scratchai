@@ -17,7 +17,8 @@ async function createWorkspaceFixture() {
   await mkdir(path.join(repoRoot, "apps", "desktop-companion", "release-dmg-no-key"), {
     recursive: true
   });
-  await mkdir(path.join(repoRoot, "Windows-Test", "tmp-demo"), { recursive: true });
+  await mkdir(path.join(repoRoot, "tools/verification", "tmp-demo"), { recursive: true });
+  await mkdir(path.join(repoRoot, "tools/verification", "artifacts"), { recursive: true });
   await mkdir(path.join(repoRoot, "docs", "assets", "screenshots"), { recursive: true });
   await mkdir(path.join(repoRoot, "installers"), { recursive: true });
   await mkdir(path.join(repoRoot, "apps", "desktop-companion", "src"), { recursive: true });
@@ -45,6 +46,7 @@ test("cleanupWorkspace dry-run reports generated artifacts without deleting them
     assert.ok(result.removedPaths.includes("node_modules"));
     assert.ok(result.removedPaths.includes("apps/desktop-companion/release-mac-no-key"));
     assert.ok(result.removedPaths.includes("apps/desktop-companion/release-dmg-no-key"));
+    assert.ok(result.removedPaths.includes("tools/verification/artifacts"));
     assert.ok(result.removedPaths.includes("installers/ScratchDesktopCompanion-mac.dmg"));
 
     const keptSource = await readFile(

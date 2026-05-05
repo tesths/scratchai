@@ -103,6 +103,7 @@ export type DesktopCompanionState = {
   aiCustomKeyConfigured: boolean;
   aiCustomPromptConfigured: boolean;
   aiCustomPrompt?: string;
+  aiDefaultPrompt?: string;
   aiStatus: "idle" | "loading" | "ready" | "error";
   aiProvider?: "deepseek" | "fallback";
   aiModel?: string;
@@ -141,6 +142,7 @@ export declare function normalizeExtensionId(prefix: string): string | null;
 export declare function getExtensionIdForOpcode(opcode: string): string | null;
 export declare function getModuleIdForOpcode(opcode: string): string | null;
 export declare function getModuleLabelForId(moduleId: string): string | null;
+export declare function getDisplayLabelForOpcode(opcode: string, fields?: Record<string, unknown>): string;
 export declare function getUsedExtensionsFromBlocks(blocks: Record<string, unknown>): string[];
 export declare function getUsedExtensionsFromProject(project: Record<string, unknown>): string[];
 export declare function summarizeProgramAreaModulesFromBlocks(blocks: Record<string, unknown>): ProgramAreaModule[];

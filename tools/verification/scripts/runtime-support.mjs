@@ -1,0 +1,100 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+
+function normalizeText(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+export function probeElectronBinarySupport(
+  binaryPath,
+  { spawnSyncImpl = spawnSync, timeoutMs = 5000 } = {}
+) {
+  const result = spawnSyncImpl(binaryPath, ["--version"], {
+    stdio: "ignore",
+    timeout: timeoutMs
+  });
+
+  if (result?.error) {
+    return {
+      supported: false,
+      reason: `Failed to execute Electron binary: ${result.error.message}`
+    };
+  }
+
+  if (result?.status === 0) {
+    return {
+      supported: true
+    };
+  }
+
+  if (result?.signal === "SIGABRT") {
+    return {
+      supported: false,
+      reason: "Electron aborts before startup in this environment.",
+      signal: result.signal
+    };
+  }
+
+  return {
+    supported: false,
+    reason: `Electron binary exited before startup (status=${String(result?.status ?? "unknown")}, signal=${String(result?.signal ?? "none")}).`,
+    status: result?.status ?? undefined,
+    signal: result?.signal ?? undefined
+  };
+}
+
+export function probeMacDmgSupport({
+  spawnSyncImpl = spawnSync,
+  tempDir = os.tmpdir(),
+  platform = process.platform
+} = {}) {
+  if (platform !== "darwin") {
+    return {
+      supported: false,
+      reason: "DMG builds require macOS."
+    };
+  }
+
+  const probeDir = fs.mkdtempSync(path.join(tempDir, "scratchai-dmg-probe-"));
+  const sourceDir = path.join(probeDir, "src");
+  const dmgPath = path.join(probeDir, "probe.dmg");
+
+  try {
+    fs.mkdirSync(sourceDir, { recursive: true });
+    fs.writeFileSync(path.join(sourceDir, "probe.txt"), "probe", "utf8");
+
+    const result = spawnSyncImpl("hdiutil", ["create", "-fs", "HFS+", "-srcfolder", sourceDir, dmgPath], {
+      encoding: "utf8"
+    });
+
+    if (result?.error) {
+      return {
+        supported: false,
+        reason: `Failed to execute hdiutil: ${result.error.message}`
+      };
+    }
+
+    if (result?.status === 0) {
+      return {
+        supported: true
+      };
+    }
+
+    const output = [normalizeText(result?.stdout), normalizeText(result?.stderr)].filter(Boolean).join("\n");
+    if (/Device not configured/i.test(output)) {
+      return {
+        supported: false,
+        reason: "hdiutil cannot create DMG images in this environment (Device not configured)."
+      };
+    }
+
+    return {
+      supported: false,
+      reason: output || `hdiutil failed with status ${String(result?.status ?? "unknown")}.`
+    };
+  } finally {
+    fs.rmSync(probeDir, { recursive: true, force: true });
+  }
+}

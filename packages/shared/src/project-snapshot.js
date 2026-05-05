@@ -1,4 +1,5 @@
 import {
+  getDisplayLabelForOpcode,
   getModuleLabelForId,
   getModuleIdForOpcode,
   getUsedExtensionsFromProject,
@@ -51,7 +52,7 @@ function getVisibleBlocks(blocks, spriteName) {
       id,
       opcode: block.opcode,
       category: getBlockCategoryLabel(block.opcode),
-      label: block.opcode,
+      label: getDisplayLabelForOpcode(block.opcode, block.fields),
       spriteName,
       topLevel: Boolean(block.topLevel)
     }));
@@ -71,14 +72,14 @@ function buildScriptSummary(target) {
     while (current && typeof current === "object" && !visited.has(current)) {
       visited.add(current);
       if (typeof current.opcode === "string" && current.shadow !== true) {
-        sequence.push(current.opcode);
+        sequence.push(getDisplayLabelForOpcode(current.opcode, current.fields));
         opcodes.push(current.opcode);
       }
       current = typeof current.next === "string" ? blocks[current.next] : null;
     }
     summaries.push({
       spriteName: String(target?.name ?? ""),
-      event: block.opcode,
+      event: getDisplayLabelForOpcode(block.opcode, block.fields),
       blockSequence: sequence,
       blockOpcodes: opcodes
     });

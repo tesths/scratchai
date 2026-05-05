@@ -1,25 +1,36 @@
 {
   "name": "scratch-ai-coach-workspace",
   "private": true,
-  "description": "Minimal workspace entry for the Scratch AI Coach project",
+  "description": "Workspace entry for the Scratch AI Coach desktop and verification tooling",
   "license": "UNLICENSED",
+  "workspaces": [
+    "packages/shared",
+    "tools/verification",
+    "apps/desktop-companion"
+  ],
   "scripts": {
-    "desktop:icons": "npm --prefix apps/desktop-companion run icons:generate",
-    "desktop:build": "npm --prefix apps/desktop-companion run build",
-    "desktop:test": "npm --prefix apps/desktop-companion run test",
-    "desktop:test:ui": "npm --prefix apps/desktop-companion run test:desktop-ui",
-    "desktop:package:portable": "npm --prefix apps/desktop-companion run package:win:portable",
-    "desktop:package:installer": "npm --prefix apps/desktop-companion run package:win:installer",
-    "desktop:package:bundle": "npm --prefix apps/desktop-companion run package:win:bundle",
-    "desktop:package:win:portable": "npm --prefix apps/desktop-companion run package:win:portable",
-    "desktop:package:win:installer": "npm --prefix apps/desktop-companion run package:win:installer",
-    "desktop:package:win:bundle": "npm --prefix apps/desktop-companion run package:win:bundle",
-    "desktop:package:mac:app": "npm --prefix apps/desktop-companion run package:mac:app",
-    "desktop:package:mac:dmg": "npm --prefix apps/desktop-companion run package:mac:dmg",
-    "workspace:clean": "node scripts/cleanup-workspace.mjs",
-    "workspace:clean:dry-run": "node scripts/cleanup-workspace.mjs --dry-run"
-  },
-  "dependencies": {
-    "yauzl": "^3.3.0"
+    "build": "npm run build --workspace=@scratch-ai/shared && npm run build --workspace=@scratch-ai/verification && npm run build --workspace=@scratch-ai/desktop-companion",
+    "test": "npm run test --workspace=@scratch-ai/shared && npm run test --workspace=@scratch-ai/verification && npm run test --workspace=@scratch-ai/desktop-companion",
+    "verify": "npm run test",
+    "clean": "node scripts/cleanup-workspace.mjs",
+    "clean:dry-run": "node scripts/cleanup-workspace.mjs --dry-run",
+    "desktop:icons": "npm run icons:generate --workspace=@scratch-ai/desktop-companion",
+    "desktop:build": "npm run build --workspace=@scratch-ai/desktop-companion",
+    "desktop:test": "npm run test --workspace=@scratch-ai/desktop-companion",
+    "desktop:test:ui": "npm run test:desktop-ui --workspace=@scratch-ai/desktop-companion",
+    "desktop:package:win": "npm run package:win --workspace=@scratch-ai/desktop-companion",
+    "desktop:package:portable": "npm run package:win:portable --workspace=@scratch-ai/desktop-companion",
+    "desktop:package:installer": "npm run package:win:installer --workspace=@scratch-ai/desktop-companion",
+    "desktop:package:bundle": "npm run package:win:bundle --workspace=@scratch-ai/desktop-companion",
+    "desktop:package:mac:app": "npm run package:mac:app --workspace=@scratch-ai/desktop-companion",
+    "desktop:package:mac:dmg": "npm run package:mac:dmg --workspace=@scratch-ai/desktop-companion",
+    "package:win": "npm run package:win --workspace=@scratch-ai/desktop-companion",
+    "package:win:portable": "npm run package:win:portable --workspace=@scratch-ai/desktop-companion",
+    "package:win:installer": "npm run package:win:installer --workspace=@scratch-ai/desktop-companion",
+    "package:win:bundle": "npm run package:win:bundle --workspace=@scratch-ai/desktop-companion",
+    "package:mac": "npm run package:mac:app --workspace=@scratch-ai/desktop-companion",
+    "package:mac:dmg": "npm run package:mac:dmg --workspace=@scratch-ai/desktop-companion",
+    "workspace:clean": "npm run clean",
+    "workspace:clean:dry-run": "npm run clean:dry-run"
   }
 }

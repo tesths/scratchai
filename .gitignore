@@ -14,6 +14,7 @@ Thumbs.db
 
 # Dependencies
 node_modules/
+.npm/
 
 # Build and test output
 dist/
@@ -39,6 +40,7 @@ apps/desktop-companion/release-bundles/
 current-ui-*.png
 docs/assets/screenshots/*.png
 tmp-*/
-Windows-Test/tmp-*/
-Windows-Test/generated/
-Windows-Test/last-*.json
+tools/verification/generated/
+tools/verification/artifacts/
+tools/verification/tmp-*/
+tools/verification/last-*.json

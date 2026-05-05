@@ -1,231 +1,102 @@
 # 主工程文档维护约定
 
-这份文档只约束主工程文档：
+这份文档只约束当前主线文档：
 
 - `README.md`
-- `docs/README.zh-CN.md`
 - `docs/*.md`
-- `apps/server/README.md`
 - `apps/desktop-companion/*.md`
-- `Windows-Test/*.md`
+- `tools/verification/*.md`
+- `tools/verification/workflows/deepseek-teaching/*.md`
 
-当前工作区默认不再内嵌上游 Scratch clone，因此也不存在“顺手改上游 README”的维护路径。
-如果后续确实需要参考上游实现，应把 clone 当成单独的临时参考输入，而不是恢复成常驻目录结构。
-
-## 1. 文档入口优先级
+## 1. 文档层级
 
 默认按下面顺序维护：
 
 1. 根 `README.md`
-2. 根 `docs/README.zh-CN.md`
-3. 根 `docs/architecture.zh-CN.md`
-4. 根 `docs/maintenance.zh-CN.md`
-5. 子应用自己的 README / 状态文档 / SOP
-6. `Windows-Test` 下的测试说明与测试 SOP
+2. `docs/README.zh-CN.md`
+3. `docs/architecture.zh-CN.md`
+4. `docs/maintenance.zh-CN.md`
+5. `apps/desktop-companion` 下的 README / 状态文档 / SOP
+6. `tools/verification` 下的验证说明与工作流文档
 
-原则：
+## 2. 每份文档负责什么
 
-- 根 README 负责“项目总入口”
-- `docs/README.zh-CN.md` 负责“文档导航和目录收口约定”
-- 架构文档负责“组件关系和数据流”
-- 维护文档负责“以后怎么保持不乱”
-- 子应用文档负责“这个应用自己怎么开发、接力、部署、排查”
-- `Windows-Test` 文档负责“当前测试交付怎么验证、怎么复跑、怎么带回信息”
+### `README.md`
 
-## 2. 各文档的职责
+负责：
 
-### 根 `README.md`
-
-必须保持：
-
-- 主工程范围说明
-- 快速开始命令
-- 工作区清理入口
+- workspace 边界
+- clone 后怎么继续开发
+- 常用命令
 - 文档导航
-- 主工程边界
-- 当前目录收口说明
 
-出现下面变化时必须更新：
+这些变化后必须更新：
 
-- 根 `package.json` 或工作区入口变化
+- 根 `package.json` 命令变化
 - workspace 目录变化
-- 主工程新增/移除应用
-- 清理脚本入口变化
-- 文档入口位置变化
-- 截图、安装包或临时目录的收口位置变化
+- 主线模块新增或移除
 
 ### `docs/README.zh-CN.md`
 
-必须保持：
+负责：
 
-- 文档阅读顺序
-- 按任务查找文档的入口
-- 当前目录收口约定
-- 工作区清理命令
-- 截图和分发产物的位置说明
+- 文档导航
+- 目录收口
+- 清理入口
 
-出现下面变化时必须更新：
+这些变化后必须更新：
 
-- 文档入口位置变化
+- 文档路径变化
 - 清理脚本覆盖范围变化
-- 截图归档位置变化
-- 最终安装包收口位置变化
-- `Windows-Test` 临时目录清理口径变化
+- 安装包或截图收口位置变化
 
 ### `docs/architecture.zh-CN.md`
 
-必须保持：
+负责：
 
 - 组件职责
-- 关键数据流
-- 主工程边界
-- 当前未接通的链路
-- 主要风险点
+- 主数据流
+- 当前风险点
 
-出现下面变化时必须更新：
+这些变化后必须更新：
 
-- 服务端新增或移除关键接口
-- 桌面伴随程序的运行链路变化
-- `packages/shared` 的系统职责变化
-- `apps/server` 与 `apps/desktop-companion` 之间开始直连
+- `desktop-companion` 内部分层变化
+- `packages/shared` 职责变化
+- `tools/verification` 目录或定位变化
+- AI 调用链路变化
 
-### `docs/maintenance.zh-CN.md`
+### `apps/desktop-companion/*.md`
 
-必须保持：
+负责：
 
-- 文档层级规则
-- 每类改动对应要更新哪些文档
-- 文档核对清单
+- 桌面端开发、打包、部署、交接和现场排查
 
-只有在维护规则本身变化时才更新。
+这些变化后必须更新：
 
-### `apps/server/README.md`
+- 真机验证入口变化
+- 打包命令变化
+- `src/main` / `src/renderer` / `src/common` 结构变化
 
-必须保持：
+### `tools/verification/*.md`
 
-- 服务职责
-- 环境变量
-- 启动方式
-- 路由概览
-- 回退行为
+负责：
 
-出现下面变化时必须更新：
+- 真机验证怎么跑
+- 教学工作流怎么跑
+- fixtures 和可再生产物怎么管理
 
-- `apps/server/src/config.ts` 变化
-- 路由路径变化
-- 鉴权、错误结构或上游模型调用策略变化
+这些变化后必须更新：
 
-### `apps/desktop-companion/README.md`
+- `scripts/` 入口变化
+- `workflows/deepseek-teaching/` 路径变化
+- 临时目录、产物目录或 fixtures 位置变化
 
-必须保持：
+## 3. 维护检查清单
 
-- 应用用途
-- 平台范围和当前边界
-- 本地开发命令
-- 打包命令与产物
-- 指向接力文档和 SOP 的导航
+改完代码后，至少检查下面几项：
 
-不要把详细排障步骤塞回这个 README。
-
-出现下面变化时必须更新：
-
-- 支持平台集合变化
-- 打包变体、命令名或输出目录变化
-- UI 自动化和打包冒烟的覆盖范围变化
-
-### `apps/desktop-companion/DEVELOPMENT_STATUS.zh-CN.md`
-
-必须保持：
-
-- 当前实现形态
-- 已完成能力
-- 已知风险和限制
-- 真机验证状态
-- 继续开发建议
-- 关键状态文案与日志定位
-
-出现下面变化时必须更新：
-
-- 启动流程
-- 注入策略
-- 运行状态文案
-- 打包建议
-- 日志位置
-
-### `apps/desktop-companion/SOP.zh-CN.md`
-
-必须保持：
-
-- 机房部署步骤
-- 开机启动设置
-- 验收步骤
-- 现场排障步骤
-
-不要把架构解释和研发决策堆到 SOP 里。
-
-### `Windows-Test/README.zh-CN.md`
-
-必须保持：
-
-- 当前测试交付里包含什么
-- 推荐测试顺序
-- 当前已经验证过什么
-- 维护人员本地复跑命令
-- 当前边界
-
-出现下面变化时必须更新：
-
-- Windows 测试交付目录内容变化
-- 本地验证脚本或回归脚本变化
-- 关键日志关键词变化
-- 当前主试验路线变化
-- Windows 主线与 macOS 补充范围的边界变化
-
-### `Windows-Test/SOP.zh-CN.md`
-
-必须保持：
-
-- 现场测试/验收步骤
-- 机房部署口径
-- 故障排查步骤
-- 维护人员脚本入口
-
-出现下面变化时必须更新：
-
-- 现场测试流程变化
-- 当前主试验路线变化
-- 故障排查入口变化
-- 验收口径变化
-
-## 3. 文档更新检查清单
-
-每次改动完成后，至少检查：
-
-- 根 README 里的工作区入口描述是否和真实目录一致
-- `docs/README.zh-CN.md` 里的文档导航和目录收口是否与真实目录一致
-- 双平台口径是否在根 README、`apps/desktop-companion/README.md`、`Windows-Test/README.zh-CN.md` 之间保持一致
-- 新增链接是否都能指向真实文件
-- `apps/server/README.md` 的环境变量是否和 `apps/server/src/config.ts` 一致
-- `apps/server/README.md` 的接口名是否和真实路由一致
-- `apps/desktop-companion/README.md`、`DEVELOPMENT_STATUS.zh-CN.md`、`SOP.zh-CN.md` 是否职责清晰、没有明显重复
-- `Windows-Test/README.zh-CN.md`、`Windows-Test/SOP.zh-CN.md` 是否与当前主试验路线一致
-- 打包命令、变体名和输出目录是否与真实脚本一致，比如 `source`、`no-key`、`with-key`
-- 是否明确区分了 Windows 正式回归范围和 macOS 开发 / 冒烟 / 内测范围
-- `npm run workspace:clean:dry-run` 的输出是否仍符合文档描述
-- 是否清楚说明了根目录不是单一 Git 仓库
-- 根目录是否又出现了零散截图或单独分发安装包
-- 如果临时 clone 过上游仓库，是否在任务结束后清理，或至少在文档里明确其临时性质
-- 是否误把 `dist/` 或打包产物当成源码入口写进文档
-
-## 4. 推荐维护顺序
-
-如果一次改动同时影响代码和文档，推荐顺序：
-
-1. 先确认真实代码边界
-2. 先改根 README 和 `docs/README.zh-CN.md`
-3. 再改架构文档
-4. 再改受影响子应用文档
-5. 如果测试交付目录也受影响，再改 `Windows-Test` 文档
-6. 最后核对命令、路径、环境变量和链接
-
-这样可以避免局部 README 更新了，但根入口仍然过期。
+- 根 README 的命令能直接在仓库根目录执行
+- 文档里的路径与真实目录一致
+- 验证脚本示例是否已经带上 `tools/verification/scripts/`
+- 文档是否还提到 `apps/server`、`Windows-Test` 这类已退出主线的路径
+- `npm run clean:dry-run` 的描述是否和脚本输出一致

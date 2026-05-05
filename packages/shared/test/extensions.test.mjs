@@ -138,4 +138,6 @@ test("builds a project snapshot with program area modules", () => {
   ]);
   assert.deepEqual(snapshot.loadedExtensions, ["music"]);
   assert.equal(snapshot.globalVariables[0].name, "Score");
+  assert.equal(snapshot.blocks[0].label, "当绿旗被点击");
+  assert.deepEqual(snapshot.sprites[1].scripts[0].blockSequence, ["当绿旗被点击", "移动 10 步"]);
 });

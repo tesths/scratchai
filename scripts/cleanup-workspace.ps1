@@ -96,6 +96,7 @@ function Remove-GlobIfExists {
 
 Remove-PathIfExists -RelativePath "node_modules"
 Remove-PathIfExists -RelativePath "packages/shared/node_modules"
+Remove-PathIfExists -RelativePath "tools/verification/node_modules"
 Remove-PathIfExists -RelativePath "apps/desktop-companion/node_modules"
 Remove-PathIfExists -RelativePath "apps/desktop-companion/dist"
 Remove-PathIfExists -RelativePath "apps/desktop-companion/release-single"
@@ -103,10 +104,11 @@ Remove-PathIfExists -RelativePath "apps/desktop-companion/release-installer"
 Remove-PathIfExists -RelativePath "apps/desktop-companion/release-bundles"
 Remove-GlobIfExists -RelativePattern "apps/desktop-companion/release-mac*"
 Remove-GlobIfExists -RelativePattern "apps/desktop-companion/release-dmg*"
-Remove-PathIfExists -RelativePath "Windows-Test/generated"
+Remove-PathIfExists -RelativePath "tools/verification/artifacts"
+Remove-PathIfExists -RelativePath "tools/verification/generated"
 
-Remove-GlobIfExists -RelativePattern "Windows-Test/tmp-*"
-Remove-GlobIfExists -RelativePattern "Windows-Test/last-*.json"
+Remove-GlobIfExists -RelativePattern "tools/verification/tmp-*"
+Remove-GlobIfExists -RelativePattern "tools/verification/last-*.json"
 Remove-GlobIfExists -RelativePattern "docs/assets/screenshots/*.png"
 
 $installerRoot = Join-Path $repoRoot "installers"

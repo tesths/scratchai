@@ -8,12 +8,14 @@ const defaultRepoRoot = path.resolve(__dirname, "..");
 const EXACT_PATHS = [
   "node_modules",
   "packages/shared/node_modules",
+  "tools/verification/node_modules",
   "apps/desktop-companion/node_modules",
   "apps/desktop-companion/dist",
   "apps/desktop-companion/release-single",
   "apps/desktop-companion/release-installer",
   "apps/desktop-companion/release-bundles",
-  "Windows-Test/generated"
+  "tools/verification/artifacts",
+  "tools/verification/generated"
 ];
 
 const PREFIX_MATCHES = [
@@ -26,11 +28,11 @@ const PREFIX_MATCHES = [
     prefix: "release-dmg"
   },
   {
-    relativeDir: "Windows-Test",
+    relativeDir: "tools/verification",
     prefix: "tmp-"
   },
   {
-    relativeDir: "Windows-Test",
+    relativeDir: "tools/verification",
     prefix: "last-"
   }
 ];

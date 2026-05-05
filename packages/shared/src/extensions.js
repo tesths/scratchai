@@ -43,6 +43,70 @@ const EXTENSION_PROGRAM_AREA_MODULE_LABELS = {
   wedo2: "WeDo 2.0"
 };
 
+const OPCODE_DISPLAY_LABELS = {
+  event_whenflagclicked: "当绿旗被点击",
+  event_whenkeypressed: "当按下某个键",
+  event_whenbroadcastreceived: "当接收到消息",
+  event_broadcast: "广播消息",
+  event_broadcastandwait: "广播消息并等待",
+  motion_movesteps: "移动 10 步",
+  motion_turnright: "右转 15 度",
+  motion_turnleft: "左转 15 度",
+  motion_gotoxy: "移到 x: y:",
+  motion_glideto: "滑行到...",
+  motion_pointindirection: "面向 90 方向",
+  motion_pointtowards: "面向...",
+  motion_changexby: "将 x 增加",
+  motion_setx: "将 x 设为",
+  motion_changeyby: "将 y 增加",
+  motion_sety: "将 y 设为",
+  motion_ifonedgebounce: "碰到边缘就反弹",
+  looks_say: "说",
+  looks_sayforsecs: "说 2 秒",
+  looks_think: "想",
+  looks_thinkforsecs: "想 2 秒",
+  looks_show: "显示",
+  looks_hide: "隐藏",
+  looks_switchcostumeto: "切换造型",
+  looks_nextcostume: "下一个造型",
+  looks_switchbackdropto: "切换背景",
+  sound_play: "播放声音",
+  sound_playuntildone: "播放声音直到播完",
+  sound_stopallsounds: "停止所有声音",
+  control_wait: "等待",
+  control_repeat: "重复执行",
+  control_forever: "一直重复",
+  control_if: "如果",
+  control_if_else: "如果否则",
+  control_repeat_until: "重复执行直到",
+  control_stop: "停止",
+  sensing_touchingobject: "碰到对象？",
+  sensing_keypressed: "按下某个键？",
+  sensing_mousedown: "鼠标按下？",
+  sensing_askandwait: "询问并等待",
+  sensing_answer: "回答",
+  operator_equals: "=",
+  operator_gt: ">",
+  operator_lt: "<",
+  operator_add: "+",
+  operator_subtract: "-",
+  operator_multiply: "×",
+  operator_divide: "÷",
+  data_setvariableto: "将变量设为",
+  data_changevariableby: "将变量增加",
+  data_showvariable: "显示变量",
+  data_hidevariable: "隐藏变量",
+  data_addtolist: "加入列表",
+  pen_clear: "清空",
+  pen_penDown: "落笔",
+  pen_penUp: "抬笔",
+  pen_setPenColorToColor: "将画笔颜色设为",
+  pen_changePenSizeBy: "将画笔粗细增加",
+  procedures_definition: "定义自制积木",
+  procedures_call: "调用自制积木",
+  argument_reporter_string_number: "参数"
+};
+
 function normalizeString(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -107,6 +171,119 @@ function getModuleLabelForId(moduleId) {
     EXTENSION_PROGRAM_AREA_MODULE_LABELS[moduleId] ??
     moduleId
   );
+}
+
+function getFieldText(fields, key) {
+  if (!fields || typeof fields !== "object") {
+    return "";
+  }
+
+  const rawField = fields[key];
+  if (Array.isArray(rawField)) {
+    return normalizeString(String(rawField[0] ?? ""));
+  }
+
+  if (rawField && typeof rawField === "object") {
+    if ("value" in rawField) {
+      return normalizeString(String(rawField.value ?? ""));
+    }
+    if ("name" in rawField) {
+      return normalizeString(String(rawField.name ?? ""));
+    }
+  }
+
+  return normalizeString(String(rawField ?? ""));
+}
+
+function getLocalizedKeyName(value) {
+  const normalized = normalizeString(value).toLowerCase();
+  if (!normalized) {
+    return "某个键";
+  }
+  if (normalized === "space") {
+    return "空格键";
+  }
+  if (normalized === "any") {
+    return "任意键";
+  }
+  if (normalized === "up arrow") {
+    return "上箭头键";
+  }
+  if (normalized === "down arrow") {
+    return "下箭头键";
+  }
+  if (normalized === "left arrow") {
+    return "左箭头键";
+  }
+  if (normalized === "right arrow") {
+    return "右箭头键";
+  }
+
+  return normalized.length === 1 ? `${normalized.toUpperCase()} 键` : `${normalized} 键`;
+}
+
+function getDisplayLabelForOpcode(opcode, fields) {
+  const normalizedOpcode = normalizeString(opcode);
+  if (!normalizedOpcode) {
+    return "未识别积木";
+  }
+
+  if (normalizedOpcode === "event_whenkeypressed") {
+    return `当按下${getLocalizedKeyName(getFieldText(fields, "KEY_OPTION"))}`;
+  }
+
+  if (normalizedOpcode === "sensing_keypressed") {
+    return `按下${getLocalizedKeyName(getFieldText(fields, "KEY_OPTION"))}？`;
+  }
+
+  if (normalizedOpcode === "event_whenbroadcastreceived") {
+    const name = getFieldText(fields, "BROADCAST_OPTION");
+    return name ? `当接收到${name}` : OPCODE_DISPLAY_LABELS[normalizedOpcode];
+  }
+
+  if (normalizedOpcode === "event_broadcast" || normalizedOpcode === "event_broadcastandwait") {
+    const name = getFieldText(fields, "BROADCAST_OPTION");
+    if (!name) {
+      return OPCODE_DISPLAY_LABELS[normalizedOpcode];
+    }
+    return normalizedOpcode === "event_broadcastandwait" ? `广播${name}并等待` : `广播${name}`;
+  }
+
+  if (normalizedOpcode === "data_setvariableto" || normalizedOpcode === "data_changevariableby") {
+    const variableName = getFieldText(fields, "VARIABLE");
+    if (!variableName) {
+      return OPCODE_DISPLAY_LABELS[normalizedOpcode];
+    }
+    return normalizedOpcode === "data_setvariableto" ? `将${variableName}设为` : `将${variableName}增加`;
+  }
+
+  if (normalizedOpcode === "looks_switchcostumeto") {
+    const costumeName = getFieldText(fields, "COSTUME");
+    return costumeName ? `切换造型到${costumeName}` : OPCODE_DISPLAY_LABELS[normalizedOpcode];
+  }
+
+  if (normalizedOpcode === "looks_switchbackdropto") {
+    const backdropName = getFieldText(fields, "BACKDROP");
+    return backdropName ? `切换背景到${backdropName}` : OPCODE_DISPLAY_LABELS[normalizedOpcode];
+  }
+
+  if (normalizedOpcode === "sensing_touchingobject") {
+    const objectName = getFieldText(fields, "TOUCHINGOBJECTMENU");
+    return objectName ? `碰到${objectName}？` : OPCODE_DISPLAY_LABELS[normalizedOpcode];
+  }
+
+  if (normalizedOpcode === "motion_pointtowards") {
+    const targetName = getFieldText(fields, "TOWARDS");
+    return targetName ? `面向${targetName}` : OPCODE_DISPLAY_LABELS[normalizedOpcode];
+  }
+
+  const directLabel = OPCODE_DISPLAY_LABELS[normalizedOpcode];
+  if (directLabel) {
+    return directLabel;
+  }
+
+  const moduleLabel = getModuleLabelForId(getModuleIdForOpcode(normalizedOpcode));
+  return moduleLabel ? `${moduleLabel}积木` : "其他积木";
 }
 
 function getUsedExtensionsFromBlocks(blocks) {
@@ -219,6 +396,7 @@ export {
   CORE_EXTENSION_PREFIXES,
   CORE_PROGRAM_AREA_MODULE_LABELS,
   EXTENSION_PROGRAM_AREA_MODULE_LABELS,
+  getDisplayLabelForOpcode,
   getExtensionIdForOpcode,
   getModuleIdForOpcode,
   getModuleLabelForId,

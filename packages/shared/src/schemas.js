@@ -173,6 +173,7 @@ const desktopCompanionStateSchema = z.object({
   aiCustomKeyConfigured: z.boolean().default(false),
   aiCustomPromptConfigured: z.boolean().default(false),
   aiCustomPrompt: z.string().optional(),
+  aiDefaultPrompt: z.string().optional(),
   aiStatus: aiHintStatusSchema.default("idle"),
   aiProvider: aiHintProviderSchema.optional(),
   aiModel: z.string().optional(),
