@@ -33,7 +33,8 @@ Electron 桌面伴随程序，源码拆成三层：
 - 探测 Windows 与 macOS 常见 Scratch 安装位置
 - 受控启动 Scratch Desktop 并附带 `--remote-debugging-port`
 - 向 Scratch renderer 注入只读桥接脚本
-- 读取当前角色、脚本序列、模块摘要
+- 读取当前角色、项目数据、脚本序列、模块摘要
+- 把 `当前角色程序 / 推荐积木` 渲染成 Scratch 原版只读积木
 - 直接调用 DeepSeek 生成“下一步提示”
 
 ### `packages/shared`
@@ -68,9 +69,11 @@ Electron 桌面伴随程序，源码拆成三层：
 5. 通过 `http://127.0.0.1:<port>/json/list` 找到真实编辑页
 6. 通过 CDP 注入只读桥接脚本
 7. 桥接脚本回传 `projectData`、当前角色和模块信息
-8. `SessionManager` 结合 `@scratch-ai/shared` 生成项目快照和角色脚本
-9. `StateStore` 更新状态，渲染层刷新 UI
-10. 用户请求 AI 提示时，桌面端直接调用 DeepSeek 或本地 fallback
+8. `SessionManager` 结合 `@scratch-ai/shared` 生成项目快照和角色脚本文本摘要
+9. `SessionManager` 额外把 `projectData` 转成 `currentTargetScriptXmlList`
+10. `StateStore` 更新状态，渲染层先生成 workspace 宿主节点
+11. `renderScratchWorkspaces(...)` 使用 `scratch-blocks` 把 XML 加载成只读 SVG
+12. 用户请求 AI 提示时，桌面端直接调用 DeepSeek 或本地 fallback
 
 关键约束：
 
@@ -78,9 +81,26 @@ Electron 桌面伴随程序，源码拆成三层：
 - 运行时只读注入是当前唯一主路线
 - 当前不支持“附着到用户手工启动的 Scratch”
 
-## 4. 当前风险点
+## 4. 原版积木渲染链路
+
+当前 1:1 积木显示不是靠样式模拟，而是靠两层转换：
+
+1. `projectData -> Blockly XML`
+2. `Blockly XML -> scratch-blocks readOnly workspace`
+
+对应实现位置：
+
+- `apps/desktop-companion/src/common/scratch-block-xml.ts`
+  - 负责顶层脚本排序、`next`、`SUBSTACK / SUBSTACK2`、shadow input、变量/列表/广播字段
+- `apps/desktop-companion/src/renderer/scratch-workspace-renderer.ts`
+  - 负责初始化 `ScratchBlocks.inject(...)`、`clearWorkspaceAndLoadFromXml(...)`、尺寸自适应和只读动态菜单兜底
+- `apps/desktop-companion/build.mjs`
+  - 负责复制 `scratch-blocks/media`
+
+## 5. 当前风险点
 
 - 真机验证脚本虽然已跨平台收口，但仍有部分现场运维流程只写了 Windows 口径
 - macOS 正式签名、公证和发版还没有自动化
 - CI 负责双平台正式产物；本地只承诺当前平台可出包
 - `tools/verification/artifacts/` 不再进 git，需要通过文档和 CI artifact 回看验证结果
+- 新出现的扩展块、动态菜单块或特殊 mutation，可能还需要在只读渲染层补兜底定义

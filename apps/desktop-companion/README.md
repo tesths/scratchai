@@ -1,7 +1,7 @@
 # Scratch Desktop Companion
 
 这是主工程里的 Windows + macOS 桌面伴随程序。  
-当前主线已经收敛为 **本地基础版**：连接本机 `Scratch Desktop`，读取当前角色和当前角色程序，再基于学生当前作品生成 AI 下一步提示。
+当前主线已经收敛为 **本地基础版**：连接本机 `Scratch Desktop`，读取当前角色和项目数据，把 `当前角色程序 / 推荐积木` 以 Scratch 原版 `scratch-blocks` 只读方式渲染出来，再基于学生当前作品生成 AI 下一步提示。
 
 ## 当前产品流程
 
@@ -11,8 +11,8 @@
 2. 如果没有识别到路径，Windows 手动选择 `Scratch.exe`、`Scratch 3.exe` 或桌面快捷方式；macOS 手动选择 `Scratch.app`、`Scratch Desktop.app` 或应用包里的可执行文件。
 3. 点击 `打开已选 Scratch`，由伴随程序受控启动 Scratch。
 4. 伴随程序通过 CDP 注入只读桥接脚本并建立连接。
-5. 读取当前角色、当前角色程序和项目快照。
-6. 点击 `生成下一步提示`，桌面端把当前作品上下文发送给 DeepSeek，并返回下一步建议和推荐积木。
+5. 读取当前角色、项目快照和当前角色脚本，并生成只读 Scratch 积木视图。
+6. 点击 `生成下一步提示`，桌面端把当前作品上下文发送给 DeepSeek，并返回下一步建议和推荐积木；推荐积木同样按 Scratch 原版样式展示。
 
 当前界面重点已经收敛为：
 
@@ -21,6 +21,7 @@
 - 当前角色
 - 同步时间
 - 当前角色程序
+- 推荐积木
 - AI 当前一步提示
 
 如果你不是直接在桌面端里做实时提示，而是想拿一个已有 `.sb3` 先整理成教学材料，请改走：
@@ -41,14 +42,13 @@
 - 当前是否已经连接
 - 当前正在编辑哪个角色
 - 当前正在使用哪个 Scratch 可执行文件
-- 这个角色当前有哪些脚本，以及脚本里的 opcode 顺序
-- AI 给出的下一步建议和推荐积木
+- 这个角色当前有哪些脚本，并按 Scratch 原版积木 SVG 只读显示
+- AI 给出的下一步建议，以及对应的原版推荐积木
 
-例如：
+补充：
 
-```text
-脚本 1: event_whenflagclicked -> control_forever -> motion_movesteps -> pen_clear
-```
+- `currentTargetPrograms` 这条文本链路仍然保留，主要给 AI、兼容层和排障使用；UI 主显示优先使用官方积木 SVG。
+- 当前界面截图可参考：[current-ui-desktop-companion-scratch-blocks.png](../../docs/assets/screenshots/current-ui-desktop-companion-scratch-blocks.png)
 
 ## 当前实现要点
 
@@ -58,10 +58,30 @@
 - 受控启动 Scratch，并附带 `--remote-debugging-port=<port>`
 - 通过 Chrome DevTools Protocol 向 Scratch renderer 注入只读桥接脚本
 - 桌面端基于 `projectData` 推导 `currentTargetPrograms`
+- 桌面端基于 `projectData` 生成 `currentTargetScriptXmlList`
 - 桌面端把 `projectData` 转成项目快照后，直接调用 DeepSeek Chat Completions API
 - 如果没有配置 DeepSeek Key 或上游失败，自动回退到本地 heuristic 提示
 - 连接阶段内置重试注入，降低首次启动时的偶发连接失败
 - 关闭主窗口后继续驻留系统托盘
+
+## Scratch 原版积木渲染
+
+当前“当前角色程序 / 推荐积木”不再使用手写 `div + CSS` 去模拟积木，而是直接走官方渲染链路：
+
+1. 主进程收到 Scratch `projectData`
+2. `src/common/scratch-block-xml.ts` 把目标脚本和推荐积木转换成 Blockly XML
+3. 渲染层在 DOM 中放置 `.scratch-workspace-host[data-xml]`
+4. `src/renderer/scratch-workspace-renderer.ts` 用 `scratch-blocks` 创建只读 workspace，并把 XML 加载成 SVG
+
+当前 XML 生成层已经覆盖：
+
+- 顶层脚本排序
+- `next` 串联
+- `SUBSTACK / SUBSTACK2` 嵌套语句输入
+- 常见 primitive input 对应的 shadow block
+- 变量 / 列表 / 广播变量字段
+
+这意味着像 `重复执行` 包裹 `移动 10 步`、`一直重复`、`如果` 这类结构，现在显示的是实际嵌套积木，而不是字符串或近似卡片。
 
 ## DeepSeek 配置
 
@@ -105,7 +125,8 @@ Windows / macOS 已验证通过：
 - 能自动识别常见 Scratch 安装路径
 - 能受控启动 Scratch 并连上 CDP
 - 能读取 `当前角色`
-- 能推导 `当前角色程序`
+- 能把 `当前角色程序` 渲染成 Scratch 原版只读积木
+- 能把 `推荐积木` 渲染成 Scratch 原版单块积木
 - 能生成桌面端 AI 提示，并在无 key 时回退到本地提示
 - Electron UI 自动化已覆盖当前本地版界面结构
 - 源码版和打包版 UI 冒烟可通过
@@ -185,6 +206,7 @@ UI 自动化当前重点断言：
 - 页面能显示 `已选 Scratch`
 - 页面能显示 `当前角色`
 - 页面能显示 `当前角色程序`
+- 页面能挂载 Scratch 只读 workspace 宿主节点
 
 ## 日志位置
 
@@ -213,6 +235,7 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 - 当前主路线仍然是“受控启动 Scratch + CDP 注入”，不是“用户手工打开 Scratch 后再附着”
 - 界面不再展示模块和扩展，但这些字段仍作为兼容状态保留
 - `tools/verification/scripts/verify-scratch-local.mjs` 更适合做 CDP 冒烟检查，不是最终产品验收结论
+- 如果真实项目里出现新的动态菜单块或扩展块，而 `scratch-blocks` 只读渲染还没有兜底定义，需要在 `src/renderer/scratch-workspace-renderer.ts` 继续补注册
 
 ## 文档入口
 

@@ -18,7 +18,7 @@
 1. 打开软件后自动识别 Scratch。
 2. 没识别到时允许手动选择路径。
 3. 通过伴随程序启动 Scratch 并建立连接。
-4. 实时显示当前角色和当前角色程序。
+4. 实时显示当前角色，并把 `当前角色程序 / 推荐积木` 渲染成接近 Scratch 原版的只读积木。
 5. 基于当前作品生成 AI 下一步提示。
 
 ## 2. 这轮收敛完成了什么
@@ -30,6 +30,14 @@
 - AI 提示现在只消费当前学生作品上下文
 - 主界面改为更像桌面工具的布局，不再是网页式教学流程页
 
+### 原版积木渲染
+
+- `当前角色程序 / 推荐积木` 已从手写彩色卡片切换到官方 `scratch-blocks` 只读渲染
+- 新增 `projectData -> Blockly XML -> ScratchBlocks workspace` 这条显示链路
+- 新增状态字段 `currentTargetScriptXmlList`
+- 原有 `currentTargetPrograms` 文本链路保留，继续给 AI、兼容层和排障使用
+- 这轮核心提交为 `f725ffe`，整体变更量为 `18 files changed, 1528 insertions(+), 291 deletions(-)`
+
 ### 界面与配置
 
 - 主窗口只保留：
@@ -38,6 +46,7 @@
   - 当前角色
   - 同步时间
   - 当前角色程序
+  - 推荐积木
   - AI 当前提示
   - 关键操作按钮
 - `DeepSeek 设置` 页现在只保留本地 `API Key` 和 `Flash / Pro 模型选择`
@@ -85,17 +94,14 @@
 - `已选 Scratch`
 - `当前角色`
 - `当前角色程序`
+- `推荐积木`
 - `AI 下一步提示`
-
-示例输出：
-
-```text
-脚本 1: event_whenflagclicked -> control_forever -> motion_movesteps -> pen_clear
-```
 
 补充：
 
 - `当前角色程序` 现在会继续展开 `重复执行 / 一直重复 / 如果` 这类控制积木里的嵌套子堆栈，不再只读取顶层 `next` 链。
+- 主窗口优先显示官方积木 SVG，文本序列现在退居为内部兼容链路。
+- 最新截图：[current-ui-desktop-companion-scratch-blocks.png](../../docs/assets/screenshots/current-ui-desktop-companion-scratch-blocks.png)
 
 ### 当前常见状态文案
 
@@ -111,6 +117,7 @@
 - `currentTargetName`
 - `currentTargetIsStage`
 - `currentTargetPrograms`
+- `currentTargetScriptXmlList`
 - `toolboxCategories`
 - `loadedExtensions`
 - `usedExtensions`
@@ -119,6 +126,7 @@
 注意：
 
 - 模块和扩展现在是兼容保留字段，不再是 UI 主目标
+- UI 当前优先消费 `currentTargetScriptXmlList`
 - 上层 AI 当前优先直接消费 `currentTargetName + currentTargetPrograms`
 
 ## 5. 当前关键实现文件
@@ -128,19 +136,25 @@
 - `src/main/platform-adapter.ts`
   - 平台适配、路径选择、默认目录、自动探测
 - `src/main/session-manager.ts`
-  - 启动、重试注入、bridge payload 收敛、状态更新、AI 触发
+  - 启动、重试注入、bridge payload 收敛、状态更新、AI 触发、XML 链路接线
 - `src/main/coach-service.ts`
   - 当前作品上下文整理、DeepSeek 请求与 fallback 提示
 - `src/main/scratch-executable-finder.ts`
   - Windows 路径探测、快捷方式解析、候选去重
 - `src/main/bridge-script.ts`
   - 注入到 Scratch renderer 的只读脚本
+- `src/common/scratch-block-xml.ts`
+  - 把 `projectData` 和推荐积木转换成 Blockly XML
 - `src/renderer/renderer-view.ts`
-  - 把状态渲染成“角色 + 程序 + AI 提示”视图
+  - 把状态渲染成“角色 + 原版积木 + AI 提示”视图
+- `src/renderer/scratch-workspace-renderer.ts`
+  - 创建 `scratch-blocks` 只读 workspace，加载 XML 并按内容自适应尺寸
 - `src/renderer/renderer.ts`
   - 绑定主窗口 DOM 与 preload API
 - `src/renderer/settings-renderer.ts`
   - 绑定独立设置窗口 DOM 与 preload API
+- `build.mjs`
+  - 构建时复制 `scratch-blocks/media` 到桌面端产物目录
 
 ## 6. 当前测试覆盖
 
@@ -148,6 +162,7 @@
 
 - `packages/shared`
 - `apps/desktop-companion`
+- `apps/desktop-companion/test/scratch-block-xml.test.mjs` 已覆盖嵌套控制积木和推荐积木默认输入 XML
 
 ### UI 自动化
 
@@ -158,6 +173,7 @@
 - `已选 Scratch` 正常显示
 - `当前角色` 正常显示
 - `当前角色程序` 正常显示
+- 页面存在 `.scratch-workspace-host`，且能生成 Scratch SVG
 - `选择 Scratch 软件`
 - `打开已选 Scratch`
 - `重新连接`
@@ -217,3 +233,4 @@ node tools/verification\scripts\verify-desktop-companion-real-e2e.mjs
 - 真实 Scratch 联调深度目前仍以 Windows 为主
 - macOS 现在更接近“开发可用 + UI 冒烟可用 + 内测包可出”
 - 当前主路线仍然是“受控启动 Scratch + CDP 注入”，不是“用户手工打开 Scratch 后再附着”
+- 如果真实作品里出现新的动态菜单块、扩展块或特殊 mutation，而只读渲染不完整，优先检查 `src/common/scratch-block-xml.ts` 和 `src/renderer/scratch-workspace-renderer.ts`
