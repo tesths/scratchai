@@ -10,6 +10,16 @@ const recommendedBlockSchema = z.object({
   example: z.string().optional()
 });
 
+const scratchBlockDescriptorSchema = z.object({
+  opcode: z.string(),
+  categoryId: z.string(),
+  label: z.string()
+});
+
+const currentTargetScriptDescriptorSchema = z.object({
+  blocks: z.array(scratchBlockDescriptorSchema)
+});
+
 const detectedIssueSchema = z.object({
   severity: z.enum(["info", "warning"]),
   title: z.string(),
@@ -166,6 +176,7 @@ const desktopCompanionStateSchema = z.object({
   loadedExtensions: z.array(z.string()).default([]),
   programAreaModules: z.array(programAreaModuleSchema).default([]),
   currentTargetPrograms: z.array(z.string()).default([]),
+  currentTargetScriptBlocks: z.array(currentTargetScriptDescriptorSchema).default([]),
   lastUpdatedAt: z.string().optional(),
   aiConfigured: z.boolean().default(false),
   aiConfigPath: z.string().optional(),
@@ -193,6 +204,7 @@ export {
   blockSummarySchema,
   coachRequestSchema,
   coachResponseSchema,
+  currentTargetScriptDescriptorSchema,
   desktopCompanionStateSchema,
   desktopCompanionStatusSchema,
   detectedIssueSchema,
@@ -202,6 +214,7 @@ export {
   projectSnapshotSchema,
   recommendedBlockSchema,
   scratchStatePayloadSchema,
+  scratchBlockDescriptorSchema,
   scriptSummarySchema,
   sessionEventSchema,
   spriteSnapshotSchema,

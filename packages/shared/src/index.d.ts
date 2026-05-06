@@ -61,6 +61,16 @@ export type RecommendedBlock = {
   example?: string;
 };
 
+export type ScratchBlockDescriptor = {
+  opcode: string;
+  categoryId: string;
+  label: string;
+};
+
+export type CurrentTargetScriptDescriptor = {
+  blocks: ScratchBlockDescriptor[];
+};
+
 export type DetectedIssue = {
   severity: "info" | "warning";
   title: string;
@@ -96,6 +106,7 @@ export type DesktopCompanionState = {
   loadedExtensions: string[];
   programAreaModules: ProgramAreaModule[];
   currentTargetPrograms: string[];
+  currentTargetScriptBlocks: CurrentTargetScriptDescriptor[];
   lastUpdatedAt?: string;
   aiConfigured: boolean;
   aiConfigPath?: string;
@@ -120,6 +131,8 @@ export declare const CORE_PROGRAM_AREA_MODULE_LABELS: Record<string, string>;
 export declare const EXTENSION_PROGRAM_AREA_MODULE_LABELS: Record<string, string>;
 export declare const hintLevelSchema: z.ZodTypeAny;
 export declare const recommendedBlockSchema: z.ZodTypeAny;
+export declare const scratchBlockDescriptorSchema: z.ZodTypeAny;
+export declare const currentTargetScriptDescriptorSchema: z.ZodTypeAny;
 export declare const detectedIssueSchema: z.ZodTypeAny;
 export declare const variableSnapshotSchema: z.ZodTypeAny;
 export declare const blockSummarySchema: z.ZodTypeAny;

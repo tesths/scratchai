@@ -24,3 +24,16 @@ test("main window keeps current target programs and recommended blocks in an equ
   assert.match(html, /\.program-recommend-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/);
   assert.doesNotMatch(html, /\.program-recommend-grid\s*\{\s*grid-template-columns:\s*1fr;/);
 });
+
+test("main window defines Scratch-style block colors for the program and recommendation panels", async () => {
+  const html = await readFile(new URL("../src/renderer/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /--scratch-motion:\s*#4c97ff;/i);
+  assert.match(html, /--scratch-looks:\s*#9966ff;/i);
+  assert.match(html, /--scratch-sound:\s*#cf63cf;/i);
+  assert.match(html, /--scratch-event:\s*#ffbf00;/i);
+  assert.match(html, /--scratch-control:\s*#ffab19;/i);
+  assert.match(html, /\.scratch-block\s*\{/);
+  assert.match(html, /\.scratch-block\[data-category="motion"\]/);
+  assert.match(html, /\.scratch-block\[data-category="event"\]/);
+});

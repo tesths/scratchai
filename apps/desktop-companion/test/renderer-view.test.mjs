@@ -15,14 +15,15 @@ import {
 
 function createFakeDocument() {
   return {
-    createElement() {
-      return createFakeListElement();
+    createElement(tagName = "div") {
+      return createFakeListElement(tagName);
     }
   };
 }
 
-function createFakeListElement() {
+function createFakeListElement(tagName = "div") {
   return {
+    tagName: String(tagName).toUpperCase(),
     textContent: "",
     className: "",
     hidden: false,
@@ -248,4 +249,100 @@ test("renderState updates current role and program text", () => {
     ["脚本 1: 当绿旗被点击 -> 一直重复 -> 移动 10 步 -> 清空"]
   );
   assert.equal(scratchPathElement.textContent, "C:\\Scratch 3.exe");
+});
+
+test("renderState renders Scratch-style block stacks for current programs and recommendations", () => {
+  const documentRef = createFakeDocument();
+  const currentTargetProgramsElement = createFakeListElement("ul");
+  const aiRecommendedBlocksElement = createFakeListElement("ul");
+
+  renderState(
+    {
+      status: "connected",
+      statusText: "已连接到 Scratch Desktop",
+      currentTargetName: "Cat",
+      currentTargetPrograms: [
+        "当绿旗被点击 -> 一直重复 -> 移动 10 步"
+      ],
+      currentTargetScriptBlocks: [
+        {
+          blocks: [
+            {
+              opcode: "event_whenflagclicked",
+              categoryId: "event",
+              label: "当绿旗被点击"
+            },
+            {
+              opcode: "control_forever",
+              categoryId: "control",
+              label: "一直重复"
+            },
+            {
+              opcode: "motion_movesteps",
+              categoryId: "motion",
+              label: "移动 10 步"
+            }
+          ]
+        }
+      ],
+      toolboxCategories: [],
+      usedExtensions: [],
+      loadedExtensions: [],
+      programAreaModules: [],
+      aiCoachResponse: {
+        answerText: "先让小猫动起来。",
+        nextStep: "补一个移动积木。",
+        detectedIssues: [],
+        recommendedBlocks: [
+          {
+            opcode: "motion_movesteps",
+            category: "运动",
+            label: "移动 10 步",
+            reason: "先做一个最容易看见的动作。",
+            example: "比如让小猫往前走一步"
+          }
+        ]
+      }
+    },
+    {
+      documentRef,
+      currentTargetProgramsElement,
+      aiRecommendedBlocksElement
+    }
+  );
+
+  assert.equal(currentTargetProgramsElement.children.length, 1);
+  assert.equal(currentTargetProgramsElement.children[0].className, "program-item scratch-script-item");
+  assert.equal(currentTargetProgramsElement.children[0].children[0].textContent, "脚本 1");
+  assert.deepEqual(
+    currentTargetProgramsElement.children[0].children[1].children.map((child) => ({
+      className: child.className,
+      category: child.dataset.category,
+      text: child.children[0].textContent
+    })),
+    [
+      {
+        className: "scratch-block",
+        category: "event",
+        text: "当绿旗被点击"
+      },
+      {
+        className: "scratch-block",
+        category: "control",
+        text: "一直重复"
+      },
+      {
+        className: "scratch-block",
+        category: "motion",
+        text: "移动 10 步"
+      }
+    ]
+  );
+
+  assert.equal(aiRecommendedBlocksElement.children.length, 1);
+  assert.equal(aiRecommendedBlocksElement.children[0].className, "hint-item recommended-block-item");
+  assert.equal(aiRecommendedBlocksElement.children[0].children[0].dataset.category, "motion");
+  assert.equal(aiRecommendedBlocksElement.children[0].children[0].children[0].textContent, "移动 10 步");
+  assert.equal(aiRecommendedBlocksElement.children[0].children[1].textContent, "先做一个最容易看见的动作。");
+  assert.equal(aiRecommendedBlocksElement.children[0].children[2].textContent, "示例：比如让小猫往前走一步");
 });

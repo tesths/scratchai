@@ -286,6 +286,32 @@ test("SessionManager derives current target programs from projectData", async ()
   assert.deepEqual(nextState.currentTargetPrograms, [
     "当绿旗被点击 -> 移动 10 步 -> 右转 15 度 -> 清空"
   ]);
+  assert.deepEqual(nextState.currentTargetScriptBlocks, [
+    {
+      blocks: [
+        {
+          opcode: "event_whenflagclicked",
+          categoryId: "event",
+          label: "当绿旗被点击"
+        },
+        {
+          opcode: "motion_movesteps",
+          categoryId: "motion",
+          label: "移动 10 步"
+        },
+        {
+          opcode: "motion_turnright",
+          categoryId: "motion",
+          label: "右转 15 度"
+        },
+        {
+          opcode: "pen_clear",
+          categoryId: "pen",
+          label: "清空"
+        }
+      ]
+    }
+  ]);
 });
 
 test("SessionManager derives nested stack blocks from projectData", async () => {
@@ -354,6 +380,27 @@ test("SessionManager derives nested stack blocks from projectData", async () => 
   const nextState = stateStore.getState();
   assert.deepEqual(nextState.currentTargetPrograms, [
     "当绿旗被点击 -> 重复执行 -> 移动 10 步"
+  ]);
+  assert.deepEqual(nextState.currentTargetScriptBlocks, [
+    {
+      blocks: [
+        {
+          opcode: "event_whenflagclicked",
+          categoryId: "event",
+          label: "当绿旗被点击"
+        },
+        {
+          opcode: "control_repeat",
+          categoryId: "control",
+          label: "重复执行"
+        },
+        {
+          opcode: "motion_movesteps",
+          categoryId: "motion",
+          label: "移动 10 步"
+        }
+      ]
+    }
   ]);
 });
 

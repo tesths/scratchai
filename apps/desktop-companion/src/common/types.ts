@@ -26,6 +26,16 @@ export interface RecommendedBlock {
   example?: string;
 }
 
+export interface ScratchBlockDescriptor {
+  opcode: string;
+  categoryId: string;
+  label: string;
+}
+
+export interface CurrentTargetScriptDescriptor {
+  blocks: ScratchBlockDescriptor[];
+}
+
 export interface DetectedIssue {
   severity: "info" | "warning";
   title: string;
@@ -121,6 +131,7 @@ export interface DesktopCompanionState {
   loadedExtensions: string[];
   programAreaModules: ProgramAreaModule[];
   currentTargetPrograms: string[];
+  currentTargetScriptBlocks: CurrentTargetScriptDescriptor[];
   lastUpdatedAt?: string;
   aiConfigured: boolean;
   aiConfigPath?: string;

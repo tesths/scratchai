@@ -1,5 +1,6 @@
 import {
   desktopCompanionStateSchema,
+  getModuleIdForOpcode,
   getUsedExtensionsFromProject,
   projectJsonToSnapshot,
   scratchStatePayloadSchema,
@@ -18,7 +19,13 @@ import { ScratchRemoteDebugger } from "./scratch-remote-debugger";
 import { StateStore } from "./state-store";
 import type { LoadedDeepSeekConfig } from "./deepseek-config";
 import type { ScratchPlatformAdapter } from "./platform-adapter";
-import type { DesktopCompanionState, ProgramAreaModule, ProjectSnapshot, ScratchStatePayload } from "../common/types";
+import type {
+  CurrentTargetScriptDescriptor,
+  DesktopCompanionState,
+  ProgramAreaModule,
+  ProjectSnapshot,
+  ScratchStatePayload
+} from "../common/types";
 
 const CDP_INJECTION_TIMEOUT_MS = 15_000;
 const BRIDGE_CONNECTION_SETTLE_MS = 6_000;
@@ -55,6 +62,41 @@ function deriveCurrentTargetPrograms(snapshot: ProjectSnapshot, fallbackTargetNa
   return currentTargetSprite.scripts
     .map((script) => script.blockSequence.join(" -> ").trim())
     .filter(Boolean);
+}
+
+function deriveCurrentTargetScriptBlocks(
+  snapshot: ProjectSnapshot,
+  fallbackTargetName?: string
+): CurrentTargetScriptDescriptor[] {
+  const targetName =
+    typeof snapshot.currentTarget === "string" && snapshot.currentTarget.trim()
+      ? snapshot.currentTarget.trim()
+      : fallbackTargetName;
+
+  const currentTargetSprite = snapshot.sprites.find((sprite) => sprite.name === String(targetName ?? ""));
+  if (!currentTargetSprite) {
+    return [];
+  }
+
+  return currentTargetSprite.scripts
+    .map((script) => ({
+      blocks: script.blockOpcodes
+        .map((opcode, index) => {
+          const label = script.blockSequence[index]?.trim();
+          const categoryId = getModuleIdForOpcode(opcode) ?? "other";
+          if (!label) {
+            return null;
+          }
+
+          return {
+            opcode,
+            categoryId,
+            label
+          };
+        })
+        .filter((block): block is CurrentTargetScriptDescriptor["blocks"][number] => Boolean(block))
+    }))
+    .filter((script) => script.blocks.length > 0);
 }
 
 function trimText(value?: string) {
@@ -154,6 +196,7 @@ export class SessionManager {
         loadedExtensions: [],
         programAreaModules: [],
         currentTargetPrograms: [],
+        currentTargetScriptBlocks: [],
         aiConfigured: false,
         aiCustomKeyConfigured: false,
         aiCustomModelConfigured: false,
@@ -395,13 +438,18 @@ export class SessionManager {
       snapshot
         ? deriveCurrentTargetPrograms(snapshot, payload.currentTargetName)
         : this.stateStore.getState().currentTargetPrograms;
+    const currentTargetScriptBlocks =
+      snapshot
+        ? deriveCurrentTargetScriptBlocks(snapshot, payload.currentTargetName)
+        : this.stateStore.getState().currentTargetScriptBlocks;
 
     if (
       !payload.projectData &&
       toolboxCategories.length === 0 &&
       loadedExtensions.length === 0 &&
       programAreaModules.length === 0 &&
-      currentTargetPrograms.length === 0
+      currentTargetPrograms.length === 0 &&
+      currentTargetScriptBlocks.length === 0
     ) {
       return;
     }
@@ -426,6 +474,7 @@ export class SessionManager {
       loadedExtensions,
       programAreaModules,
       currentTargetPrograms,
+      currentTargetScriptBlocks,
       lastUpdatedAt: payload.capturedAt ?? new Date().toISOString(),
       detail: this.buildConnectedDetail(payload.source, currentTargetPrograms),
       ...this.getAiStatePatch()
@@ -592,6 +641,7 @@ export class SessionManager {
       loadedExtensions: [],
       programAreaModules: [],
       currentTargetPrograms: [],
+      currentTargetScriptBlocks: [],
       aiConfigured: this.aiConfig?.configured ?? false,
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
       aiCustomModelConfigured: Boolean(trimText(this.config.customAiModel)),

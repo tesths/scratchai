@@ -1,6 +1,60 @@
-import type { DesktopCompanionState } from "../common/types";
+import type {
+  CurrentTargetScriptDescriptor,
+  DesktopCompanionState,
+  RecommendedBlock,
+  ScratchBlockDescriptor
+} from "../common/types";
 
 const MAX_RECOMMENDED_BLOCKS = 4;
+const CORE_CATEGORY_IDS = new Set([
+  "motion",
+  "looks",
+  "sound",
+  "event",
+  "control",
+  "sensing",
+  "operator",
+  "data",
+  "procedures",
+  "colour",
+  "pen",
+  "music",
+  "videoSensing",
+  "text2speech",
+  "translate",
+  "microbit",
+  "wedo2",
+  "makeymakey",
+  "ev3",
+  "boost",
+  "gdxfor",
+  "mesh"
+]);
+const CATEGORY_ID_BY_LABEL: Record<string, string> = {
+  运动: "motion",
+  外观: "looks",
+  声音: "sound",
+  事件: "event",
+  控制: "control",
+  侦测: "sensing",
+  运算: "operator",
+  变量: "data",
+  变量和列表: "data",
+  自制积木: "procedures",
+  颜色: "colour",
+  画笔: "pen",
+  音乐: "music",
+  视频侦测: "videoSensing",
+  文字转语音: "text2speech",
+  翻译: "translate",
+  "micro:bit": "microbit",
+  "WeDo 2.0": "wedo2",
+  "Makey Makey": "makeymakey",
+  EV3: "ev3",
+  BOOST: "boost",
+  "Go Direct Force & Acceleration": "gdxfor",
+  Mesh: "mesh"
+};
 
 interface MinimalElement {
   textContent: string | null;
@@ -210,7 +264,133 @@ export function formatDetectedIssues(state: DesktopCompanionState) {
   });
 }
 
+function getCategoryIdFromOpcode(opcode?: string) {
+  if (typeof opcode !== "string") {
+    return null;
+  }
+
+  const separatorIndex = opcode.indexOf("_");
+  if (separatorIndex <= 0) {
+    return null;
+  }
+
+  const prefix = opcode.slice(0, separatorIndex);
+  if (prefix === "argument") {
+    return "procedures";
+  }
+  if (prefix === "math") {
+    return "operator";
+  }
+  return CORE_CATEGORY_IDS.has(prefix) ? prefix : prefix.replace(/[^\w-]/g, "-") || null;
+}
+
+function resolveRecommendedBlockCategoryId(block: RecommendedBlock) {
+  const opcodeCategoryId = getCategoryIdFromOpcode(block.opcode);
+  if (opcodeCategoryId) {
+    return opcodeCategoryId;
+  }
+
+  return CATEGORY_ID_BY_LABEL[block.category] ?? "other";
+}
+
+function createTextChild(documentRef: MinimalDocument, tagName: string, className: string, text: string) {
+  const element = documentRef.createElement(tagName);
+  element.className = className;
+  element.textContent = text;
+  return element;
+}
+
+function createScratchBlockElement(
+  documentRef: MinimalDocument,
+  block: Pick<ScratchBlockDescriptor, "categoryId" | "label">
+) {
+  const element = documentRef.createElement("div");
+  element.className = "scratch-block";
+  if (element.dataset) {
+    element.dataset.category = block.categoryId;
+  }
+  element.append(createTextChild(documentRef, "span", "scratch-block-label", block.label));
+  return element;
+}
+
+function renderCurrentTargetScriptBlocks(
+  documentRef: MinimalDocument,
+  container: MinimalElement | null | undefined,
+  scripts: CurrentTargetScriptDescriptor[],
+  emptyText: string
+) {
+  if (!container) {
+    return;
+  }
+
+  container.replaceChildren();
+  if (scripts.length === 0) {
+    const empty = documentRef.createElement("li");
+    empty.className = "empty";
+    empty.textContent = emptyText;
+    container.append(empty);
+    return;
+  }
+
+  for (const [index, script] of scripts.entries()) {
+    const item = documentRef.createElement("li");
+    item.className = "program-item scratch-script-item";
+
+    item.append(createTextChild(documentRef, "span", "script-pill", `脚本 ${index + 1}`));
+
+    const stack = documentRef.createElement("div");
+    stack.className = "scratch-script-stack";
+    for (const block of script.blocks) {
+      stack.append(createScratchBlockElement(documentRef, block));
+    }
+
+    item.append(stack);
+    container.append(item);
+  }
+}
+
+function renderRecommendedBlockCards(
+  documentRef: MinimalDocument,
+  container: MinimalElement | null | undefined,
+  blocks: RecommendedBlock[],
+  emptyText: string
+) {
+  if (!container) {
+    return;
+  }
+
+  container.replaceChildren();
+  if (blocks.length === 0) {
+    const empty = documentRef.createElement("li");
+    empty.className = "empty";
+    empty.textContent = emptyText;
+    container.append(empty);
+    return;
+  }
+
+  for (const block of blocks.slice(0, MAX_RECOMMENDED_BLOCKS)) {
+    const item = documentRef.createElement("li");
+    item.className = "hint-item recommended-block-item";
+
+    item.append(
+      createScratchBlockElement(documentRef, {
+        categoryId: resolveRecommendedBlockCategoryId(block),
+        label: block.label
+      })
+    );
+    item.append(createTextChild(documentRef, "p", "recommended-block-reason", block.reason));
+
+    if (block.example) {
+      item.append(createTextChild(documentRef, "p", "recommended-block-example", `示例：${block.example}`));
+    }
+
+    container.append(item);
+  }
+}
+
 export function renderState(state: DesktopCompanionState, elements: RendererElements) {
+  const currentTargetScriptBlocks = state.currentTargetScriptBlocks ?? [];
+
   if (elements.statusElement) {
     elements.statusElement.textContent = state.statusText;
     if (elements.statusElement.dataset) {
@@ -246,13 +426,22 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     elements.errorElement.hidden = !state.error;
   }
 
-  renderList(
-    elements.documentRef,
-    elements.currentTargetProgramsElement,
-    formatCurrentTargetPrograms(state.currentTargetPrograms),
-    "当前角色还没有可读取的脚本。",
-    "program-item"
-  );
+  if (currentTargetScriptBlocks.length > 0) {
+    renderCurrentTargetScriptBlocks(
+      elements.documentRef,
+      elements.currentTargetProgramsElement,
+      currentTargetScriptBlocks,
+      "当前角色还没有可读取的脚本。"
+    );
+  } else {
+    renderList(
+      elements.documentRef,
+      elements.currentTargetProgramsElement,
+      formatCurrentTargetPrograms(state.currentTargetPrograms),
+      "当前角色还没有可读取的脚本。",
+      "program-item"
+    );
+  }
 
   renderList(
     elements.documentRef,
@@ -279,12 +468,11 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     elements.aiNextStepElement.textContent = formatDefaultNextStep(state);
   }
 
-  renderList(
+  renderRecommendedBlockCards(
     elements.documentRef,
     elements.aiRecommendedBlocksElement,
-    formatRecommendedBlocks(state),
-    "这里会显示适合当前这一步的积木和原因。",
-    "hint-item"
+    state.aiCoachResponse?.recommendedBlocks ?? [],
+    "这里会显示适合当前这一步的积木和原因。"
   );
 
   const isBusy = state.status === "injecting";
