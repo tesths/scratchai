@@ -156,11 +156,13 @@ C:\ScratchDesktopCompanion\ScratchDesktopCompanion-portable.exe
 说明：
 
 - 当前还没有成功通过伴随程序启动 Scratch
+- 当前主路线只支持“伴随程序受控启动 + CDP 注入”，不支持附着到用户手工双击打开的 Scratch
 
 处理：
 
 - 确认是从伴随程序点击 `打开已选 Scratch`
 - 不要让用户先手工双击 Scratch
+- 如果用户已经手工打开过 Scratch，先完全退出 Scratch，再回伴随程序重新点 `打开已选 Scratch`
 
 ### 现象 3：点了 `打开已选 Scratch` 但没有连上
 
