@@ -1,5 +1,7 @@
 import type { DesktopCompanionState } from "../common/types";
 
+const MAX_RECOMMENDED_BLOCKS = 4;
+
 interface MinimalElement {
   textContent: string | null;
   hidden?: boolean;
@@ -193,10 +195,12 @@ export function formatDefaultNextStep(state: DesktopCompanionState) {
 }
 
 export function formatRecommendedBlocks(state: DesktopCompanionState) {
-  return (state.aiCoachResponse?.recommendedBlocks ?? []).map((block) => {
-    const exampleText = block.example ? `；示例：${block.example}` : "";
-    return `${block.category} / ${block.label}：${block.reason}${exampleText}`;
-  });
+  return (state.aiCoachResponse?.recommendedBlocks ?? [])
+    .slice(0, MAX_RECOMMENDED_BLOCKS)
+    .map((block) => {
+      const exampleText = block.example ? `；示例：${block.example}` : "";
+      return `${block.category} / ${block.label}：${block.reason}${exampleText}`;
+    });
 }
 
 export function formatDetectedIssues(state: DesktopCompanionState) {

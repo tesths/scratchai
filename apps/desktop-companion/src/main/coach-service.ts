@@ -172,7 +172,8 @@ function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): C
     recommendedBlocks.push(
       createRecommendedBlock("event_whenflagclicked", "事件", "当绿旗被点击", "给脚本一个清楚的开始时机。"),
       createRecommendedBlock("motion_movesteps", "运动", "移动 10 步", "先做一个最直观的动作反馈。"),
-      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "学生更容易看出脚本已经被触发。", "比如：我开始执行啦")
+      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "学生更容易看出脚本已经被触发。", "比如：我开始执行啦"),
+      createRecommendedBlock("control_repeat", "控制", "重复执行", "先把刚搭好的动作重复几次，更容易确认脚本真的跑起来了。")
     );
     detectedIssues.push({
       severity: "info",
@@ -187,7 +188,8 @@ function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): C
     recommendedBlocks.push(
       createRecommendedBlock("event_whenflagclicked", "事件", "当绿旗被点击", "适合先做统一启动。"),
       createRecommendedBlock("event_whenkeypressed", "事件", "当按下某个键", "适合做角色控制或交互触发。"),
-      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "触发后给一个可见反馈，方便调试。")
+      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "触发后给一个可见反馈，方便调试。"),
+      createRecommendedBlock("motion_movesteps", "运动", "移动 10 步", "把事件后面的第一个动作补简单一点，学生更容易马上看到结果。")
     );
     detectedIssues.push({
       severity: "warning",
@@ -202,7 +204,8 @@ function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): C
     recommendedBlocks.push(
       createRecommendedBlock("control_repeat", "控制", "重复执行", "先做固定次数的循环测试。"),
       createRecommendedBlock("control_forever", "控制", "一直重复", "适合持续移动、持续检测或持续绘制。"),
-      createRecommendedBlock("motion_turnright", "运动", "右转 15 度", "放进循环里更容易看出连续效果。")
+      createRecommendedBlock("motion_turnright", "运动", "右转 15 度", "放进循环里更容易看出连续效果。"),
+      createRecommendedBlock("motion_movesteps", "运动", "移动 10 步", "和循环搭配后，角色会更明显地持续移动。")
     );
     followUpQuestion = "你希望它一直循环，还是只循环几次？";
   } else if (hasModule(programAreaModules, "motion") && !hasModule(programAreaModules, "sensing")) {
@@ -211,7 +214,8 @@ function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): C
     recommendedBlocks.push(
       createRecommendedBlock("sensing_touchingobject", "侦测", "碰到...？", "让角色开始根据环境做判断。"),
       createRecommendedBlock("control_if", "控制", "如果...那么", "把侦测结果变成真正的行为变化。"),
-      createRecommendedBlock("motion_ifonedgebounce", "运动", "碰到边缘就反弹", "适合快速做出可见的互动结果。")
+      createRecommendedBlock("motion_ifonedgebounce", "运动", "碰到边缘就反弹", "适合快速做出可见的互动结果。"),
+      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "判断成立时给一个提示，学生更容易确认侦测逻辑是否生效。")
     );
     followUpQuestion = "你希望角色碰到边缘、鼠标，还是另一个角色时发生变化？";
   } else if (!hasModule(programAreaModules, "data")) {
@@ -220,7 +224,8 @@ function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): C
     recommendedBlocks.push(
       createRecommendedBlock("data_setvariableto", "变量", "将变量设为", "先初始化一个核心变量。"),
       createRecommendedBlock("data_changevariableby", "变量", "将变量增加", "完成动作或满足条件时更新结果。"),
-      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "变量变化后给一个可见反馈，方便调试。")
+      createRecommendedBlock("looks_sayforsecs", "外观", "说 2 秒", "变量变化后给一个可见反馈，方便调试。"),
+      createRecommendedBlock("control_if", "控制", "如果...那么", "把变量变化和具体条件连起来，规则会更清楚。")
     );
     followUpQuestion = "如果这是一个小游戏，你最想先记录分数、时间，还是生命值？";
   } else {
@@ -229,7 +234,8 @@ function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): C
     recommendedBlocks.push(
       createRecommendedBlock("control_if", "控制", "如果...那么", "让角色开始区分不同情况。"),
       createRecommendedBlock("operator_equals", "运算", "= ", "适合配合变量或侦测结果做判断。"),
-      createRecommendedBlock("looks_switchcostumeto", "外观", "切换造型", "判断成立时给一个明显反馈。")
+      createRecommendedBlock("looks_switchcostumeto", "外观", "切换造型", "判断成立时给一个明显反馈。"),
+      createRecommendedBlock("data_changevariableby", "变量", "将变量增加", "如果这一步和得分或次数有关，可以顺手把结果记下来。")
     );
   }
 

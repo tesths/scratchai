@@ -262,13 +262,25 @@
       }
 
       .summary-grid,
-      .detail-stack {
+      .detail-stack,
+      .program-recommend-grid {
         display: grid;
         gap: 10px;
       }
 
       .summary-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .program-recommend-grid {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .detail-panel {
+        min-height: 308px;
+        align-content: start;
       }
 
       .summary-card {
@@ -304,6 +316,7 @@
       .list {
         display: grid;
         gap: 6px;
+        align-content: start;
       }
 
       .list li {
@@ -319,6 +332,15 @@
         color: var(--muted);
       }
 
+      .recommended-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .recommended-list li {
+        min-height: 92px;
+        padding: 11px 12px;
+      }
+
       #error {
         color: var(--warn);
         font-size: var(--text-note);
@@ -328,6 +350,10 @@
       @media (max-width: 960px) {
         .summary-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .program-recommend-grid {
+          grid-template-columns: 1fr;
         }
 
         .titlebar {
@@ -352,6 +378,10 @@
 
         .action-row {
           grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .recommended-list {
+          grid-template-columns: 1fr;
         }
       }
     </style>
@@ -418,17 +448,17 @@
             </div>
           </section>
 
-          <section class="panel">
-            <h2>当前角色程序</h2>
-            <p class="panel-note">这里会显示当前角色已经搭好的脚本顺序。</p>
-            <ul id="current-target-programs" class="list"></ul>
-          </section>
+          <div class="program-recommend-grid">
+            <section class="panel detail-panel">
+              <h2>当前角色程序</h2>
+              <p class="panel-note">这里会显示当前角色已经搭好的脚本顺序。</p>
+              <ul id="current-target-programs" class="list program-list"></ul>
+            </section>
 
-          <div class="detail-stack">
-            <section class="panel">
+            <section class="panel detail-panel">
               <h2>推荐积木</h2>
               <p class="panel-note">优先只补当前这一小步最需要的积木。</p>
-              <ul id="ai-recommended-blocks" class="list"></ul>
+              <ul id="ai-recommended-blocks" class="list recommended-list"></ul>
             </section>
           </div>
         </section>

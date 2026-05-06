@@ -15,3 +15,10 @@ test("main window no longer shows the module summary panel", async () => {
   assert.doesNotMatch(html, /识别到的模块/);
   assert.doesNotMatch(html, /id="program-area-modules"/);
 });
+
+test("main window places current target programs and recommended blocks in one two-column row", async () => {
+  const html = await readFile(new URL("../src/renderer/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /<div class="program-recommend-grid">/);
+  assert.match(html, /<ul id="ai-recommended-blocks" class="list recommended-list"><\/ul>/);
+});

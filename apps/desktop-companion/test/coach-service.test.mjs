@@ -395,3 +395,36 @@ test("CoachService normalizes non-schema severity values from DeepSeek", async (
     }
   ]);
 });
+
+test("CoachService fallback recommends four blocks for an empty current target", async () => {
+  const service = new CoachService();
+  const snapshot = createSnapshot();
+  snapshot.sprites[0].blockCount = 0;
+  snapshot.sprites[0].scripts = [];
+  snapshot.blocks = [];
+
+  const result = await service.generateHint({
+    snapshot,
+    currentTargetPrograms: [],
+    programAreaModules: [],
+    usedExtensions: [],
+    loadedExtensions: [],
+    goal: "先让小猫动起来",
+    aiConfig: createAiConfig({
+      configured: false,
+      apiKey: ""
+    })
+  });
+
+  assert.equal(result.source, "fallback");
+  assert.equal(result.coachResponse.recommendedBlocks.length, 4);
+  assert.deepEqual(
+    result.coachResponse.recommendedBlocks.map((block) => block.opcode),
+    [
+      "event_whenflagclicked",
+      "motion_movesteps",
+      "looks_sayforsecs",
+      "control_repeat"
+    ]
+  );
+});

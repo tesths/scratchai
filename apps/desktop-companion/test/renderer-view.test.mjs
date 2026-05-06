@@ -79,6 +79,53 @@ test("formats recommended blocks without exposing English opcodes", () => {
   );
 });
 
+test("formats recommended blocks with at most four items", () => {
+  assert.deepEqual(
+    formatRecommendedBlocks({
+      aiCoachResponse: {
+        recommendedBlocks: [
+          {
+            opcode: "event_whenflagclicked",
+            category: "事件",
+            label: "当绿旗被点击",
+            reason: "1"
+          },
+          {
+            opcode: "motion_movesteps",
+            category: "运动",
+            label: "移动 10 步",
+            reason: "2"
+          },
+          {
+            opcode: "control_repeat",
+            category: "控制",
+            label: "重复执行",
+            reason: "3"
+          },
+          {
+            opcode: "looks_sayforsecs",
+            category: "外观",
+            label: "说 2 秒",
+            reason: "4"
+          },
+          {
+            opcode: "sensing_touchingobject",
+            category: "侦测",
+            label: "碰到...？",
+            reason: "5"
+          }
+        ]
+      }
+    }),
+    [
+      "事件 / 当绿旗被点击：1",
+      "运动 / 移动 10 步：2",
+      "控制 / 重复执行：3",
+      "外观 / 说 2 秒：4"
+    ]
+  );
+});
+
 test("formats default detail and next step for the new scratch-first flow", () => {
   assert.equal(
     formatDefaultDetail({}),
