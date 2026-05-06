@@ -6,4 +6,5 @@
 
 ## 已完成
 
+- 2026-05-06：完成本地基础版收敛：保留 Windows/macOS 本机 Scratch + 本地 AI 提示链路，移除教师 sb3/课堂参考流，首页改为桌面工具型布局，设置页收敛为本地 DeepSeek API Key 配置。
 - 2026-05-05：完成 workspace 收口与目录重构；移出 `apps/server` 主线，将 `Windows-Test` 迁移为 `tools/verification`，统一根锁文件、忽略规则、清理脚本与 CI，保证项目在新电脑上 clone 后可继续做 Windows / macOS 开发、测试与出包。

@@ -257,9 +257,6 @@ function buildUiSnapshotExpression() {
       : null
   },
   projectUrlInputPresent: document.querySelector("#project-url-input") instanceof HTMLInputElement,
-  analyzeProjectUrlButtonDisabled: document.querySelector("#analyze-project-url-button") instanceof HTMLButtonElement
-    ? document.querySelector("#analyze-project-url-button").disabled
-    : null,
   currentTargetPrograms: Array.from(document.querySelectorAll("#current-target-programs li"))
     .map(element => (element.textContent || "").trim())
     .filter(Boolean)
@@ -448,12 +445,8 @@ async function main() {
         assert(value.buttons?.retry === false, `Retry button should be enabled. Actual: ${JSON.stringify(value)}`);
         assert(value.buttons?.settings === false, `Settings button should be enabled. Actual: ${JSON.stringify(value)}`);
         assert(
-            value.projectUrlInputPresent === true,
-            `Project URL input should exist. Actual: ${JSON.stringify(value)}`
-        );
-        assert(
-            value.analyzeProjectUrlButtonDisabled === false,
-            `Project URL analyze button should be enabled. Actual: ${JSON.stringify(value)}`
+            value.projectUrlInputPresent === false,
+            `Project URL input should not exist in the local-only UI. Actual: ${JSON.stringify(value)}`
         );
 
         const savedScreenshotPath = await captureScreenshot(targetResult.preferredTarget, screenshotPath);

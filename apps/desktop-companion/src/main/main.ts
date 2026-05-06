@@ -324,13 +324,6 @@ async function handleRequestAiHint(goal?: string) {
   await sessionManager?.requestAiHint(goal);
 }
 
-async function handleRequestAiHintFromProjectUrl(projectUrl: string, goal?: string) {
-  if (launchOptions.automationActions) {
-    return;
-  }
-  await sessionManager?.requestAiHintFromProjectUrl(projectUrl, goal);
-}
-
 async function handleSaveCustomAiApiKey(apiKey: string) {
   if (launchOptions.automationActions) {
     return;
@@ -379,12 +372,6 @@ ipcMain.handle("desktop-companion:open-settings", async () => {
 ipcMain.handle("desktop-companion:request-ai-hint", async (_event, goal?: string) => {
   await handleRequestAiHint(goal);
 });
-ipcMain.handle(
-  "desktop-companion:request-ai-hint-from-project-url",
-  async (_event, projectUrl?: string, goal?: string) => {
-    await handleRequestAiHintFromProjectUrl(projectUrl ?? "", goal);
-  }
-);
 ipcMain.handle("desktop-companion:save-custom-ai-api-key", async (_event, apiKey: string) => {
   await handleSaveCustomAiApiKey(apiKey);
 });

@@ -7,18 +7,18 @@
     <style>
       :root {
         color-scheme: light;
-        --bg: #e8f3ff;
-        --panel: rgba(244, 249, 255, 0.94);
-        --panel-strong: #ffffff;
-        --ink: #112a46;
-        --muted: #5b7292;
-        --accent: #1777ff;
-        --accent-strong: #0d59d8;
-        --accent-soft: rgba(23, 119, 255, 0.12);
-        --warning: #c96a28;
-        --border: rgba(17, 42, 70, 0.1);
-        --border-strong: rgba(17, 42, 70, 0.16);
-        --shadow: 0 28px 70px rgba(16, 58, 118, 0.16);
+        --bg: #eef2f7;
+        --panel: #ffffff;
+        --panel-muted: #f7f9fc;
+        --line: #d7dee8;
+        --ink: #1f2937;
+        --muted: #667085;
+        --accent: #2563eb;
+        --accent-strong: #1d4ed8;
+        --accent-soft: #dbeafe;
+        --warn: #b45309;
+        --warn-soft: #ffedd5;
+        --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
       }
 
       * {
@@ -28,13 +28,15 @@
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: "Segoe UI Variable Text", "Microsoft YaHei UI", sans-serif;
-        color: var(--ink);
-        background:
-          radial-gradient(circle at top right, rgba(23, 119, 255, 0.24), transparent 32%),
-          radial-gradient(circle at bottom left, rgba(74, 161, 255, 0.16), transparent 28%),
-          linear-gradient(180deg, #f7fbff 0%, var(--bg) 100%);
         padding: 18px;
+        font-family:
+          "Segoe UI Variable Text",
+          "Segoe UI",
+          "PingFang SC",
+          "Microsoft YaHei UI",
+          sans-serif;
+        color: var(--ink);
+        background: linear-gradient(180deg, #f8fafc 0%, var(--bg) 100%);
       }
 
       h1,
@@ -45,23 +47,22 @@
 
       .shell {
         min-height: calc(100vh - 36px);
-        border: 1px solid var(--border);
-        border-radius: 28px;
-        background: var(--panel);
-        box-shadow: var(--shadow);
-        backdrop-filter: blur(18px);
-        padding: 20px;
         display: grid;
-        gap: 16px;
+        gap: 14px;
+        padding: 18px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: var(--shadow);
       }
 
       .hero {
         display: grid;
-        gap: 10px;
+        gap: 8px;
       }
 
       .eyebrow {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -69,59 +70,40 @@
       }
 
       h1 {
-        font-size: 26px;
+        font-size: 24px;
         line-height: 1.15;
       }
 
-      .hero-copy {
-        font-size: 13px;
-        line-height: 1.6;
-        color: var(--muted);
-      }
-
-      .teacher-note {
-        padding: 12px 14px;
-        border-radius: 18px;
-        background: rgba(17, 42, 70, 0.04);
-        border: 1px solid rgba(17, 42, 70, 0.08);
+      .hero-copy,
+      .note,
+      #settings-feedback,
+      #settings-error {
         font-size: 12px;
-        line-height: 1.6;
+        line-height: 1.7;
         color: var(--muted);
       }
 
       .status-pill {
         width: fit-content;
-        max-width: 100%;
         padding: 8px 12px;
         border-radius: 999px;
         background: var(--accent-soft);
-        color: var(--accent);
+        color: var(--accent-strong);
         font-size: 12px;
         font-weight: 700;
       }
 
       .panel {
-        background: var(--panel-strong);
-        border: 1px solid var(--border);
-        border-radius: 22px;
-        padding: 16px;
         display: grid;
         gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: var(--panel);
       }
 
-      .panel-heading {
-        display: grid;
-        gap: 4px;
-      }
-
-      .panel-heading h2 {
+      .panel h2 {
         font-size: 16px;
-      }
-
-      .panel-heading p {
-        font-size: 12px;
-        line-height: 1.5;
-        color: var(--muted);
       }
 
       .meta-grid {
@@ -130,42 +112,32 @@
       }
 
       .meta-card {
+        display: grid;
+        gap: 6px;
         padding: 12px 14px;
-        border-radius: 16px;
-        background: rgba(17, 42, 70, 0.04);
-        border: 1px solid rgba(17, 42, 70, 0.08);
+        border-radius: 14px;
+        background: var(--panel-muted);
+        border: 1px solid var(--line);
       }
 
       .meta-card span {
-        display: block;
         font-size: 11px;
         color: var(--muted);
-        margin-bottom: 6px;
       }
 
       .meta-card strong {
-        display: block;
         font-size: 13px;
         line-height: 1.6;
         word-break: break-word;
       }
 
-      input[type="password"],
-      textarea {
+      input[type="password"] {
         width: 100%;
-        border: 1px solid var(--border-strong);
-        border-radius: 16px;
-        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 11px 13px;
         font: inherit;
         font-size: 13px;
-        color: var(--ink);
-        background: rgba(255, 255, 255, 0.96);
-      }
-
-      textarea {
-        min-height: 180px;
-        resize: vertical;
-        line-height: 1.7;
       }
 
       .action-row {
@@ -174,64 +146,41 @@
         gap: 10px;
       }
 
-      .action-button {
-        border: 0;
-        border-radius: 999px;
-        padding: 10px 16px;
+      .button {
+        border: 1px solid transparent;
+        border-radius: 12px;
+        padding: 10px 14px;
         font: inherit;
-        font-size: 13px;
-        font-weight: 700;
         cursor: pointer;
-        transition:
-          transform 180ms ease,
-          box-shadow 180ms ease,
-          opacity 180ms ease;
       }
 
-      .action-button:hover {
-        transform: translateY(-1px);
+      .button.primary {
+        background: var(--accent);
+        color: #fff;
       }
 
-      .action-button:disabled {
+      .button.primary:hover {
+        background: var(--accent-strong);
+      }
+
+      .button.secondary {
+        background: #fff;
+        color: var(--ink);
+        border-color: var(--line);
+      }
+
+      .button:disabled {
         opacity: 0.55;
         cursor: wait;
-        transform: none;
-      }
-
-      .action-button.primary {
-        color: #fff;
-        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
-        box-shadow: 0 14px 32px rgba(23, 119, 255, 0.24);
-      }
-
-      .action-button.secondary {
-        color: var(--ink);
-        background: rgba(17, 42, 70, 0.08);
-      }
-
-      .action-button.secondary:hover {
-        background: rgba(17, 42, 70, 0.12);
-      }
-
-      .note {
-        font-size: 12px;
-        line-height: 1.6;
-        color: var(--muted);
-      }
-
-      #settings-feedback,
-      #settings-error {
-        font-size: 12px;
-        line-height: 1.6;
       }
 
       #settings-feedback[data-kind="success"] {
-        color: var(--accent);
+        color: var(--accent-strong);
       }
 
       #settings-feedback[data-kind="error"],
       #settings-error {
-        color: var(--warning);
+        color: var(--warn);
       }
     </style>
   </head>
@@ -239,22 +188,16 @@
     <main class="shell">
       <section class="hero">
         <p class="eyebrow">DeepSeek Settings</p>
-        <h1>老师设置放这里，首页只保留提示流程。</h1>
+        <h1>本地 API Key 配置</h1>
         <p class="hero-copy">
-          这里用于保存本机专用的 DeepSeek API Key。保存后，程序会优先使用这里的 Key；清除后，再回退到
-          `DEEPSEEK_API_KEY` 和程序自带配置。
+          这里仅保存当前电脑要使用的 DeepSeek API Key。首页不展示这些技术配置，只保留学习流程。
         </p>
-        <p class="teacher-note">学生平时只要留在首页输入目标和点按钮即可，这一页主要给老师配置。</p>
         <p id="settings-status" class="status-pill">正在读取当前配置…</p>
       </section>
 
       <section class="panel">
-        <div class="panel-heading">
-          <h2>当前配置状态</h2>
-          <p id="settings-config-summary">
-            正在同步当前 DeepSeek 配置来源。
-          </p>
-        </div>
+        <h2>当前状态</h2>
+        <p id="settings-config-summary" class="note">正在同步当前 DeepSeek 配置来源。</p>
         <div class="meta-grid">
           <div class="meta-card">
             <span>当前来源</span>
@@ -268,56 +211,23 @@
             <span>程序自带配置文件</span>
             <strong id="settings-config-path">正在读取…</strong>
           </div>
-          <div class="meta-card">
-            <span>教师提示词</span>
-            <strong id="settings-current-prompt-status">正在读取…</strong>
-          </div>
         </div>
       </section>
 
       <section class="panel">
-        <div class="panel-heading">
-          <h2>自定义 DeepSeek API Key</h2>
-          <p>只在当前电脑本地保存，用来覆盖环境变量和程序自带配置。</p>
-        </div>
+        <h2>自定义 API Key</h2>
+        <p class="note">只在当前电脑本地保存。保存后优先使用这里的 Key；清除后回退到环境变量和程序自带配置。</p>
         <input
           id="settings-custom-ai-api-key"
           type="password"
-          placeholder="输入一个自定义 DeepSeek API Key"
+          placeholder="输入 DeepSeek API Key"
         />
         <div class="action-row">
-          <button id="settings-save-custom-ai-api-key-button" class="action-button primary" type="button">
-            保存 Key
-          </button>
-          <button id="settings-clear-custom-ai-api-key-button" class="action-button secondary" type="button">
-            清除 Key
-          </button>
+          <button id="settings-save-custom-ai-api-key-button" class="button primary" type="button">保存 Key</button>
+          <button id="settings-clear-custom-ai-api-key-button" class="button secondary" type="button">清除 Key</button>
         </div>
-        <p class="note">
-          建议只在老师机或固定授课电脑上保存。若不保存，程序会继续尝试读取环境变量和 `deepseek.config.json`。
-        </p>
         <p id="settings-feedback" hidden></p>
         <p id="settings-error" hidden></p>
-      </section>
-
-      <section class="panel">
-        <div class="panel-heading">
-          <h2>教师提示词</h2>
-          <p>这里可以改传给 DeepSeek 的教学提示词。程序会自动补上固定的 JSON 输出要求，避免首页解析失败。</p>
-        </div>
-        <textarea
-          id="settings-custom-ai-prompt"
-          placeholder="例如：请优先提醒碰撞、得分和变量变化；每次只给一个很小的教学步骤。"
-        ></textarea>
-        <div class="action-row">
-          <button id="settings-save-custom-ai-prompt-button" class="action-button primary" type="button">
-            保存提示词
-          </button>
-          <button id="settings-clear-custom-ai-prompt-button" class="action-button secondary" type="button">
-            恢复默认提示词
-          </button>
-        </div>
-        <p class="note">保存后，后续“下一步提示”和“更新下一步提示”都会使用这里的内容。</p>
       </section>
     </main>
     <script type="module" src="./settings-renderer.js"></script>

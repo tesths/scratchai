@@ -81,74 +81,6 @@ function createConfigStoreMock(initialPath = undefined) {
   };
 }
 
-function createImportedProjectResult(projectUrl = "https://example.com/reference.sb3") {
-  const sharedModules = [
-    { id: "event", label: "event", blockCount: 1 },
-    { id: "control", label: "control", blockCount: 1 },
-    { id: "sensing", label: "sensing", blockCount: 1 },
-    { id: "data", label: "data", blockCount: 1 }
-  ];
-
-  return {
-    sourceLabel: projectUrl,
-    currentTargetName: "cheese",
-    currentTargetIsStage: false,
-    currentTargetPrograms: [
-      "当绿旗被点击 -> 一直重复 -> 碰到对象？ -> 将变量增加"
-    ],
-    programAreaModules: sharedModules,
-    usedExtensions: [],
-    loadedExtensions: [],
-    snapshot: {
-      projectId: "fixture-project",
-      currentTarget: "cheese",
-      currentTargetId: "sprite-cheese",
-      toolboxCategories: [],
-      loadedExtensions: [],
-      programAreaModules: sharedModules,
-      sprites: [
-        {
-          name: "cheese",
-          isStage: false,
-          blockCount: 4,
-          variables: [],
-          scripts: [
-          {
-            spriteName: "cheese",
-            event: "当绿旗被点击",
-            blockSequence: [
-              "当绿旗被点击",
-              "一直重复",
-              "碰到对象？",
-              "将变量增加"
-            ],
-            blockOpcodes: [
-              "event_whenflagclicked",
-                "control_forever",
-                "sensing_touchingobject",
-                "data_changevariableby"
-              ]
-            }
-          ]
-        }
-      ],
-      blocks: [
-        {
-          id: "block-1",
-          opcode: "event_whenflagclicked",
-          category: "event",
-          label: "when green flag clicked",
-          spriteName: "cheese",
-          topLevel: true
-        }
-      ],
-      globalVariables: [],
-      detectedConcepts: ["event", "control", "sensing", "data"],
-      updatedAt: "2026-05-03T12:00:00.000Z"
-    }
-  };
-}
-
 test("SessionManager enters waiting state when Scratch path is not configured", async () => {
   const stateStore = new StateStore();
   const manager = new SessionManager(stateStore, {
@@ -175,7 +107,7 @@ test("SessionManager enters waiting state when Scratch path is not configured", 
   assert.equal(nextState.aiCustomKeyConfigured, false);
   assert.equal(nextState.aiStatus, "idle");
   assert.equal(nextState.statusText, "请先选择 Scratch 软件");
-  assert.equal(nextState.detail.includes("请先选择老师机上的 Scratch 软件"), true);
+  assert.equal(nextState.detail.includes("请先选择本机的 Scratch 软件"), true);
 });
 
 test("SessionManager supports macOS with the same waiting flow", async () => {
@@ -392,48 +324,31 @@ test("SessionManager returns fallback AI hints when DeepSeek key is not configur
   assert.equal(nextState.aiCoachResponse?.recommendedBlocks.length > 0, true);
 });
 
-test("SessionManager can generate hints from a project URL without a live Scratch connection", async () => {
+test("SessionManager returns an error when requesting a hint before Scratch connects", async () => {
   const stateStore = new StateStore();
-  const importedProject = createImportedProjectResult(
-    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/tools/verification/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3"
-  );
-
   const manager = new SessionManager(stateStore, {
     bridgeServer: createBridgeServerMock(),
     platform: "win32",
     log: () => {},
     configStore: createConfigStoreMock("C:\\Scratch 3.exe"),
     loadAiConfig: createAiConfigMock(),
-    projectUrlLoader: {
-      load: async () => importedProject
-    },
     scratchLauncher: {},
     scratchRemoteDebugger: {}
   });
 
   await manager.start();
-  await manager.requestAiHintFromProjectUrl(
-    "https://raw.githubusercontent.com/tesths/scratchai/refs/heads/main/tools/verification/fixtures/projects/cat-and-a-mouse/source/Cat%20and%20a%20Mouse.sb3",
-    "让奶酪被碰到以后加分"
-  );
+  await manager.requestAiHint("让小猫先动起来");
 
   const nextState = stateStore.getState();
   assert.equal(nextState.status, "waiting");
-  assert.equal(nextState.currentTargetName, "cheese");
-  assert.deepEqual(nextState.currentTargetPrograms, [
-    "当绿旗被点击 -> 一直重复 -> 碰到对象？ -> 将变量增加"
-  ]);
-  assert.equal(nextState.statusText, "已读取教师参考作品，可直接查看提示");
-  assert.equal(nextState.detail, `来源：${importedProject.sourceLabel}`);
-  assert.equal(nextState.aiStatus, "ready");
-  assert.equal(nextState.aiProvider, "fallback");
-  assert.equal(nextState.aiModel, "local-heuristic");
-  assert.equal(typeof nextState.aiCoachResponse?.answerText, "string");
+  assert.equal(nextState.aiStatus, "error");
+  assert.equal(nextState.aiProvider, undefined);
+  assert.equal(nextState.aiCoachResponse, undefined);
+  assert.equal(nextState.aiError, "还没读取到可分析的 Scratch 项目，请先从伴随程序打开已选 Scratch 并进入作品。");
 });
 
-test("SessionManager keeps imported project as a teaching reference after a blank Scratch project connects", async () => {
+test("SessionManager only sends the connected Scratch project when generating hints", async () => {
   const stateStore = new StateStore();
-  const importedProject = createImportedProjectResult("https://example.com/reference.sb3");
   const capturedOptions = [];
 
   const manager = new SessionManager(stateStore, {
@@ -463,16 +378,11 @@ test("SessionManager keeps imported project as a teaching reference after a blan
         };
       }
     },
-    projectUrlLoader: {
-      load: async () => importedProject
-    },
     scratchLauncher: {},
     scratchRemoteDebugger: {}
   });
 
   await manager.start();
-  await manager.requestAiHintFromProjectUrl("https://example.com/reference.sb3", "让学生从新项目一步一步完成");
-
   manager.handlePayload({
     source: "bootstrap",
     currentTargetId: "sprite-new",
@@ -502,13 +412,13 @@ test("SessionManager keeps imported project as a teaching reference after a blan
   const lastOptions = capturedOptions.at(-1);
   assert.equal(lastOptions.snapshot.currentTarget, "角色1");
   assert.deepEqual(lastOptions.currentTargetPrograms, []);
-  assert.equal(lastOptions.referenceSnapshot.currentTarget, "cheese");
-  assert.equal(lastOptions.referenceSourceLabel, "https://example.com/reference.sb3");
+  assert.equal("referenceSnapshot" in lastOptions, false);
+  assert.equal("referenceSourceLabel" in lastOptions, false);
 
   const nextState = stateStore.getState();
   assert.equal(nextState.aiProvider, "deepseek");
   assert.equal(nextState.detail.includes("新项目"), true);
-  assert.equal(nextState.detail.includes("教师参考作品"), true);
+  assert.equal(nextState.detail.includes("教师参考作品"), false);
 });
 
 test("SessionManager can switch to a saved custom AI key", async () => {

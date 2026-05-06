@@ -242,7 +242,7 @@ test("CoachService falls back when DeepSeek returns invalid JSON content", async
   assert.equal(result.coachResponse.recommendedBlocks.length > 0, true);
 });
 
-test("CoachService includes imported teaching reference context in DeepSeek prompts", async () => {
+test("CoachService ignores legacy teaching reference context and only sends the current project", async () => {
   let capturedRequest;
 
   const service = new CoachService(async (_url, init) => {
@@ -289,12 +289,13 @@ test("CoachService includes imported teaching reference context in DeepSeek prom
   });
 
   assert.equal(result.source, "deepseek");
-  assert.equal(capturedRequest.messages[1].content.includes('"teachingReference"'), true);
-  assert.equal(capturedRequest.messages[1].content.includes("https://example.com/reference.sb3"), true);
+  assert.equal(capturedRequest.messages[1].content.includes('"teachingReference"'), false);
+  assert.equal(capturedRequest.messages[1].content.includes("https://example.com/reference.sb3"), false);
   assert.equal(capturedRequest.messages[0].content.includes("所有自然语言必须使用中文"), true);
   assert.equal(capturedRequest.messages[0].content.includes("必须先判断学生当前项目已经做到哪一步"), true);
-  assert.equal(capturedRequest.messages[1].content.includes("先看学生当前 Scratch 项目"), true);
-  assert.equal(capturedRequest.messages[1].content.includes("对照教师参考作品补当前还缺的一小步"), true);
+  assert.equal(capturedRequest.messages[1].content.includes("先看学生当前 Scratch 项目"), false);
+  assert.equal(capturedRequest.messages[1].content.includes("对照教师参考作品补当前还缺的一小步"), false);
+  assert.equal(capturedRequest.messages[1].content.includes("只根据当前学生作品"), true);
   assert.equal(capturedRequest.messages[1].content.includes("当绿旗被点击 -> 移动 10 步"), true);
   assert.equal(capturedRequest.messages[1].content.includes("event_whenflagclicked -> motion_movesteps"), false);
 });

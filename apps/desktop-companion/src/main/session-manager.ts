@@ -10,7 +10,6 @@ import { buildDesktopInjectionScript } from "./bridge-script";
 import { ScratchBridgeServer } from "./bridge-server";
 import { CoachService, DEFAULT_HINT_ONLY_SYSTEM_PROMPT } from "./coach-service";
 import { loadDeepSeekConfig } from "./deepseek-config";
-import { ProjectUrlLoader } from "./project-url-loader";
 import { createScratchPlatformAdapter } from "./platform-adapter";
 import { writeRuntimeLog } from "./runtime-log";
 import { ScratchExecutableConfigStore } from "./scratch-config-store";
@@ -35,25 +34,12 @@ interface SessionManagerDependencies {
   scratchRemoteDebugger?: ScratchRemoteDebugger;
   buildInjectionScript?: typeof buildDesktopInjectionScript;
   coachService?: Pick<CoachService, "generateHint">;
-  projectUrlLoader?: Pick<ProjectUrlLoader, "load">;
   loadAiConfig?: typeof loadDeepSeekConfig;
   platform?: string;
   platformAdapter?: ScratchPlatformAdapter;
 }
 
 type ScratchLaunchSession = Awaited<ReturnType<ScratchLauncher["launch"]>>;
-
-interface ImportedProjectReference {
-  snapshot: ProjectSnapshot;
-  currentTargetName?: string;
-  currentTargetIsStage: boolean;
-  currentTargetPrograms: string[];
-  programAreaModules: ProgramAreaModule[];
-  usedExtensions: string[];
-  loadedExtensions: string[];
-  sourceLabel: string;
-  goal?: string;
-}
 
 function deriveCurrentTargetPrograms(snapshot: ProjectSnapshot, fallbackTargetName?: string) {
   const targetName =
@@ -91,8 +77,6 @@ export class SessionManager {
 
   private readonly coachService: Pick<CoachService, "generateHint">;
 
-  private readonly projectUrlLoader: Pick<ProjectUrlLoader, "load">;
-
   private readonly loadAiConfig: typeof loadDeepSeekConfig;
 
   private readonly platform: string;
@@ -110,8 +94,6 @@ export class SessionManager {
   private aiConfig: LoadedDeepSeekConfig | null = null;
 
   private liveProjectSnapshot: ProjectSnapshot | null = null;
-
-  private importedProjectReference: ImportedProjectReference | null = null;
 
   private isLaunching = false;
 
@@ -145,7 +127,6 @@ export class SessionManager {
     this.scratchRemoteDebugger = dependencies.scratchRemoteDebugger ?? new ScratchRemoteDebugger();
     this.buildInjectionScript = dependencies.buildInjectionScript ?? buildDesktopInjectionScript;
     this.coachService = dependencies.coachService ?? new CoachService();
-    this.projectUrlLoader = dependencies.projectUrlLoader ?? new ProjectUrlLoader();
     this.loadAiConfig = dependencies.loadAiConfig ?? loadDeepSeekConfig;
     this.platformAdapter =
       dependencies.platformAdapter ??
@@ -188,7 +169,6 @@ export class SessionManager {
     this.unsubscribeLaunchExit = undefined;
     this.activeLaunchSession = undefined;
     this.liveProjectSnapshot = null;
-    this.importedProjectReference = null;
     this.flushBridgeConnectionWaiters(false);
     await this.bridgeServer.stop();
   }
@@ -251,9 +231,7 @@ export class SessionManager {
     await this.refreshAiConfig();
 
     const currentState = this.stateStore.getState();
-    const liveSnapshot = this.liveProjectSnapshot;
-    const importedProjectReference = this.importedProjectReference;
-    const activeSnapshot = liveSnapshot ?? importedProjectReference?.snapshot ?? null;
+    const activeSnapshot = this.liveProjectSnapshot;
 
     if (!activeSnapshot) {
       this.stateStore.update({
@@ -276,7 +254,7 @@ export class SessionManager {
       aiError: undefined
     });
 
-    const trimmedGoal = trimText(goal) ?? importedProjectReference?.goal;
+    const trimmedGoal = trimText(goal);
     const aiConfig = this.aiConfig;
     if (!aiConfig) {
       this.stateStore.update({
@@ -286,37 +264,14 @@ export class SessionManager {
       return;
     }
 
-    const currentTargetPrograms = liveSnapshot
-      ? currentState.currentTargetPrograms
-      : importedProjectReference?.currentTargetPrograms ?? [];
-    const programAreaModules = liveSnapshot
-      ? currentState.programAreaModules
-      : importedProjectReference?.programAreaModules ?? [];
-    const usedExtensions = liveSnapshot
-      ? currentState.usedExtensions
-      : importedProjectReference?.usedExtensions ?? [];
-    const loadedExtensions = liveSnapshot
-      ? currentState.loadedExtensions
-      : importedProjectReference?.loadedExtensions ?? [];
-
     const result = await this.coachService.generateHint({
       snapshot: activeSnapshot,
-      currentTargetPrograms,
-      programAreaModules,
-      usedExtensions,
-      loadedExtensions,
+      currentTargetPrograms: currentState.currentTargetPrograms,
+      programAreaModules: currentState.programAreaModules,
+      usedExtensions: currentState.usedExtensions,
+      loadedExtensions: currentState.loadedExtensions,
       aiConfig,
       customSystemPrompt: this.config.customAiPrompt,
-      ...(liveSnapshot && importedProjectReference
-        ? {
-            referenceSnapshot: importedProjectReference.snapshot,
-            referenceCurrentTargetPrograms: importedProjectReference.currentTargetPrograms,
-            referenceProgramAreaModules: importedProjectReference.programAreaModules,
-            referenceUsedExtensions: importedProjectReference.usedExtensions,
-            referenceLoadedExtensions: importedProjectReference.loadedExtensions,
-            referenceSourceLabel: importedProjectReference.sourceLabel
-          }
-        : {}),
       ...(trimmedGoal ? { goal: trimmedGoal } : {})
     });
 
@@ -333,115 +288,6 @@ export class SessionManager {
       aiLastUpdatedAt: new Date().toISOString(),
       aiError: result.warning
     });
-  }
-
-  async requestAiHintFromProjectUrl(projectUrl: string, goal?: string) {
-    await this.refreshAiConfig();
-
-    const trimmedProjectUrl = typeof projectUrl === "string" ? projectUrl.trim() : "";
-    if (!trimmedProjectUrl) {
-      this.stateStore.update({
-        ...this.getAiStatePatch(),
-        aiStatus: "error",
-        aiProvider: undefined,
-        aiCoachResponse: undefined,
-        aiLastUpdatedAt: undefined,
-        aiError: "请先粘贴作品网页地址。"
-      });
-      return;
-    }
-
-    this.stateStore.update({
-      ...this.getAiStatePatch(),
-      aiStatus: "loading",
-      aiProvider: undefined,
-      aiCoachResponse: undefined,
-      aiLastUpdatedAt: undefined,
-      aiError: undefined
-    });
-
-    const aiConfig = this.aiConfig;
-    if (!aiConfig) {
-      this.stateStore.update({
-        aiStatus: "error",
-        aiError: "AI 配置尚未加载完成，请稍后重试。"
-      });
-      return;
-    }
-
-    try {
-      const loadedProject = await this.projectUrlLoader.load(trimmedProjectUrl);
-      const trimmedGoal = trimText(goal);
-
-      this.importedProjectReference = {
-        snapshot: loadedProject.snapshot,
-        currentTargetName: loadedProject.currentTargetName,
-        currentTargetIsStage: loadedProject.currentTargetIsStage,
-        currentTargetPrograms: loadedProject.currentTargetPrograms,
-        programAreaModules: loadedProject.programAreaModules,
-        usedExtensions: loadedProject.usedExtensions,
-        loadedExtensions: loadedProject.loadedExtensions,
-        sourceLabel: loadedProject.sourceLabel,
-        ...(trimmedGoal ? { goal: trimmedGoal } : {})
-      };
-
-      if (this.liveProjectSnapshot) {
-        this.stateStore.update({
-          detail: `已导入教师参考作品：${loadedProject.sourceLabel}。现在会结合学生当前 Scratch 进度，生成下一步提示。`
-        });
-        await this.requestAiHint(trimmedGoal);
-        return;
-      }
-
-      const result = await this.coachService.generateHint({
-        snapshot: loadedProject.snapshot,
-        currentTargetPrograms: loadedProject.currentTargetPrograms,
-        programAreaModules: loadedProject.programAreaModules,
-        usedExtensions: loadedProject.usedExtensions,
-        loadedExtensions: loadedProject.loadedExtensions,
-        aiConfig,
-        customSystemPrompt: this.config.customAiPrompt,
-        ...(trimmedGoal ? { goal: trimmedGoal } : {})
-      });
-
-      if (result.warning) {
-        this.log("DeepSeek project-url hint fell back to local heuristics", result.warning);
-      }
-
-      this.stateStore.update({
-        status: "waiting",
-        statusText: "已读取教师参考作品，可直接查看提示",
-        detail: `来源：${loadedProject.sourceLabel}`,
-        error: undefined,
-        scratchPid: undefined,
-        scratchTitle: undefined,
-        currentTargetId: loadedProject.snapshot.currentTargetId,
-        currentTargetName: loadedProject.currentTargetName,
-        currentTargetIsStage: loadedProject.currentTargetIsStage,
-        toolboxCategories: loadedProject.snapshot.toolboxCategories,
-        usedExtensions: loadedProject.usedExtensions,
-        loadedExtensions: loadedProject.loadedExtensions,
-        programAreaModules: loadedProject.programAreaModules,
-        currentTargetPrograms: loadedProject.currentTargetPrograms,
-        lastUpdatedAt: loadedProject.snapshot.updatedAt,
-        ...this.getAiStatePatch(),
-        aiStatus: "ready",
-        aiProvider: result.source,
-        aiModel: result.model,
-        aiCoachResponse: result.coachResponse,
-        aiLastUpdatedAt: new Date().toISOString(),
-        aiError: result.warning
-      });
-    } catch (error) {
-      this.stateStore.update({
-        ...this.getAiStatePatch(),
-        aiStatus: "error",
-        aiProvider: undefined,
-        aiCoachResponse: undefined,
-        aiLastUpdatedAt: undefined,
-        aiError: error instanceof Error ? error.message : String(error)
-      });
-    }
   }
 
   async launchScratchNow() {
@@ -574,7 +420,7 @@ export class SessionManager {
       this.log(
         `Scratch bridge connected pid=${payload.scratchPid ?? this.activeLaunchSession?.pid ?? "unknown"} target=${JSON.stringify(payload.currentTargetName ?? "unknown")} toolboxCategories=${toolboxCategories.length} loadedExtensions=${loadedExtensions.length} programAreaModules=${programAreaModules.length}`
       );
-      void this.requestAiHint(trimText(this.importedProjectReference?.goal)).catch((error) => {
+      void this.requestAiHint().catch((error) => {
         this.log("Automatic hint refresh after Scratch connect failed", error);
       });
     }
@@ -718,42 +564,29 @@ export class SessionManager {
   private setWaitingState(detail?: string) {
     this.liveProjectSnapshot = null;
 
-    const currentState = this.stateStore.getState();
-    const reference = this.importedProjectReference;
     const scratchExecutablePath = this.config.scratchExecutablePath;
     const hasScratchPath = typeof scratchExecutablePath === "string" && scratchExecutablePath.length > 0;
-    const preserveReferenceHint =
-      Boolean(reference) &&
-      Boolean(currentState.aiCoachResponse) &&
-      currentState.aiStatus === "ready";
 
     const nextState: DesktopCompanionState = {
       status: "waiting",
       statusText: hasScratchPath ? "请从伴随程序打开已选 Scratch" : "请先选择 Scratch 软件",
       launchMode: "controlled-launch",
       injectionMode: "cdp-runtime-evaluate",
-      toolboxCategories: reference?.snapshot.toolboxCategories ?? [],
-      usedExtensions: reference?.usedExtensions ?? [],
-      loadedExtensions: reference?.loadedExtensions ?? [],
-      programAreaModules: reference?.programAreaModules ?? [],
-      currentTargetPrograms: reference?.currentTargetPrograms ?? [],
+      toolboxCategories: [],
+      usedExtensions: [],
+      loadedExtensions: [],
+      programAreaModules: [],
+      currentTargetPrograms: [],
       aiConfigured: this.aiConfig?.configured ?? false,
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
       aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
       aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
-      aiStatus: preserveReferenceHint ? currentState.aiStatus : "idle",
-      detail: detail ?? this.buildWaitingDetail(hasScratchPath, scratchExecutablePath, reference)
+      aiStatus: "idle",
+      detail: detail ?? this.buildWaitingDetail(hasScratchPath, scratchExecutablePath)
     };
 
     if (hasScratchPath) {
       nextState.scratchExecutablePath = scratchExecutablePath;
-    }
-
-    if (reference) {
-      nextState.currentTargetId = reference.snapshot.currentTargetId;
-      nextState.currentTargetName = reference.currentTargetName ?? reference.snapshot.currentTarget;
-      nextState.currentTargetIsStage = reference.currentTargetIsStage;
-      nextState.lastUpdatedAt = reference.snapshot.updatedAt;
     }
 
     if (this.aiConfig?.configPath) {
@@ -770,13 +603,6 @@ export class SessionManager {
 
     if (this.config.customAiPrompt) {
       nextState.aiCustomPrompt = this.config.customAiPrompt;
-    }
-
-    if (preserveReferenceHint) {
-      nextState.aiProvider = currentState.aiProvider;
-      nextState.aiCoachResponse = currentState.aiCoachResponse;
-      nextState.aiLastUpdatedAt = currentState.aiLastUpdatedAt;
-      nextState.aiError = currentState.aiError;
     }
 
     this.stateStore.setState(desktopCompanionStateSchema.parse(nextState));
@@ -820,30 +646,21 @@ export class SessionManager {
 
   private buildConnectedDetail(source?: string, currentTargetPrograms: string[] = []) {
     const base = `最近更新来源：${source ?? "unknown"}`;
-    if (!this.importedProjectReference) {
-      return base;
-    }
-
     if (currentTargetPrograms.length === 0) {
-      return `${base}；当前 Scratch 还是新项目。先看自动生成的第一步提示；学生补完后，再点“更新下一步提示”，会继续参考已导入的教师参考作品一步一步引导。`;
+      return `${base}；当前 Scratch 还是新项目。先做一个最小脚本，再点“生成下一步提示”继续推进。`;
     }
 
-    return `${base}；AI 会继续结合已导入的教师参考作品和学生当前进度，给出下一步建议。`;
+    return `${base}；AI 会继续根据当前作品进度，给出下一步建议。`;
   }
 
   private buildWaitingDetail(
     hasScratchPath: boolean,
-    scratchExecutablePath: string | undefined,
-    reference: ImportedProjectReference | null
+    scratchExecutablePath: string | undefined
   ) {
-    if (hasScratchPath && reference) {
-      return `已导入教师参考作品：${reference.sourceLabel}。点击“打开已选 Scratch”后，即使打开的是新项目，AI 也会继续参考这个作品一步一步引导学生完成。`;
-    }
-
     if (hasScratchPath && scratchExecutablePath) {
       return `已配置 Scratch 软件：${scratchExecutablePath}。点击“打开已选 Scratch”后，伴随程序会自动连接调试端口。`;
     }
 
-    return `本地监听端已启动：${this.bridgeServer.getBaseUrl()}。请先选择老师机上的 Scratch 软件（${this.platformAdapter.selectionLabel}）。`;
+    return `本地监听端已启动：${this.bridgeServer.getBaseUrl()}。请先选择本机的 Scratch 软件（${this.platformAdapter.selectionLabel}）。`;
   }
 }

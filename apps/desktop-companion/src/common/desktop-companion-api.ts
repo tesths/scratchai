@@ -6,7 +6,6 @@ export interface DesktopCompanionApi {
   launchScratch: () => Promise<void>;
   openSettings: () => Promise<void>;
   requestAiHint: (goal?: string) => Promise<void>;
-  requestAiHintFromProjectUrl: (projectUrl: string, goal?: string) => Promise<void>;
   saveCustomAiApiKey: (apiKey: string) => Promise<void>;
   clearCustomAiApiKey: () => Promise<void>;
   saveCustomAiPrompt: (prompt: string) => Promise<void>;

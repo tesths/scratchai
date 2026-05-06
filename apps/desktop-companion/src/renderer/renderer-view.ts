@@ -34,9 +34,6 @@ export interface RendererElements {
   launchButton?: HTMLButtonElement | null;
   chooseScratchButton?: HTMLButtonElement | null;
   generateAiButton?: HTMLButtonElement | null;
-  analyzeProjectUrlButton?: HTMLButtonElement | null;
-  projectUrlInput?: HTMLInputElement | null;
-  learningModeInputs?: Array<HTMLInputElement | null | undefined>;
 }
 
 export function renderList(
@@ -110,18 +107,18 @@ export function formatAiStatus(state: DesktopCompanionState) {
   if (state.aiCoachResponse && state.aiProvider === "fallback") {
     return state.aiError
       ? "DeepSeek 暂时不可用，已自动切到基础提示。"
-      : "当前提示来源：基础提示。老师需要更完整结果时，可到“老师设置”里配置 DeepSeek。";
+      : "当前提示来源：基础提示。需要更完整结果时，可到“DeepSeek 设置”里配置 API Key。";
   }
 
   if (state.status === "connected") {
-    return "Scratch 已连接。程序会先给当前这一小步；学生补完后，可点击“更新下一步提示”。";
+    return "Scratch 已连接。点击“生成下一步提示”后，我会基于当前作品给出下一步建议。";
   }
 
   if (!state.aiConfigured) {
-    return "还没配置 DeepSeek 也可以先用。完成前 3 步后，程序会先给基础提示；老师需要更完整结果时，再到“老师设置”里配置。";
+    return "还没配置 DeepSeek 也可以先用。点击“生成下一步提示”后，程序会先给基础提示；需要更完整结果时，再到“DeepSeek 设置”里配置 API Key。";
   }
 
-  return "准备好了：先选择 Scratch 软件，打开已选 Scratch，再填入教师的 sb3 地址。";
+  return "准备好了：先选择 Scratch 软件，打开已选 Scratch，再读取当前作品。";
 }
 
 export function formatAiConfigSourceLabel(source?: DesktopCompanionState["aiConfigSource"]) {
@@ -162,7 +159,7 @@ export function formatDefaultDetail(state: DesktopCompanionState) {
   }
 
   if (state.status === "connected") {
-    return "Scratch 已连接。现在填入教师的 sb3 地址，学生就可以跟着做。";
+    return "Scratch 已连接。现在可以直接读取当前作品，并生成下一步提示。";
   }
 
   if (state.scratchExecutablePath) {
@@ -257,7 +254,7 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
 
   if (elements.aiAnswerElement) {
     elements.aiAnswerElement.textContent =
-      state.aiCoachResponse?.answerText ?? "填入教师的 sb3 地址后，我会按课堂节奏给出当前这一小步。";
+      state.aiCoachResponse?.answerText ?? "读取到当前 Scratch 作品后，我会基于你现在的进度给出下一步提示。";
   }
 
   if (elements.aiNextStepElement) {
@@ -300,18 +297,5 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
   if (elements.generateAiButton) {
     elements.generateAiButton.disabled =
       state.status !== "connected" || state.aiStatus === "loading";
-  }
-  if (elements.analyzeProjectUrlButton) {
-    elements.analyzeProjectUrlButton.disabled = state.aiStatus === "loading";
-  }
-  if (elements.projectUrlInput) {
-    elements.projectUrlInput.disabled = state.aiStatus === "loading";
-  }
-  if (elements.learningModeInputs) {
-    for (const input of elements.learningModeInputs) {
-      if (input) {
-        input.disabled = state.aiStatus === "loading";
-      }
-    }
   }
 }

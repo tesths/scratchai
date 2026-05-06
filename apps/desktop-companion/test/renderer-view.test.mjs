@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  formatAiStatus,
   formatDefaultDetail,
   formatDefaultNextStep,
   formatCurrentTarget,
@@ -103,6 +104,21 @@ test("formats default detail and next step for the new scratch-first flow", () =
       status: "connected"
     }),
     "下一步：先看当前提示完成这一小步；学生补完后，再点击“更新下一步提示”。"
+  );
+});
+
+test("formats local-only AI guidance without teacher sb3 wording", () => {
+  assert.equal(
+    formatDefaultDetail({
+      status: "connected"
+    }),
+    "Scratch 已连接。现在可以直接读取当前作品，并生成下一步提示。"
+  );
+  assert.equal(
+    formatAiStatus({
+      status: "connected"
+    }),
+    "Scratch 已连接。点击“生成下一步提示”后，我会基于当前作品给出下一步建议。"
   );
 });
 
