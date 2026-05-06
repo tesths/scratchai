@@ -16,9 +16,11 @@ test("main window no longer shows the module summary panel", async () => {
   assert.doesNotMatch(html, /id="program-area-modules"/);
 });
 
-test("main window places current target programs and recommended blocks in one two-column row", async () => {
+test("main window keeps current target programs and recommended blocks in an equal-width two-column row", async () => {
   const html = await readFile(new URL("../src/renderer/index.html", import.meta.url), "utf8");
 
   assert.match(html, /<div class="program-recommend-grid">/);
   assert.match(html, /<ul id="ai-recommended-blocks" class="list recommended-list"><\/ul>/);
+  assert.match(html, /\.program-recommend-grid\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/);
+  assert.doesNotMatch(html, /\.program-recommend-grid\s*\{\s*grid-template-columns:\s*1fr;/);
 });
