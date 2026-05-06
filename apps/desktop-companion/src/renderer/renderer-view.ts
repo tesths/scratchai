@@ -1,60 +1,10 @@
 import type {
-  CurrentTargetScriptDescriptor,
   DesktopCompanionState,
-  RecommendedBlock,
-  ScratchBlockDescriptor
+  RecommendedBlock
 } from "../common/types";
+import { buildRecommendedBlockXml } from "../common/scratch-block-xml";
 
 const MAX_RECOMMENDED_BLOCKS = 4;
-const CORE_CATEGORY_IDS = new Set([
-  "motion",
-  "looks",
-  "sound",
-  "event",
-  "control",
-  "sensing",
-  "operator",
-  "data",
-  "procedures",
-  "colour",
-  "pen",
-  "music",
-  "videoSensing",
-  "text2speech",
-  "translate",
-  "microbit",
-  "wedo2",
-  "makeymakey",
-  "ev3",
-  "boost",
-  "gdxfor",
-  "mesh"
-]);
-const CATEGORY_ID_BY_LABEL: Record<string, string> = {
-  运动: "motion",
-  外观: "looks",
-  声音: "sound",
-  事件: "event",
-  控制: "control",
-  侦测: "sensing",
-  运算: "operator",
-  变量: "data",
-  变量和列表: "data",
-  自制积木: "procedures",
-  颜色: "colour",
-  画笔: "pen",
-  音乐: "music",
-  视频侦测: "videoSensing",
-  文字转语音: "text2speech",
-  翻译: "translate",
-  "micro:bit": "microbit",
-  "WeDo 2.0": "wedo2",
-  "Makey Makey": "makeymakey",
-  EV3: "ev3",
-  BOOST: "boost",
-  "Go Direct Force & Acceleration": "gdxfor",
-  Mesh: "mesh"
-};
 
 interface MinimalElement {
   textContent: string | null;
@@ -300,23 +250,44 @@ function createTextChild(documentRef: MinimalDocument, tagName: string, classNam
   return element;
 }
 
-function createScratchBlockElement(
+function createScratchWorkspaceHost(
   documentRef: MinimalDocument,
-  block: Pick<ScratchBlockDescriptor, "categoryId" | "label">
+  xml: string,
+  layout: "frame" | "inline"
 ) {
-  const element = documentRef.createElement("div");
-  element.className = "scratch-block";
-  if (element.dataset) {
-    element.dataset.category = block.categoryId;
+  const host = documentRef.createElement("div");
+  host.className = "scratch-workspace-host";
+  if (host.dataset) {
+    host.dataset.xml = xml;
+    host.dataset.layout = layout;
   }
-  element.append(createTextChild(documentRef, "span", "scratch-block-label", block.label));
-  return element;
+  return host;
 }
 
-function renderCurrentTargetScriptBlocks(
+function createScratchWorkspaceFrame(
+  documentRef: MinimalDocument,
+  xml: string
+) {
+  const frame = documentRef.createElement("div");
+  frame.className = "scratch-workspace-frame";
+  frame.append(createScratchWorkspaceHost(documentRef, xml, "frame"));
+  return frame;
+}
+
+function createScratchWorkspaceInline(
+  documentRef: MinimalDocument,
+  xml: string
+) {
+  const inline = documentRef.createElement("div");
+  inline.className = "scratch-workspace-inline";
+  inline.append(createScratchWorkspaceHost(documentRef, xml, "inline"));
+  return inline;
+}
+
+function renderCurrentTargetScriptXmlList(
   documentRef: MinimalDocument,
   container: MinimalElement | null | undefined,
-  scripts: CurrentTargetScriptDescriptor[],
+  xmlList: string[],
   emptyText: string
 ) {
   if (!container) {
@@ -324,7 +295,7 @@ function renderCurrentTargetScriptBlocks(
   }
 
   container.replaceChildren();
-  if (scripts.length === 0) {
+  if (xmlList.length === 0) {
     const empty = documentRef.createElement("li");
     empty.className = "empty";
     empty.textContent = emptyText;
@@ -332,19 +303,11 @@ function renderCurrentTargetScriptBlocks(
     return;
   }
 
-  for (const [index, script] of scripts.entries()) {
+  for (const [index, xml] of xmlList.entries()) {
     const item = documentRef.createElement("li");
     item.className = "program-item scratch-script-item";
-
     item.append(createTextChild(documentRef, "span", "script-pill", `脚本 ${index + 1}`));
-
-    const stack = documentRef.createElement("div");
-    stack.className = "scratch-script-stack";
-    for (const block of script.blocks) {
-      stack.append(createScratchBlockElement(documentRef, block));
-    }
-
-    item.append(stack);
+    item.append(createScratchWorkspaceFrame(documentRef, xml));
     container.append(item);
   }
 }
@@ -372,12 +335,7 @@ function renderRecommendedBlockCards(
     const item = documentRef.createElement("li");
     item.className = "hint-item recommended-block-item";
 
-    item.append(
-      createScratchBlockElement(documentRef, {
-        categoryId: resolveRecommendedBlockCategoryId(block),
-        label: block.label
-      })
-    );
+    item.append(createScratchWorkspaceInline(documentRef, buildRecommendedBlockXml(block)));
     item.append(createTextChild(documentRef, "p", "recommended-block-reason", block.reason));
 
     if (block.example) {
@@ -389,7 +347,7 @@ function renderRecommendedBlockCards(
 }
 
 export function renderState(state: DesktopCompanionState, elements: RendererElements) {
-  const currentTargetScriptBlocks = state.currentTargetScriptBlocks ?? [];
+  const currentTargetScriptXmlList = state.currentTargetScriptXmlList ?? [];
 
   if (elements.statusElement) {
     elements.statusElement.textContent = state.statusText;
@@ -426,11 +384,11 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     elements.errorElement.hidden = !state.error;
   }
 
-  if (currentTargetScriptBlocks.length > 0) {
-    renderCurrentTargetScriptBlocks(
+  if (currentTargetScriptXmlList.length > 0) {
+    renderCurrentTargetScriptXmlList(
       elements.documentRef,
       elements.currentTargetProgramsElement,
-      currentTargetScriptBlocks,
+      currentTargetScriptXmlList,
       "当前角色还没有可读取的脚本。"
     );
   } else {

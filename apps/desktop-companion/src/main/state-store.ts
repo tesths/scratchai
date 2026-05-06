@@ -14,6 +14,7 @@ export class StateStore {
     programAreaModules: [],
     currentTargetPrograms: [],
     currentTargetScriptBlocks: [],
+    currentTargetScriptXmlList: [],
     aiConfigured: false,
     aiCustomKeyConfigured: false,
     aiCustomModelConfigured: false,
@@ -47,6 +48,8 @@ export class StateStore {
     nextState.currentTargetPrograms = patch.currentTargetPrograms ?? this.state.currentTargetPrograms;
     nextState.currentTargetScriptBlocks =
       patch.currentTargetScriptBlocks ?? this.state.currentTargetScriptBlocks;
+    nextState.currentTargetScriptXmlList =
+      patch.currentTargetScriptXmlList ?? this.state.currentTargetScriptXmlList;
     nextState.aiConfigured = patch.aiConfigured ?? this.state.aiConfigured;
     nextState.aiCustomKeyConfigured = patch.aiCustomKeyConfigured ?? this.state.aiCustomKeyConfigured;
     nextState.aiCustomModelConfigured =

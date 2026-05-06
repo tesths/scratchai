@@ -2,6 +2,7 @@ import { desktopCompanionStateSchema } from "@scratch-ai/shared";
 
 import type { DesktopCompanionApi } from "../common/desktop-companion-api";
 import { renderState } from "./renderer-view";
+import { renderScratchWorkspaces } from "./scratch-workspace-renderer";
 import type { DesktopCompanionState } from "../common/types";
 
 declare global {
@@ -72,6 +73,7 @@ function renderNormalizedState(rawState: unknown) {
     retryButton,
     generateAiButton
   });
+  renderScratchWorkspaces(document);
 }
 
 retryButton?.addEventListener("click", () => {

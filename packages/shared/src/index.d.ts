@@ -107,6 +107,7 @@ export type DesktopCompanionState = {
   programAreaModules: ProgramAreaModule[];
   currentTargetPrograms: string[];
   currentTargetScriptBlocks: CurrentTargetScriptDescriptor[];
+  currentTargetScriptXmlList: string[];
   lastUpdatedAt?: string;
   aiConfigured: boolean;
   aiConfigPath?: string;

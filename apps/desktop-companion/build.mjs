@@ -43,6 +43,12 @@ const buildConfigs = [
     format: "esm"
   },
   {
+    entryPoints: [path.join(__dirname, "src/common/scratch-block-xml.ts")],
+    outfile: path.join(distDir, "scratch-block-xml.js"),
+    platform: "browser",
+    format: "esm"
+  },
+  {
     entryPoints: [path.join(__dirname, "src/main/coach-service.ts")],
     outfile: path.join(distDir, "coach-service.js"),
     platform: "node",
@@ -109,6 +115,11 @@ async function copyStatic() {
     `${JSON.stringify(packagedDeepSeekConfig.config, null, 2)}\n`
   );
   await cp(path.join(__dirname, "src/assets"), path.join(distDir, "assets"), { recursive: true });
+  await cp(
+    path.join(__dirname, "..", "..", "node_modules", "scratch-blocks", "media"),
+    path.join(distDir, "assets", "scratch-blocks-media"),
+    { recursive: true }
+  );
   process.stdout.write(
     `Packaged DeepSeek config mode=${packagedDeepSeekConfig.mode} configured=${packagedDeepSeekConfig.configured ? "yes" : "no"}\n`
   );

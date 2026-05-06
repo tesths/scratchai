@@ -286,32 +286,12 @@ test("SessionManager derives current target programs from projectData", async ()
   assert.deepEqual(nextState.currentTargetPrograms, [
     "当绿旗被点击 -> 移动 10 步 -> 右转 15 度 -> 清空"
   ]);
-  assert.deepEqual(nextState.currentTargetScriptBlocks, [
-    {
-      blocks: [
-        {
-          opcode: "event_whenflagclicked",
-          categoryId: "event",
-          label: "当绿旗被点击"
-        },
-        {
-          opcode: "motion_movesteps",
-          categoryId: "motion",
-          label: "移动 10 步"
-        },
-        {
-          opcode: "motion_turnright",
-          categoryId: "motion",
-          label: "右转 15 度"
-        },
-        {
-          opcode: "pen_clear",
-          categoryId: "pen",
-          label: "清空"
-        }
-      ]
-    }
-  ]);
+  assert.equal(Array.isArray(nextState.currentTargetScriptXmlList), true);
+  assert.equal(nextState.currentTargetScriptXmlList.length, 1);
+  assert.match(nextState.currentTargetScriptXmlList[0], /type="event_whenflagclicked"/);
+  assert.match(nextState.currentTargetScriptXmlList[0], /type="motion_movesteps"/);
+  assert.match(nextState.currentTargetScriptXmlList[0], /type="motion_turnright"/);
+  assert.match(nextState.currentTargetScriptXmlList[0], /type="pen_clear"/);
 });
 
 test("SessionManager derives nested stack blocks from projectData", async () => {
@@ -381,27 +361,10 @@ test("SessionManager derives nested stack blocks from projectData", async () => 
   assert.deepEqual(nextState.currentTargetPrograms, [
     "当绿旗被点击 -> 重复执行 -> 移动 10 步"
   ]);
-  assert.deepEqual(nextState.currentTargetScriptBlocks, [
-    {
-      blocks: [
-        {
-          opcode: "event_whenflagclicked",
-          categoryId: "event",
-          label: "当绿旗被点击"
-        },
-        {
-          opcode: "control_repeat",
-          categoryId: "control",
-          label: "重复执行"
-        },
-        {
-          opcode: "motion_movesteps",
-          categoryId: "motion",
-          label: "移动 10 步"
-        }
-      ]
-    }
-  ]);
+  assert.equal(nextState.currentTargetScriptXmlList.length, 1);
+  assert.match(nextState.currentTargetScriptXmlList[0], /type="control_repeat"/);
+  assert.match(nextState.currentTargetScriptXmlList[0], /<statement name="SUBSTACK">/);
+  assert.match(nextState.currentTargetScriptXmlList[0], /type="motion_movesteps"/);
 });
 
 test("SessionManager returns fallback AI hints when DeepSeek key is not configured", async () => {

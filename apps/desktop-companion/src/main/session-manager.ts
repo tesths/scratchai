@@ -17,6 +17,7 @@ import { ScratchExecutableConfigStore } from "./scratch-config-store";
 import { ScratchLauncher } from "./scratch-launcher";
 import { ScratchRemoteDebugger } from "./scratch-remote-debugger";
 import { StateStore } from "./state-store";
+import { buildCurrentTargetScriptXmlList } from "../common/scratch-block-xml";
 import type { LoadedDeepSeekConfig } from "./deepseek-config";
 import type { ScratchPlatformAdapter } from "./platform-adapter";
 import type {
@@ -197,6 +198,7 @@ export class SessionManager {
         programAreaModules: [],
         currentTargetPrograms: [],
         currentTargetScriptBlocks: [],
+        currentTargetScriptXmlList: [],
         aiConfigured: false,
         aiCustomKeyConfigured: false,
         aiCustomModelConfigured: false,
@@ -442,6 +444,13 @@ export class SessionManager {
       snapshot
         ? deriveCurrentTargetScriptBlocks(snapshot, payload.currentTargetName)
         : this.stateStore.getState().currentTargetScriptBlocks;
+    const currentTargetScriptXmlList =
+      payload.projectData && typeof payload.projectData === "object"
+        ? buildCurrentTargetScriptXmlList(payload.projectData as Record<string, unknown>, {
+            id: payload.currentTargetId,
+            name: payload.currentTargetName
+          })
+        : this.stateStore.getState().currentTargetScriptXmlList;
 
     if (
       !payload.projectData &&
@@ -449,7 +458,8 @@ export class SessionManager {
       loadedExtensions.length === 0 &&
       programAreaModules.length === 0 &&
       currentTargetPrograms.length === 0 &&
-      currentTargetScriptBlocks.length === 0
+      currentTargetScriptBlocks.length === 0 &&
+      currentTargetScriptXmlList.length === 0
     ) {
       return;
     }
@@ -475,6 +485,7 @@ export class SessionManager {
       programAreaModules,
       currentTargetPrograms,
       currentTargetScriptBlocks,
+      currentTargetScriptXmlList,
       lastUpdatedAt: payload.capturedAt ?? new Date().toISOString(),
       detail: this.buildConnectedDetail(payload.source, currentTargetPrograms),
       ...this.getAiStatePatch()
@@ -642,6 +653,7 @@ export class SessionManager {
       programAreaModules: [],
       currentTargetPrograms: [],
       currentTargetScriptBlocks: [],
+      currentTargetScriptXmlList: [],
       aiConfigured: this.aiConfig?.configured ?? false,
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
       aiCustomModelConfigured: Boolean(trimText(this.config.customAiModel)),

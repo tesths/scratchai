@@ -177,6 +177,7 @@ const desktopCompanionStateSchema = z.object({
   programAreaModules: z.array(programAreaModuleSchema).default([]),
   currentTargetPrograms: z.array(z.string()).default([]),
   currentTargetScriptBlocks: z.array(currentTargetScriptDescriptorSchema).default([]),
+  currentTargetScriptXmlList: z.array(z.string()).default([]),
   lastUpdatedAt: z.string().optional(),
   aiConfigured: z.boolean().default(false),
   aiConfigPath: z.string().optional(),

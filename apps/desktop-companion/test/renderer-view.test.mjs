@@ -264,26 +264,8 @@ test("renderState renders Scratch-style block stacks for current programs and re
       currentTargetPrograms: [
         "当绿旗被点击 -> 一直重复 -> 移动 10 步"
       ],
-      currentTargetScriptBlocks: [
-        {
-          blocks: [
-            {
-              opcode: "event_whenflagclicked",
-              categoryId: "event",
-              label: "当绿旗被点击"
-            },
-            {
-              opcode: "control_forever",
-              categoryId: "control",
-              label: "一直重复"
-            },
-            {
-              opcode: "motion_movesteps",
-              categoryId: "motion",
-              label: "移动 10 步"
-            }
-          ]
-        }
+      currentTargetScriptXmlList: [
+        '<xml xmlns="https://developers.google.com/blockly/xml"><block type="event_whenflagclicked"><next><block type="control_repeat"><statement name="SUBSTACK"><block type="motion_movesteps"></block></statement></block></next></block></xml>'
       ],
       toolboxCategories: [],
       usedExtensions: [],
@@ -314,35 +296,21 @@ test("renderState renders Scratch-style block stacks for current programs and re
   assert.equal(currentTargetProgramsElement.children.length, 1);
   assert.equal(currentTargetProgramsElement.children[0].className, "program-item scratch-script-item");
   assert.equal(currentTargetProgramsElement.children[0].children[0].textContent, "脚本 1");
-  assert.deepEqual(
-    currentTargetProgramsElement.children[0].children[1].children.map((child) => ({
-      className: child.className,
-      category: child.dataset.category,
-      text: child.children[0].textContent
-    })),
-    [
-      {
-        className: "scratch-block",
-        category: "event",
-        text: "当绿旗被点击"
-      },
-      {
-        className: "scratch-block",
-        category: "control",
-        text: "一直重复"
-      },
-      {
-        className: "scratch-block",
-        category: "motion",
-        text: "移动 10 步"
-      }
-    ]
+  assert.equal(currentTargetProgramsElement.children[0].children[1].className, "scratch-workspace-frame");
+  assert.equal(currentTargetProgramsElement.children[0].children[1].children[0].className, "scratch-workspace-host");
+  assert.match(
+    currentTargetProgramsElement.children[0].children[1].children[0].dataset.xml,
+    /type="control_repeat"/
   );
 
   assert.equal(aiRecommendedBlocksElement.children.length, 1);
   assert.equal(aiRecommendedBlocksElement.children[0].className, "hint-item recommended-block-item");
-  assert.equal(aiRecommendedBlocksElement.children[0].children[0].dataset.category, "motion");
-  assert.equal(aiRecommendedBlocksElement.children[0].children[0].children[0].textContent, "移动 10 步");
+  assert.equal(aiRecommendedBlocksElement.children[0].children[0].className, "scratch-workspace-inline");
+  assert.equal(aiRecommendedBlocksElement.children[0].children[0].children[0].className, "scratch-workspace-host");
+  assert.match(
+    aiRecommendedBlocksElement.children[0].children[0].children[0].dataset.xml,
+    /type="motion_movesteps"/
+  );
   assert.equal(aiRecommendedBlocksElement.children[0].children[1].textContent, "先做一个最容易看见的动作。");
   assert.equal(aiRecommendedBlocksElement.children[0].children[2].textContent, "示例：比如让小猫往前走一步");
 });

@@ -28,12 +28,8 @@ test("main window keeps current target programs and recommended blocks in an equ
 test("main window defines Scratch-style block colors for the program and recommendation panels", async () => {
   const html = await readFile(new URL("../src/renderer/index.html", import.meta.url), "utf8");
 
-  assert.match(html, /--scratch-motion:\s*#4c97ff;/i);
-  assert.match(html, /--scratch-looks:\s*#9966ff;/i);
-  assert.match(html, /--scratch-sound:\s*#cf63cf;/i);
-  assert.match(html, /--scratch-event:\s*#ffbf00;/i);
-  assert.match(html, /--scratch-control:\s*#ffab19;/i);
-  assert.match(html, /\.scratch-block\s*\{/);
-  assert.match(html, /\.scratch-block\[data-category="motion"\]/);
-  assert.match(html, /\.scratch-block\[data-category="event"\]/);
+  assert.match(html, /--scratch-workspace-bg:/i);
+  assert.match(html, /\.scratch-workspace-frame\s*\{/);
+  assert.match(html, /\.scratch-workspace-inline\s*\{/);
+  assert.match(html, /\.scratch-workspace-host\s*\{/);
 });
