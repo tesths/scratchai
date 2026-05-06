@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   formatAiStatus,
+  formatCompactStatus,
   formatDefaultDetail,
   formatDefaultNextStep,
   formatCurrentTarget,
@@ -122,6 +123,28 @@ test("formats local-only AI guidance without teacher sb3 wording", () => {
   );
 });
 
+test("formats compact connection status for the action area", () => {
+  assert.equal(
+    formatCompactStatus({
+      status: "connected"
+    }),
+    "已连接"
+  );
+  assert.equal(
+    formatCompactStatus({
+      status: "waiting",
+      scratchExecutablePath: "C:\\Scratch 3.exe"
+    }),
+    "等待打开"
+  );
+  assert.equal(
+    formatCompactStatus({
+      status: "error"
+    }),
+    "连接异常"
+  );
+});
+
 test("renderList renders an empty item when no data is available", () => {
   const container = createFakeListElement();
   renderList(createFakeDocument(), container, [], "空列表");
@@ -171,7 +194,7 @@ test("renderState updates current role and program text", () => {
   );
 
   assert.equal(statusElement.textContent, "已连接到 Scratch Desktop");
-  assert.equal(statusSummaryElement.textContent, "已连接到 Scratch Desktop");
+  assert.equal(statusSummaryElement.textContent, "已连接");
   assert.equal(currentTargetElement.textContent, "Cat");
   assert.deepEqual(
     currentTargetProgramsElement.children.map((child) => child.textContent),

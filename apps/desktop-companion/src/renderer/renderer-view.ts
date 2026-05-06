@@ -120,6 +120,30 @@ export function formatAiStatus(state: DesktopCompanionState) {
   return "准备好了：先选择 Scratch 软件，打开已选 Scratch，再读取当前作品。";
 }
 
+export function formatCompactStatus(state: DesktopCompanionState) {
+  if (state.status === "connected") {
+    return "已连接";
+  }
+
+  if (state.status === "injecting") {
+    return "连接中";
+  }
+
+  if (state.status === "error") {
+    return "连接异常";
+  }
+
+  if (state.status === "unsupported") {
+    return "不支持";
+  }
+
+  if (state.status === "waiting") {
+    return state.scratchExecutablePath ? "等待打开" : "未选择";
+  }
+
+  return "启动中";
+}
+
 export function formatAiConfigSourceLabel(source?: DesktopCompanionState["aiConfigSource"]) {
   if (source === "custom") {
     return "设置窗口里保存的自定义 Key";
@@ -219,7 +243,10 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
   }
 
   if (elements.statusSummaryElement) {
-    elements.statusSummaryElement.textContent = state.statusText;
+    elements.statusSummaryElement.textContent = formatCompactStatus(state);
+    if (elements.statusSummaryElement.dataset) {
+      elements.statusSummaryElement.dataset.status = state.status;
+    }
   }
 
   if (elements.scratchPathElement) {

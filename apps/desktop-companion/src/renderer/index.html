@@ -124,7 +124,6 @@
         align-items: center;
       }
 
-      .toolbar-chip,
       .button {
         display: inline-flex;
         min-height: var(--control-height);
@@ -135,23 +134,6 @@
         font-size: var(--text-note);
         line-height: 1;
         font-weight: 600;
-      }
-
-      .toolbar-chip {
-        border: 1px solid var(--line);
-        background: #fff;
-        color: var(--ink);
-        max-width: 280px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .toolbar-chip[data-status="error"],
-      .toolbar-chip[data-status="unsupported"] {
-        border-color: #f2c8a8;
-        background: var(--warn-soft);
-        color: var(--warn);
       }
 
       .button {
@@ -230,6 +212,10 @@
         width: 100%;
       }
 
+      .summary-grid.compact {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
       .status-copy {
         display: grid;
         gap: 8px;
@@ -287,6 +273,15 @@
         line-height: 1.45;
         font-weight: 600;
         word-break: break-word;
+      }
+
+      .summary-card strong[data-status="connected"] {
+        color: var(--accent-strong);
+      }
+
+      .summary-card strong[data-status="error"],
+      .summary-card strong[data-status="unsupported"] {
+        color: var(--warn);
       }
 
       .list {
@@ -356,10 +351,15 @@
             <p class="subtitle">先连接本机 Scratch，再根据当前作品生成下一步提示。</p>
           </div>
           <div class="toolbar">
-            <p id="status" class="toolbar-chip">正在读取状态…</p>
             <button id="settings-button" class="button secondary" type="button">DeepSeek 设置</button>
           </div>
         </header>
+        <div hidden aria-hidden="true">
+          <p id="status">正在读取状态…</p>
+          <p id="detail">正在初始化本地监听端…</p>
+          <p id="scratch-path">还没有选择</p>
+          <p id="ai-config-summary">正在读取 DeepSeek 配置…</p>
+        </div>
 
         <section class="workspace">
           <section class="panel">
@@ -370,14 +370,27 @@
               <button id="retry-button" class="button secondary" type="button">重新连接</button>
               <button id="generate-ai-button" class="button primary" type="button">生成下一步提示</button>
             </div>
-            <p class="field-help">不填 API Key 也能先用基础提示；需要更完整结果时，再到设置页里填写。</p>
+            <div class="summary-grid compact">
+              <div class="summary-card">
+                <span>状态</span>
+                <strong id="status-summary">启动中</strong>
+              </div>
+              <div class="summary-card">
+                <span>当前角色</span>
+                <strong id="current-target">未识别</strong>
+              </div>
+              <div class="summary-card">
+                <span>同步时间</span>
+                <strong id="updated-at">还没收到数据</strong>
+              </div>
+            </div>
+            <p class="field-help">DeepSeek Key 可在设置里填写；没填时会使用基础提示。</p>
+            <p id="error" hidden></p>
           </section>
 
           <section class="panel">
-            <h2>状态</h2>
+            <h2>下一步提示</h2>
             <div class="status-copy">
-              <p id="detail" class="status-line muted">正在初始化本地监听端…</p>
-              <p id="ai-config-summary" class="status-line muted">正在读取 DeepSeek 配置…</p>
               <p id="ai-status" class="status-line muted">正在整理当前状态…</p>
               <p id="ai-answer" class="status-line">读取到当前 Scratch 作品后，我会基于你现在的进度给出下一步提示。</p>
               <div class="next-step-box">
@@ -385,25 +398,6 @@
                 <span id="ai-next-step">先选择 Scratch 软件。</span>
               </div>
             </div>
-            <div class="summary-grid">
-              <div class="summary-card">
-                <span>Scratch 路径</span>
-                <strong id="scratch-path">还没有选择</strong>
-              </div>
-              <div class="summary-card">
-                <span>当前角色</span>
-                <strong id="current-target">未识别</strong>
-              </div>
-              <div class="summary-card">
-                <span>最近同步时间</span>
-                <strong id="updated-at">还没收到数据</strong>
-              </div>
-              <div class="summary-card">
-                <span>当前状态</span>
-                <strong id="status-summary">等待连接</strong>
-              </div>
-            </div>
-            <p id="error" hidden></p>
           </section>
 
           <section class="panel">
