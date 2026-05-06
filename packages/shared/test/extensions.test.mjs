@@ -141,3 +141,51 @@ test("builds a project snapshot with program area modules", () => {
   assert.equal(snapshot.blocks[0].label, "当绿旗被点击");
   assert.deepEqual(snapshot.sprites[1].scripts[0].blockSequence, ["当绿旗被点击", "移动 10 步"]);
 });
+
+test("builds a project snapshot with nested stack blocks inside control blocks", () => {
+  const snapshot = projectJsonToSnapshot(
+    {
+      targets: [
+        {
+          id: "sprite-a",
+          name: "Cat",
+          isStage: false,
+          blocks: {
+            hat: {
+              opcode: "event_whenflagclicked",
+              next: "repeat",
+              shadow: false,
+              topLevel: true,
+              inputs: {}
+            },
+            repeat: {
+              opcode: "control_repeat",
+              next: null,
+              shadow: false,
+              topLevel: false,
+              inputs: {
+                SUBSTACK: [2, "move"]
+              }
+            },
+            move: {
+              opcode: "motion_movesteps",
+              next: null,
+              shadow: false,
+              topLevel: false,
+              inputs: {}
+            }
+          }
+        }
+      ]
+    },
+    {
+      currentTargetId: "sprite-a"
+    }
+  );
+
+  assert.deepEqual(snapshot.sprites[0].scripts[0].blockSequence, [
+    "当绿旗被点击",
+    "重复执行",
+    "移动 10 步"
+  ]);
+});

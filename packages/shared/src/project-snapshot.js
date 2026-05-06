@@ -58,6 +58,51 @@ function getVisibleBlocks(blocks, spriteName) {
     }));
 }
 
+function getNestedStackBlockIds(block, blocks) {
+  if (!block?.inputs || typeof block.inputs !== "object") {
+    return [];
+  }
+
+  const nestedStackIds = [];
+  for (const key of ["SUBSTACK", "SUBSTACK2"]) {
+    const input = block.inputs[key];
+    if (!Array.isArray(input)) {
+      continue;
+    }
+
+    for (const value of input) {
+      if (typeof value === "string" && blocks[value] && !nestedStackIds.includes(value)) {
+        nestedStackIds.push(value);
+      }
+    }
+  }
+
+  return nestedStackIds;
+}
+
+function appendScriptSequence(blockId, blocks, sequence, opcodes, visited) {
+  let currentId = blockId;
+
+  while (typeof currentId === "string" && !visited.has(currentId)) {
+    visited.add(currentId);
+    const current = blocks[currentId];
+    if (!current || typeof current !== "object") {
+      return;
+    }
+
+    if (typeof current.opcode === "string" && current.shadow !== true) {
+      sequence.push(getDisplayLabelForOpcode(current.opcode, current.fields));
+      opcodes.push(current.opcode);
+    }
+
+    for (const nestedBlockId of getNestedStackBlockIds(current, blocks)) {
+      appendScriptSequence(nestedBlockId, blocks, sequence, opcodes, visited);
+    }
+
+    currentId = typeof current.next === "string" ? current.next : null;
+  }
+}
+
 function buildScriptSummary(target) {
   const blocks = target?.blocks && typeof target.blocks === "object" ? target.blocks : {};
   const summaries = [];
@@ -68,15 +113,7 @@ function buildScriptSummary(target) {
     const sequence = [];
     const opcodes = [];
     const visited = new Set();
-    let current = block;
-    while (current && typeof current === "object" && !visited.has(current)) {
-      visited.add(current);
-      if (typeof current.opcode === "string" && current.shadow !== true) {
-        sequence.push(getDisplayLabelForOpcode(current.opcode, current.fields));
-        opcodes.push(current.opcode);
-      }
-      current = typeof current.next === "string" ? blocks[current.next] : null;
-    }
+    appendScriptSequence(blockId, blocks, sequence, opcodes, visited);
     summaries.push({
       spriteName: String(target?.name ?? ""),
       event: getDisplayLabelForOpcode(block.opcode, block.fields),

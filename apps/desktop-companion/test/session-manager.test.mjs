@@ -288,6 +288,75 @@ test("SessionManager derives current target programs from projectData", async ()
   ]);
 });
 
+test("SessionManager derives nested stack blocks from projectData", async () => {
+  const stateStore = new StateStore();
+  const bridgeServer = createBridgeServerMock();
+  const manager = new SessionManager(stateStore, {
+    bridgeServer,
+    platform: "win32",
+    log: () => {},
+    configStore: createConfigStoreMock("C:\\Scratch 3.exe"),
+    loadAiConfig: createAiConfigMock(),
+    scratchLauncher: {},
+    scratchRemoteDebugger: {}
+  });
+
+  await manager.start();
+
+  manager.handlePayload({
+    source: "test",
+    currentTargetId: "sprite-a",
+    currentTargetName: "Cat",
+    toolboxCategories: ["event", "control", "motion"],
+    loadedExtensions: [],
+    projectData: {
+      targets: [
+        {
+          id: "sprite-a",
+          name: "Cat",
+          isStage: false,
+          blocks: {
+            hat: {
+              opcode: "event_whenflagclicked",
+              next: "repeat",
+              parent: null,
+              inputs: {},
+              fields: {},
+              shadow: false,
+              topLevel: true
+            },
+            repeat: {
+              opcode: "control_repeat",
+              next: null,
+              parent: "hat",
+              inputs: {
+                SUBSTACK: [2, "move"]
+              },
+              fields: {},
+              shadow: false,
+              topLevel: false
+            },
+            move: {
+              opcode: "motion_movesteps",
+              next: null,
+              parent: "repeat",
+              inputs: {},
+              fields: {},
+              shadow: false,
+              topLevel: false
+            }
+          }
+        }
+      ]
+    }
+  });
+
+  const nextState = stateStore.getState();
+  assert.deepEqual(nextState.currentTargetPrograms, [
+    "当绿旗被点击 -> 重复执行 -> 移动 10 步"
+  ]);
+});
+
 test("SessionManager returns fallback AI hints when DeepSeek key is not configured", async () => {
   const stateStore = new StateStore();
   const manager = new SessionManager(stateStore, {
