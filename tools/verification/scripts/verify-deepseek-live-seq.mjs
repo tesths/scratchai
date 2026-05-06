@@ -440,10 +440,9 @@ function buildSettingsSnapshotExpression() {
   title: document.title,
   href: window.location.href,
   status: document.querySelector("#settings-status")?.textContent?.trim() ?? null,
-  summary: document.querySelector("#settings-config-summary")?.textContent?.trim() ?? null,
-  source: document.querySelector("#settings-current-source")?.textContent?.trim() ?? null,
-  model: document.querySelector("#settings-current-model")?.textContent?.trim() ?? null,
-  configPath: document.querySelector("#settings-config-path")?.textContent?.trim() ?? null,
+  modelValue: document.querySelector("#settings-custom-ai-model") instanceof HTMLSelectElement
+    ? document.querySelector("#settings-custom-ai-model").value
+    : null,
   feedback: document.querySelector("#settings-feedback")?.textContent?.trim() ?? null,
   errorText: document.querySelector("#settings-error")?.textContent?.trim() ?? null,
   buttons: {
@@ -887,8 +886,8 @@ async function main() {
             candidate =>
                 candidate.title?.includes('DeepSeek') &&
                 candidate.buttons?.save === false &&
-                typeof candidate.source === 'string' &&
-                candidate.source.length > 0,
+                typeof candidate.modelValue === 'string' &&
+                candidate.modelValue.length > 0,
             'The DeepSeek settings window did not finish rendering.'
         );
         await captureScreenshot(settingsTarget, screenshotPaths.settingsBeforeSave);
@@ -912,8 +911,8 @@ async function main() {
             candidate =>
                 typeof candidate.feedback === 'string' &&
                 candidate.feedback.length > 0 &&
-                typeof candidate.source === 'string' &&
-                candidate.source.length > 0,
+                typeof candidate.modelValue === 'string' &&
+                candidate.modelValue.length > 0,
             'The DeepSeek settings window did not show save feedback.'
         );
         await captureScreenshot(settingsTarget, screenshotPaths.settingsAfterSave);

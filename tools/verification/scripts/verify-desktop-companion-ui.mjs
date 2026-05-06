@@ -293,10 +293,9 @@ function buildSettingsSnapshotExpression() {
   title: document.title,
   href: window.location.href,
   status: document.querySelector("#settings-status")?.textContent?.trim() ?? null,
-  summary: document.querySelector("#settings-config-summary")?.textContent?.trim() ?? null,
-  source: document.querySelector("#settings-current-source")?.textContent?.trim() ?? null,
-  model: document.querySelector("#settings-current-model")?.textContent?.trim() ?? null,
-  configPath: document.querySelector("#settings-config-path")?.textContent?.trim() ?? null,
+  modelValue: document.querySelector("#settings-custom-ai-model") instanceof HTMLSelectElement
+    ? document.querySelector("#settings-custom-ai-model").value
+    : null,
   buttons: {
     save: document.querySelector("#settings-save-custom-ai-api-key-button") instanceof HTMLButtonElement
       ? document.querySelector("#settings-save-custom-ai-api-key-button").disabled
@@ -536,10 +535,8 @@ async function main() {
             candidate =>
                 candidate.title === 'DeepSeek 设置' &&
                 candidate.status !== '正在读取当前配置…' &&
-                candidate.summary !== '正在同步当前 DeepSeek 配置来源。' &&
-                typeof candidate.summary === 'string' &&
-                typeof candidate.source === 'string' &&
-                candidate.source !== '正在读取…' &&
+                typeof candidate.modelValue === 'string' &&
+                candidate.modelValue.length > 0 &&
                 candidate.buttons?.save === false
         );
         assert(
@@ -547,12 +544,8 @@ async function main() {
             `Settings window did not open with the expected title. Actual: ${JSON.stringify(settingsState)}`
         );
         assert(
-            typeof settingsState.summary === 'string' && settingsState.summary.length > 0,
-            `Settings window did not render the config summary. Actual: ${JSON.stringify(settingsState)}`
-        );
-        assert(
-            typeof settingsState.source === 'string' && settingsState.source.length > 0,
-            `Settings window did not render the current source. Actual: ${JSON.stringify(settingsState)}`
+            typeof settingsState.modelValue === 'string' && settingsState.modelValue.length > 0,
+            `Settings window did not render the model selector. Actual: ${JSON.stringify(settingsState)}`
         );
         assert(
             settingsState.buttons?.save === false,

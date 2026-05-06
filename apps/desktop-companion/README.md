@@ -87,8 +87,8 @@
 
 说明：
 
-- 程序提供独立的 `DeepSeek 设置` 窗口，允许在本机保存 `DeepSeek API Key`、选择 `deepseek-v4-flash / deepseek-v4-pro`，并编辑传给 DeepSeek 的提示词。
-- `DeepSeek API Key`、模型选择和提示词都只保存在当前电脑本地。
+- 程序提供独立的 `DeepSeek 设置` 窗口，允许在本机保存 `DeepSeek API Key`，并选择 `deepseek-v4-flash / deepseek-v4-pro`。
+- `DeepSeek API Key` 和模型选择都只保存在当前电脑本地。
 - 运行时只认设置窗口里保存的本机 Key，不再回退 `DEEPSEEK_API_KEY` 或 `deepseek.config.json` 里的 `apiKey`。
 - `deepseek.config.json` 现在只保留 `baseUrl`、`timeoutMs` 和默认 `model` 这类非敏感默认项。
 - 如果不填 key，`生成下一步提示` 仍可用，但会自动走本地 fallback 提示，而不是线上 DeepSeek。

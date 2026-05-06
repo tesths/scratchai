@@ -152,8 +152,7 @@
       }
 
       input[type="password"],
-      select,
-      textarea {
+      select {
         width: 100%;
         min-height: var(--control-height);
         border: 1px solid var(--line);
@@ -167,13 +166,6 @@
 
       select {
         appearance: none;
-      }
-
-      textarea {
-        min-height: 160px;
-        padding: 10px 12px;
-        line-height: 1.55;
-        resize: vertical;
       }
 
       .action-row {
@@ -244,32 +236,9 @@
         <p class="eyebrow">DeepSeek Settings</p>
         <h1>DeepSeek 本地设置</h1>
         <p class="hero-copy">
-          这里只保存当前电脑要使用的 DeepSeek Key、模型和提示词，不再支持本地直接填写其他 DeepSeek 连接配置。
+          这里只保存当前电脑要使用的 DeepSeek Key 和模型，不再支持本地直接填写其他 DeepSeek 连接配置。
         </p>
         <p id="settings-status" class="status-pill">正在读取当前配置…</p>
-      </section>
-
-      <section class="panel">
-        <h2>当前状态</h2>
-        <p id="settings-config-summary" class="note">正在同步当前 DeepSeek 配置来源。</p>
-        <div class="meta-grid">
-          <div class="meta-card">
-            <span>当前来源</span>
-            <strong id="settings-current-source">正在读取…</strong>
-          </div>
-          <div class="meta-card">
-            <span>当前模型</span>
-            <strong id="settings-current-model">正在读取…</strong>
-          </div>
-          <div class="meta-card">
-            <span>程序默认配置文件</span>
-            <strong id="settings-config-path">正在读取…</strong>
-          </div>
-          <div class="meta-card">
-            <span>提示词状态</span>
-            <strong id="settings-current-prompt-status">正在读取…</strong>
-          </div>
-        </div>
       </section>
 
       <section class="panel">
@@ -297,19 +266,6 @@
         </select>
         <div class="action-row">
           <button id="settings-save-custom-ai-model-button" class="button primary" type="button">保存模型</button>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>提示词</h2>
-        <p class="note">这里的提示词会传给 DeepSeek，可按本机需求单独修改并本地保存。</p>
-        <textarea
-          id="settings-custom-ai-prompt"
-          placeholder="输入要传给 DeepSeek 的提示词"
-        ></textarea>
-        <div class="action-row">
-          <button id="settings-save-custom-ai-prompt-button" class="button primary" type="button">保存提示词</button>
-          <button id="settings-clear-custom-ai-prompt-button" class="button secondary" type="button">恢复默认提示词</button>
         </div>
       </section>
     </main>

@@ -331,10 +331,9 @@ function buildSettingsUiSnapshotExpression() {
   title: document.title,
   href: window.location.href,
   status: document.querySelector("#settings-status")?.textContent?.trim() ?? null,
-  summary: document.querySelector("#settings-config-summary")?.textContent?.trim() ?? null,
-  source: document.querySelector("#settings-current-source")?.textContent?.trim() ?? null,
-  model: document.querySelector("#settings-current-model")?.textContent?.trim() ?? null,
-  configPath: document.querySelector("#settings-config-path")?.textContent?.trim() ?? null,
+  modelValue: document.querySelector("#settings-custom-ai-model") instanceof HTMLSelectElement
+    ? document.querySelector("#settings-custom-ai-model").value
+    : null,
   buttons: {
     save: document.querySelector("#settings-save-custom-ai-api-key-button") instanceof HTMLButtonElement
       ? document.querySelector("#settings-save-custom-ai-api-key-button").disabled
@@ -689,10 +688,8 @@ async function main() {
             snapshot =>
                 snapshot.title === 'DeepSeek 设置' &&
                 snapshot.status !== '正在读取当前配置…' &&
-                snapshot.summary !== '正在同步当前 DeepSeek 配置来源。' &&
-                typeof snapshot.source === 'string' &&
-                snapshot.source.length > 0 &&
-                snapshot.source !== '正在读取…' &&
+                typeof snapshot.modelValue === 'string' &&
+                snapshot.modelValue.length > 0 &&
                 snapshot.buttons?.save === false,
             'Packaged DeepSeek settings window did not finish rendering.'
         );
