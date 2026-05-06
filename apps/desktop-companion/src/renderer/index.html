@@ -216,6 +216,27 @@
         grid-template-columns: repeat(3, minmax(0, 1fr));
       }
 
+      .path-row {
+        display: grid;
+        gap: 5px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: var(--card-radius);
+        background: #fff;
+      }
+
+      .path-row span {
+        font-size: var(--text-mini);
+        color: var(--muted);
+      }
+
+      .path-row strong {
+        font-size: var(--text-note);
+        line-height: 1.5;
+        font-weight: 600;
+        word-break: break-all;
+      }
+
       .status-copy {
         display: grid;
         gap: 8px;
@@ -357,7 +378,6 @@
         <div hidden aria-hidden="true">
           <p id="status">正在读取状态…</p>
           <p id="detail">正在初始化本地监听端…</p>
-          <p id="scratch-path">还没有选择</p>
           <p id="ai-config-summary">正在读取 DeepSeek 配置…</p>
         </div>
 
@@ -383,6 +403,10 @@
                 <span>同步时间</span>
                 <strong id="updated-at">还没收到数据</strong>
               </div>
+            </div>
+            <div class="path-row">
+              <span>已选 Scratch</span>
+              <strong id="scratch-path">还没有选择</strong>
             </div>
             <p class="field-help">DeepSeek Key 可在设置里填写；没填时会使用基础提示。</p>
             <p id="error" hidden></p>

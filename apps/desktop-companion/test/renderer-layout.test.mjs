@@ -1,0 +1,10 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+test("main window shows the selected Scratch path in a visible summary row", async () => {
+  const html = await readFile(new URL("../src/renderer/index.html", import.meta.url), "utf8");
+
+  assert.match(html, /<span>已选 Scratch<\/span>/);
+  assert.match(html, /<strong id="scratch-path">还没有选择<\/strong>/);
+});
