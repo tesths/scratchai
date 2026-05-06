@@ -8,3 +8,10 @@ test("main window shows the selected Scratch path in a visible summary row", asy
   assert.match(html, /<span>已选 Scratch<\/span>/);
   assert.match(html, /<strong id="scratch-path">还没有选择<\/strong>/);
 });
+
+test("main window no longer shows the module summary panel", async () => {
+  const html = await readFile(new URL("../src/renderer/index.html", import.meta.url), "utf8");
+
+  assert.doesNotMatch(html, /识别到的模块/);
+  assert.doesNotMatch(html, /id="program-area-modules"/);
+});
