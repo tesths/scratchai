@@ -19,14 +19,13 @@ export interface RendererElements {
   detailElement?: MinimalElement | null;
   currentTargetElement?: MinimalElement | null;
   updatedAtElement?: MinimalElement | null;
+  statusSummaryElement?: MinimalElement | null;
   programAreaModulesElement?: MinimalElement | null;
   currentTargetProgramsElement?: MinimalElement | null;
   aiStatusElement?: MinimalElement | null;
   aiAnswerElement?: MinimalElement | null;
   aiNextStepElement?: MinimalElement | null;
   aiRecommendedBlocksElement?: MinimalElement | null;
-  aiDetectedIssuesElement?: MinimalElement | null;
-  aiFollowUpQuestionElement?: MinimalElement | null;
   aiConfigSummaryElement?: MinimalElement | null;
   errorElement?: MinimalElement | null;
   scratchPathElement?: MinimalElement | null;
@@ -175,14 +174,14 @@ export function formatDefaultNextStep(state: DesktopCompanionState) {
   }
 
   if (state.status === "connected") {
-    return "下一步：先看当前提示完成这一小步；学生补完后，再点击“更新下一步提示”。";
+    return "先看当前提示完成这一小步；学生补完后，再点击“生成下一步提示”。";
   }
 
   if (state.scratchExecutablePath) {
-    return "下一步：点击“打开已选 Scratch”。";
+    return "点击“打开已选 Scratch”。";
   }
 
-  return "下一步：先选择 Scratch 软件。";
+  return "先选择 Scratch 软件。";
 }
 
 export function formatRecommendedBlocks(state: DesktopCompanionState) {
@@ -217,6 +216,10 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
 
   if (elements.updatedAtElement) {
     elements.updatedAtElement.textContent = formatTimestamp(state.lastUpdatedAt);
+  }
+
+  if (elements.statusSummaryElement) {
+    elements.statusSummaryElement.textContent = state.statusText;
   }
 
   if (elements.scratchPathElement) {
@@ -268,20 +271,6 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
     "这里会显示适合当前这一步的积木和原因。",
     "hint-item"
   );
-
-  renderList(
-    elements.documentRef,
-    elements.aiDetectedIssuesElement,
-    formatDetectedIssues(state),
-    "当前这一步没有额外风险提示。",
-    "issue-item"
-  );
-
-  if (elements.aiFollowUpQuestionElement) {
-    elements.aiFollowUpQuestionElement.textContent =
-      state.aiCoachResponse?.followUpQuestion ??
-      "如果要继续推进，我会继续提醒下一段积木，避免一次把整套答案讲完。";
-  }
 
   const isBusy = state.status === "injecting";
   if (elements.retryButton) {

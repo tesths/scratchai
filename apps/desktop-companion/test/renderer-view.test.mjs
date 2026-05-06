@@ -91,19 +91,19 @@ test("formats default detail and next step for the new scratch-first flow", () =
   );
   assert.equal(
     formatDefaultNextStep({}),
-    "下一步：先选择 Scratch 软件。"
+    "先选择 Scratch 软件。"
   );
   assert.equal(
     formatDefaultNextStep({
       scratchExecutablePath: "C:\\Scratch 3.exe"
     }),
-    "下一步：点击“打开已选 Scratch”。"
+    "点击“打开已选 Scratch”。"
   );
   assert.equal(
     formatDefaultNextStep({
       status: "connected"
     }),
-    "下一步：先看当前提示完成这一小步；学生补完后，再点击“更新下一步提示”。"
+    "先看当前提示完成这一小步；学生补完后，再点击“生成下一步提示”。"
   );
 });
 
@@ -137,6 +137,7 @@ test("renderState updates current role and program text", () => {
   const detailElement = createFakeListElement();
   const currentTargetElement = createFakeListElement();
   const updatedAtElement = createFakeListElement();
+  const statusSummaryElement = createFakeListElement();
   const currentTargetProgramsElement = createFakeListElement();
   const errorElement = createFakeListElement();
   const scratchPathElement = createFakeListElement();
@@ -162,6 +163,7 @@ test("renderState updates current role and program text", () => {
       detailElement,
       currentTargetElement,
       updatedAtElement,
+      statusSummaryElement,
       currentTargetProgramsElement,
       errorElement,
       scratchPathElement
@@ -169,6 +171,7 @@ test("renderState updates current role and program text", () => {
   );
 
   assert.equal(statusElement.textContent, "已连接到 Scratch Desktop");
+  assert.equal(statusSummaryElement.textContent, "已连接到 Scratch Desktop");
   assert.equal(currentTargetElement.textContent, "Cat");
   assert.deepEqual(
     currentTargetProgramsElement.children.map((child) => child.textContent),

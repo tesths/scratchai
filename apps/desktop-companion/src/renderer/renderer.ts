@@ -14,14 +14,13 @@ const statusElement = document.getElementById("status");
 const detailElement = document.getElementById("detail");
 const currentTargetElement = document.getElementById("current-target");
 const updatedAtElement = document.getElementById("updated-at");
+const statusSummaryElement = document.getElementById("status-summary");
 const programAreaModulesElement = document.getElementById("program-area-modules");
 const currentTargetProgramsElement = document.getElementById("current-target-programs");
 const aiStatusElement = document.getElementById("ai-status");
 const aiAnswerElement = document.getElementById("ai-answer");
 const aiNextStepElement = document.getElementById("ai-next-step");
 const aiRecommendedBlocksElement = document.getElementById("ai-recommended-blocks");
-const aiDetectedIssuesElement = document.getElementById("ai-detected-issues");
-const aiFollowUpQuestionElement = document.getElementById("ai-follow-up-question");
 const aiConfigSummaryElement = document.getElementById("ai-config-summary");
 const errorElement = document.getElementById("error");
 const scratchPathElement = document.getElementById("scratch-path");
@@ -29,7 +28,6 @@ const launchButton = document.getElementById("launch-button") as HTMLButtonEleme
 const chooseScratchButton = document.getElementById("choose-scratch-button") as HTMLButtonElement | null;
 const retryButton = document.getElementById("retry-button") as HTMLButtonElement | null;
 const settingsButton = document.getElementById("settings-button") as HTMLButtonElement | null;
-const secondarySettingsButton = document.getElementById("secondary-settings-button") as HTMLButtonElement | null;
 const generateAiButton = document.getElementById("generate-ai-button") as HTMLButtonElement | null;
 
 function showActionError(message: string) {
@@ -59,14 +57,13 @@ function renderNormalizedState(rawState: unknown) {
     detailElement,
     currentTargetElement,
     updatedAtElement,
+    statusSummaryElement,
     programAreaModulesElement,
     currentTargetProgramsElement,
     aiStatusElement,
     aiAnswerElement,
     aiNextStepElement,
     aiRecommendedBlocksElement,
-    aiDetectedIssuesElement,
-    aiFollowUpQuestionElement,
     aiConfigSummaryElement,
     errorElement,
     scratchPathElement,
@@ -134,21 +131,12 @@ function handleOpenSettings() {
 }
 
 settingsButton?.addEventListener("click", handleOpenSettings);
-secondarySettingsButton?.addEventListener("click", handleOpenSettings);
 
 generateAiButton?.addEventListener("click", () => {
-  generateAiButton.disabled = true;
   void Promise.resolve()
     .then(() => getDesktopCompanionApi().requestAiHint())
     .catch((error) => {
       showActionError(error instanceof Error ? error.message : "更新下一步提示失败，请查看日志。");
-    })
-    .finally(() => {
-      window.setTimeout(() => {
-        if (generateAiButton) {
-          generateAiButton.disabled = false;
-        }
-      }, 400);
     });
 });
 

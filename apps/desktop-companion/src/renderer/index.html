@@ -56,7 +56,6 @@
 
       h1,
       h2,
-      h3,
       p,
       ul {
         margin: 0;
@@ -112,49 +111,52 @@
       }
 
       .subtitle {
-        max-width: 34ch;
+        max-width: 36ch;
         font-size: var(--text-note);
         line-height: 1.55;
         color: var(--muted);
       }
 
-      .status-row {
+      .toolbar {
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
-        justify-content: flex-end;
         align-items: center;
       }
 
-      .status-pill {
-        display: inline-flex;
-        min-height: 30px;
-        align-items: center;
-        padding: 0 10px;
-        border-radius: 999px;
-        background: var(--accent-soft);
-        color: var(--accent-strong);
-        font-size: var(--text-mini);
-        font-weight: 650;
-      }
-
-      .status-pill[data-status="error"],
-      .status-pill[data-status="unsupported"] {
-        background: var(--warn-soft);
-        color: var(--warn);
-      }
-
+      .toolbar-chip,
       .button {
         display: inline-flex;
         min-height: var(--control-height);
         align-items: center;
         justify-content: center;
-        border: 1px solid transparent;
         border-radius: var(--control-radius);
         padding: 0 12px;
         font-size: var(--text-note);
-        font-weight: 600;
         line-height: 1;
+        font-weight: 600;
+      }
+
+      .toolbar-chip {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        max-width: 280px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .toolbar-chip[data-status="error"],
+      .toolbar-chip[data-status="unsupported"] {
+        border-color: #f2c8a8;
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+
+      .button {
+        border: 1px solid transparent;
+        white-space: nowrap;
         cursor: pointer;
         transition:
           background-color 120ms ease,
@@ -185,25 +187,11 @@
 
       .button:disabled {
         opacity: 0.55;
-        cursor: wait;
+        cursor: not-allowed;
         box-shadow: none;
       }
 
-      .layout {
-        display: grid;
-        grid-template-columns: 296px minmax(0, 1fr);
-        min-height: calc(100vh - 120px);
-      }
-
-      .sidebar {
-        display: grid;
-        gap: 12px;
-        padding: 14px;
-        border-right: 1px solid var(--line);
-        background: var(--panel-muted);
-      }
-
-      .content {
+      .workspace {
         display: grid;
         gap: 14px;
         padding: 14px;
@@ -225,16 +213,59 @@
       }
 
       .panel-note,
-      .field-help,
-      .hint-copy {
+      .hint-copy,
+      .field-help {
         font-size: var(--text-note);
         line-height: 1.55;
         color: var(--muted);
       }
 
-      .summary-grid {
+      .action-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .action-row .button {
+        width: 100%;
+      }
+
+      .status-copy {
         display: grid;
         gap: 8px;
+      }
+
+      .status-line {
+        font-size: var(--text-body);
+        line-height: 1.6;
+        color: var(--ink);
+      }
+
+      .status-line.muted {
+        color: var(--muted);
+      }
+
+      .next-step-box {
+        padding: 11px 12px;
+        border-radius: var(--card-radius);
+        border: 1px solid #bfdbfe;
+        background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
+        font-size: var(--text-body);
+        line-height: 1.6;
+      }
+
+      .summary-grid,
+      .detail-grid {
+        display: grid;
+        gap: 10px;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .summary-card {
@@ -258,22 +289,6 @@
         word-break: break-word;
       }
 
-      .stack {
-        display: grid;
-        gap: 8px;
-      }
-
-      .action-stack {
-        display: grid;
-        gap: 8px;
-      }
-
-      .inline-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-      }
-
       .list {
         display: grid;
         gap: 6px;
@@ -292,35 +307,6 @@
         color: var(--muted);
       }
 
-      .hero-card {
-        display: grid;
-        gap: 8px;
-        padding: 16px;
-        border-radius: 18px;
-        border: 1px solid #bfdbfe;
-        background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
-      }
-
-      .hero-card h2 {
-        font-size: 16px;
-        font-weight: 650;
-      }
-
-      .hero-card p {
-        font-size: var(--text-body);
-        line-height: 1.6;
-        color: var(--muted);
-      }
-
-      .ai-next-step {
-        padding: 11px 12px;
-        border-radius: 12px;
-        background: var(--accent-soft);
-        color: var(--ink);
-        font-size: var(--text-body);
-        line-height: 1.6;
-      }
-
       #error {
         color: var(--warn);
         font-size: var(--text-note);
@@ -328,22 +314,14 @@
       }
 
       @media (max-width: 960px) {
-        .layout {
-          grid-template-columns: 1fr;
-        }
-
-        .sidebar {
-          border-right: 0;
-          border-bottom: 1px solid var(--line);
+        .summary-grid,
+        .detail-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
         .titlebar {
           align-items: start;
           flex-direction: column;
-        }
-
-        .status-row {
-          justify-content: start;
         }
       }
 
@@ -353,9 +331,17 @@
         }
 
         .titlebar,
-        .sidebar,
-        .content {
+        .workspace {
           padding: 12px;
+        }
+
+        .summary-grid,
+        .detail-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .action-row {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
         }
       }
     </style>
@@ -367,102 +353,79 @@
           <div class="titlebar-copy">
             <p class="eyebrow">Scratch Desktop Companion</p>
             <h1>本地 Scratch 辅助编程</h1>
-            <p class="subtitle">
-              先连接本机 Scratch，再根据当前作品生成下一步提示。
-            </p>
+            <p class="subtitle">先连接本机 Scratch，再根据当前作品生成下一步提示。</p>
           </div>
-          <div class="status-row">
-            <p id="status" class="status-pill">正在读取状态…</p>
+          <div class="toolbar">
+            <p id="status" class="toolbar-chip">正在读取状态…</p>
             <button id="settings-button" class="button secondary" type="button">DeepSeek 设置</button>
           </div>
         </header>
 
-        <div class="layout">
-          <aside class="sidebar">
-            <section class="panel">
-              <h2>连接状态</h2>
-              <p id="detail" class="panel-note">正在初始化本地监听端…</p>
-              <div class="summary-grid">
-                <div class="summary-card">
-                  <span>Scratch 路径</span>
-                  <strong id="scratch-path">还没有选择</strong>
-                </div>
-                <div class="summary-card">
-                  <span>当前角色</span>
-                  <strong id="current-target">未识别</strong>
-                </div>
-                <div class="summary-card">
-                  <span>最近同步时间</span>
-                  <strong id="updated-at">还没收到数据</strong>
-                </div>
-              </div>
-            </section>
-
-            <section class="panel">
-              <h2>操作</h2>
-              <div class="action-stack">
-                <button id="choose-scratch-button" class="button secondary" type="button">选择 Scratch 软件</button>
-                <button id="launch-button" class="button secondary" type="button">打开已选 Scratch</button>
-                <button id="retry-button" class="button secondary" type="button">重新连接</button>
-                <button id="generate-ai-button" class="button primary" type="button">生成下一步提示</button>
-              </div>
-              <p class="field-help">
-                不填 API Key 也能先用基础提示；需要更完整结果时，再到设置页里填写。
-              </p>
-              <p id="ai-config-summary" class="field-help">正在读取 DeepSeek 配置…</p>
-              <p id="error" hidden></p>
-            </section>
-          </aside>
-
-          <section class="content">
-            <section class="hero-card">
-              <h2>当前建议</h2>
-              <p id="ai-status">正在整理当前状态…</p>
-              <div class="ai-next-step">
-                <strong>下一步：</strong>
-                <span id="ai-next-step">下一步：先选择 Scratch 软件。</span>
-              </div>
-              <p id="ai-answer">
-                读取到当前 Scratch 作品后，我会基于你现在的进度给出下一步提示。
-              </p>
-            </section>
-
-            <section class="panel">
-              <h2>当前角色程序</h2>
-              <p class="panel-note">这里会显示当前角色已经搭好的脚本顺序。</p>
-              <ul id="current-target-programs" class="list"></ul>
-            </section>
-
-            <div class="inline-actions">
-              <section class="panel stack" style="flex: 1 1 320px;">
-                <h2>识别到的模块</h2>
-                <p class="panel-note">辅助判断当前作品已经覆盖了哪些积木类别。</p>
-                <ul id="program-area-modules" class="list"></ul>
-              </section>
-
-              <section class="panel stack" style="flex: 1 1 320px;">
-                <h2>推荐积木</h2>
-                <p class="panel-note">优先只补当前这一小步最需要的积木。</p>
-                <ul id="ai-recommended-blocks" class="list"></ul>
-              </section>
+        <section class="workspace">
+          <section class="panel">
+            <h2>操作</h2>
+            <div class="action-row">
+              <button id="choose-scratch-button" class="button secondary" type="button">选择 Scratch 软件</button>
+              <button id="launch-button" class="button secondary" type="button">打开已选 Scratch</button>
+              <button id="retry-button" class="button secondary" type="button">重新连接</button>
+              <button id="generate-ai-button" class="button primary" type="button">生成下一步提示</button>
             </div>
-
-            <div class="inline-actions">
-              <section class="panel stack" style="flex: 1 1 320px;">
-                <h2>风险提醒</h2>
-                <p class="panel-note">这里会提示当前作品里需要留意的点。</p>
-                <ul id="ai-detected-issues" class="list"></ul>
-              </section>
-
-              <section class="panel stack" style="flex: 1 1 320px;">
-                <h2>继续追问</h2>
-                <p class="hint-copy" id="ai-follow-up-question">
-                  如果要继续推进，我会继续提醒下一段积木，避免一次把整套答案讲完。
-                </p>
-              </section>
-            </div>
+            <p class="field-help">不填 API Key 也能先用基础提示；需要更完整结果时，再到设置页里填写。</p>
           </section>
-        </div>
+
+          <section class="panel">
+            <h2>状态</h2>
+            <div class="status-copy">
+              <p id="detail" class="status-line muted">正在初始化本地监听端…</p>
+              <p id="ai-config-summary" class="status-line muted">正在读取 DeepSeek 配置…</p>
+              <p id="ai-status" class="status-line muted">正在整理当前状态…</p>
+              <p id="ai-answer" class="status-line">读取到当前 Scratch 作品后，我会基于你现在的进度给出下一步提示。</p>
+              <div class="next-step-box">
+                <strong>下一步：</strong>
+                <span id="ai-next-step">先选择 Scratch 软件。</span>
+              </div>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-card">
+                <span>Scratch 路径</span>
+                <strong id="scratch-path">还没有选择</strong>
+              </div>
+              <div class="summary-card">
+                <span>当前角色</span>
+                <strong id="current-target">未识别</strong>
+              </div>
+              <div class="summary-card">
+                <span>最近同步时间</span>
+                <strong id="updated-at">还没收到数据</strong>
+              </div>
+              <div class="summary-card">
+                <span>当前状态</span>
+                <strong id="status-summary">等待连接</strong>
+              </div>
+            </div>
+            <p id="error" hidden></p>
+          </section>
+
+          <section class="panel">
+            <h2>当前角色程序</h2>
+            <p class="panel-note">这里会显示当前角色已经搭好的脚本顺序。</p>
+            <ul id="current-target-programs" class="list"></ul>
+          </section>
+
+          <div class="detail-grid">
+            <section class="panel">
+              <h2>识别到的模块</h2>
+              <p class="panel-note">辅助判断当前作品已经覆盖了哪些积木类别。</p>
+              <ul id="program-area-modules" class="list"></ul>
+            </section>
+
+            <section class="panel">
+              <h2>推荐积木</h2>
+              <p class="panel-note">优先只补当前这一小步最需要的积木。</p>
+              <ul id="ai-recommended-blocks" class="list"></ul>
+            </section>
+          </div>
+        </section>
       </div>
     </main>
     <script type="module" src="./renderer.js"></script>
