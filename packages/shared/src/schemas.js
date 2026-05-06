@@ -109,7 +109,7 @@ const aiHintProviderSchema = z.enum(["deepseek", "fallback"]);
 
 const aiHintStatusSchema = z.enum(["idle", "loading", "ready", "error"]);
 
-const aiConfigSourceSchema = z.enum(["custom", "env", "packaged"]);
+const aiConfigSourceSchema = z.enum(["custom"]);
 
 const sessionEventSchema = z.object({
   sessionId: z.string().min(1),
@@ -171,6 +171,8 @@ const desktopCompanionStateSchema = z.object({
   aiConfigPath: z.string().optional(),
   aiConfigSource: aiConfigSourceSchema.optional(),
   aiCustomKeyConfigured: z.boolean().default(false),
+  aiCustomModelConfigured: z.boolean().default(false),
+  aiCustomModel: z.string().optional(),
   aiCustomPromptConfigured: z.boolean().default(false),
   aiCustomPrompt: z.string().optional(),
   aiDefaultPrompt: z.string().optional(),

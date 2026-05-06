@@ -41,14 +41,15 @@ test("loadDeepSeekConfig prefers a saved custom key over env and packaged config
       },
       async (configPath) => {
         const config = await loadDeepSeekConfig(configPath, {
-          customApiKey: "  sk-custom-demo  "
+          customApiKey: "  sk-custom-demo  ",
+          customModel: "deepseek-v4-flash"
         });
 
         assert.equal(config.configured, true);
         assert.equal(config.apiKey, "sk-custom-demo");
         assert.equal(config.source, "custom");
         assert.equal(config.customKeyConfigured, true);
-        assert.equal(config.model, "deepseek-v4-pro");
+        assert.equal(config.model, "deepseek-v4-flash");
         assert.equal(config.baseUrl, "https://api.deepseek.com");
         assert.equal(config.timeoutMs, 26000);
       }
@@ -58,7 +59,7 @@ test("loadDeepSeekConfig prefers a saved custom key over env and packaged config
   }
 });
 
-test("loadDeepSeekConfig falls back to DEEPSEEK_API_KEY before packaged config", async () => {
+test("loadDeepSeekConfig ignores env and packaged apiKey when no custom key is saved", async () => {
   const originalEnvValue = process.env.DEEPSEEK_API_KEY;
   process.env.DEEPSEEK_API_KEY = "  sk-env-demo  ";
 
@@ -71,9 +72,9 @@ test("loadDeepSeekConfig falls back to DEEPSEEK_API_KEY before packaged config",
       async (configPath) => {
         const config = await loadDeepSeekConfig(configPath);
 
-        assert.equal(config.configured, true);
-        assert.equal(config.apiKey, "sk-env-demo");
-        assert.equal(config.source, "env");
+        assert.equal(config.configured, false);
+        assert.equal(config.apiKey, undefined);
+        assert.equal(config.source, undefined);
         assert.equal(config.customKeyConfigured, false);
         assert.equal(config.model, "deepseek-v4-flash");
       }
@@ -107,4 +108,22 @@ test("loadDeepSeekConfig keeps the DeepSeek V4 default model when no valid key i
   } finally {
     restoreEnv(originalEnvValue);
   }
+});
+
+test("loadDeepSeekConfig prefers a saved custom model over packaged model even without a key", async () => {
+  await withTempConfig(
+    {
+      apiKey: "PLEASE_FILL_DEEPSEEK_API_KEY",
+      model: "deepseek-v4-pro"
+    },
+    async (configPath) => {
+      const config = await loadDeepSeekConfig(configPath, {
+        customModel: "deepseek-v4-flash"
+      });
+
+      assert.equal(config.configured, false);
+      assert.equal(config.model, "deepseek-v4-flash");
+      assert.equal(config.apiKey, undefined);
+    }
+  );
 });

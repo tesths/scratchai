@@ -46,8 +46,6 @@
 
 - `../installers/ScratchDesktopCompanion-setup.exe`
 - `../installers/ScratchDesktopCompanion-portable.exe`
-- `../installers/ScratchDesktopCompanion-with-key-setup.exe`
-- `../installers/ScratchDesktopCompanion-with-key-portable.exe`
 - `../installers/SHA256SUMS.txt`
 - `../installers/RELEASE-NOTES.md`
 - `../apps/desktop-companion/release-single/win-unpacked/ScratchDesktopCompanion.exe`

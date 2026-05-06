@@ -22,6 +22,13 @@ function isConfiguredApiKey(value) {
   return Boolean(candidate) && !PLACEHOLDER_API_KEYS.has(candidate);
 }
 
+function sanitizePackagedDeepSeekConfig(sourceConfig) {
+  return {
+    ...sourceConfig,
+    apiKey: DEFAULT_PACKAGED_DEEPSEEK_API_KEY
+  };
+}
+
 export function validatePackageVariant(variant) {
   if (!VALID_PACKAGE_VARIANTS.has(variant)) {
     throw new Error(`Unsupported package variant "${variant}". Expected one of: source, with-key, no-key.`);
@@ -44,7 +51,7 @@ export function getPackageVariantMeta(variant) {
   if (variant === 'with-key') {
     return {
       variant,
-      displayName: 'with packaged key',
+      displayName: 'with-key variant name',
       outputDirSuffix: '-with-key',
       artifactBaseName: 'ScratchDesktopCompanion-with-key',
       packagedKeyMode: 'with-key'
@@ -54,7 +61,7 @@ export function getPackageVariantMeta(variant) {
   if (variant === 'no-key') {
     return {
       variant,
-      displayName: 'without packaged key',
+      displayName: 'no-key variant name',
       outputDirSuffix: '-no-key',
       artifactBaseName: 'ScratchDesktopCompanion-no-key',
       packagedKeyMode: 'no-key'
@@ -63,7 +70,7 @@ export function getPackageVariantMeta(variant) {
 
   return {
     variant: 'source',
-    displayName: 'from source config',
+    displayName: 'source variant name',
     outputDirSuffix: '',
     artifactBaseName: 'ScratchDesktopCompanion',
     packagedKeyMode: 'source'
@@ -73,45 +80,10 @@ export function getPackageVariantMeta(variant) {
 export function resolvePackagedDeepSeekConfig(sourceConfig, env = process.env) {
   const packagedKeyMode = validatePackageVariant((env[PACKAGED_KEY_MODE_ENV_NAME] ?? 'source').trim() || 'source');
 
-  const sourceApiKey = normalizeApiKey(sourceConfig?.apiKey);
-
-  if (packagedKeyMode === 'no-key') {
-    return {
-      mode: packagedKeyMode,
-      configured: false,
-      config: {
-        ...sourceConfig,
-        apiKey: DEFAULT_PACKAGED_DEEPSEEK_API_KEY
-      }
-    };
-  }
-
-  if (packagedKeyMode === 'with-key') {
-    const envApiKey = normalizeApiKey(env[PACKAGED_API_KEY_ENV_NAME]);
-    const packagedApiKey = envApiKey || sourceApiKey;
-
-    if (!isConfiguredApiKey(packagedApiKey)) {
-      throw new Error(
-        `Packaged DeepSeek key is required for variant "with-key". Set ${PACKAGED_API_KEY_ENV_NAME} or fill src/deepseek.config.json first.`
-      );
-    }
-
-    return {
-      mode: packagedKeyMode,
-      configured: true,
-      config: {
-        ...sourceConfig,
-        apiKey: packagedApiKey
-      }
-    };
-  }
-
   return {
     mode: packagedKeyMode,
-    configured: isConfiguredApiKey(sourceApiKey),
-    config: {
-      ...sourceConfig
-    }
+    configured: false,
+    config: sanitizePackagedDeepSeekConfig(sourceConfig)
   };
 }
 

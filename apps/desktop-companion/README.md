@@ -72,7 +72,7 @@
 
 - `apps/desktop-companion/src/main/deepseek.config.json`
 
-里填写默认配置。
+里填写默认的非敏感配置。
 
 当前默认内容如下：
 
@@ -87,12 +87,13 @@
 
 说明：
 
-- 程序提供独立的 `DeepSeek 设置` 窗口，允许在本机保存 `自定义 DeepSeek API Key`。
-- 优先级是：`设置窗口保存的 Key > 环境变量 DEEPSEEK_API_KEY > 程序自带 deepseek.config.json`。
-- 清除设置窗口里保存的 Key 后，会按 `DEEPSEEK_API_KEY > deepseek.config.json` 的顺序继续回退。
+- 程序提供独立的 `DeepSeek 设置` 窗口，允许在本机保存 `DeepSeek API Key`、选择 `deepseek-v4-flash / deepseek-v4-pro`，并编辑传给 DeepSeek 的提示词。
+- `DeepSeek API Key`、模型选择和提示词都只保存在当前电脑本地。
+- 运行时只认设置窗口里保存的本机 Key，不再回退 `DEEPSEEK_API_KEY` 或 `deepseek.config.json` 里的 `apiKey`。
+- `deepseek.config.json` 现在只保留 `baseUrl`、`timeoutMs` 和默认 `model` 这类非敏感默认项。
 - 如果不填 key，`生成下一步提示` 仍可用，但会自动走本地 fallback 提示，而不是线上 DeepSeek。
 - 桌面端当前显式使用 JSON Output，并把 `thinking` 设为 `disabled`，这样更适合 Scratch 教练提示这种低延迟、稳定 JSON 返回的场景。
-- 主窗口与设置窗口都提供鼠标右键菜单；设置页 API Key 输入框支持复制、粘贴、全选。
+- 主窗口与设置窗口都提供鼠标右键菜单；设置页输入框支持复制、粘贴、全选。
 - DeepSeek 官方文档入口：<https://api-docs.deepseek.com/zh-cn/>
 
 ## 2026-05-06 已验证结果

@@ -32,6 +32,9 @@ const api = {
   clearCustomAiApiKey: async () => {
     await ipcRenderer.invoke("desktop-companion:clear-custom-ai-api-key");
   },
+  saveCustomAiModel: async (model: string) => {
+    await ipcRenderer.invoke("desktop-companion:save-custom-ai-model", model);
+  },
   saveCustomAiPrompt: async (prompt: string) => {
     await ipcRenderer.invoke("desktop-companion:save-custom-ai-prompt", prompt);
   },

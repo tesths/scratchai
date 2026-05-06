@@ -83,7 +83,12 @@ export class SessionManager {
 
   private readonly platformAdapter: ScratchPlatformAdapter;
 
-  private config: { scratchExecutablePath?: string; customAiApiKey?: string; customAiPrompt?: string } = {};
+  private config: {
+    scratchExecutablePath?: string;
+    customAiApiKey?: string;
+    customAiModel?: string;
+    customAiPrompt?: string;
+  } = {};
 
   private activeLaunchSession?: ScratchLaunchSession;
 
@@ -151,6 +156,7 @@ export class SessionManager {
         currentTargetPrograms: [],
         aiConfigured: false,
         aiCustomKeyConfigured: false,
+        aiCustomModelConfigured: false,
         aiCustomPromptConfigured: false,
         aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
         aiStatus: "idle"
@@ -204,6 +210,15 @@ export class SessionManager {
 
   async clearCustomAiApiKey() {
     this.config = await this.configStore.clearCustomAiApiKey();
+    await this.refreshAiConfig();
+    this.stateStore.update({
+      ...this.getAiStatePatch(),
+      aiError: undefined
+    });
+  }
+
+  async saveCustomAiModel(model: string) {
+    this.config = await this.configStore.saveCustomAiModel(model);
     await this.refreshAiConfig();
     this.stateStore.update({
       ...this.getAiStatePatch(),
@@ -579,6 +594,7 @@ export class SessionManager {
       currentTargetPrograms: [],
       aiConfigured: this.aiConfig?.configured ?? false,
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
+      aiCustomModelConfigured: Boolean(trimText(this.config.customAiModel)),
       aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
       aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
       aiStatus: "idle",
@@ -601,6 +617,10 @@ export class SessionManager {
       nextState.aiModel = this.aiConfig.model;
     }
 
+    if (this.config.customAiModel) {
+      nextState.aiCustomModel = this.config.customAiModel;
+    }
+
     if (this.config.customAiPrompt) {
       nextState.aiCustomPrompt = this.config.customAiPrompt;
     }
@@ -610,7 +630,8 @@ export class SessionManager {
 
   private async refreshAiConfig() {
     this.aiConfig = await this.loadAiConfig(undefined, {
-      customApiKey: this.config.customAiApiKey
+      customApiKey: this.config.customAiApiKey,
+      customModel: this.config.customAiModel
     });
     return this.aiConfig;
   }
@@ -621,6 +642,8 @@ export class SessionManager {
       aiConfigPath: this.aiConfig?.configPath,
       aiConfigSource: this.aiConfig?.source,
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
+      aiCustomModelConfigured: Boolean(trimText(this.config.customAiModel)),
+      aiCustomModel: this.config.customAiModel,
       aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
       aiCustomPrompt: this.config.customAiPrompt,
       aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,

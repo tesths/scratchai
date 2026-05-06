@@ -30,7 +30,7 @@ test('resolvePackagedDeepSeekConfig forces placeholder key for no-key builds', (
   assert.equal(resolved.config.model, 'deepseek-v4-flash');
 });
 
-test('resolvePackagedDeepSeekConfig prefers packaged env key for with-key builds', () => {
+test('resolvePackagedDeepSeekConfig strips packaged keys even for with-key builds', () => {
   const resolved = resolvePackagedDeepSeekConfig(
     {
       apiKey: 'sk-source-demo',
@@ -43,22 +43,23 @@ test('resolvePackagedDeepSeekConfig prefers packaged env key for with-key builds
   );
 
   assert.equal(resolved.mode, 'with-key');
-  assert.equal(resolved.configured, true);
-  assert.equal(resolved.config.apiKey, 'sk-env-demo');
+  assert.equal(resolved.configured, false);
+  assert.equal(resolved.config.apiKey, DEFAULT_PACKAGED_DEEPSEEK_API_KEY);
   assert.equal(resolved.config.model, 'deepseek-v4-pro');
 });
 
-test('resolvePackagedDeepSeekConfig rejects with-key builds without a usable key', () => {
-  assert.throws(
-    () =>
-      resolvePackagedDeepSeekConfig(
-        {
-          apiKey: DEFAULT_PACKAGED_DEEPSEEK_API_KEY
-        },
-        {
-          [PACKAGED_KEY_MODE_ENV_NAME]: 'with-key'
-        }
-      ),
-    /Packaged DeepSeek key is required/
+test('resolvePackagedDeepSeekConfig strips packaged keys for source builds too', () => {
+  const resolved = resolvePackagedDeepSeekConfig(
+    {
+      apiKey: 'sk-source-demo',
+      model: 'deepseek-v4-flash',
+      timeoutMs: 20000
+    },
+    {}
   );
+
+  assert.equal(resolved.mode, 'source');
+  assert.equal(resolved.configured, false);
+  assert.equal(resolved.config.apiKey, DEFAULT_PACKAGED_DEEPSEEK_API_KEY);
+  assert.equal(resolved.config.timeoutMs, 20000);
 });

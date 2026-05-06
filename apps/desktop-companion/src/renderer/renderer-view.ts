@@ -106,7 +106,7 @@ export function formatAiStatus(state: DesktopCompanionState) {
   if (state.aiCoachResponse && state.aiProvider === "fallback") {
     return state.aiError
       ? "DeepSeek 暂时不可用，已自动切到基础提示。"
-      : "当前提示来源：基础提示。需要更完整结果时，可到“DeepSeek 设置”里配置 API Key。";
+      : "当前提示来源：基础提示。需要更完整结果时，可到“DeepSeek 设置”里保存本机 API Key。";
   }
 
   if (state.status === "connected") {
@@ -114,7 +114,7 @@ export function formatAiStatus(state: DesktopCompanionState) {
   }
 
   if (!state.aiConfigured) {
-    return "还没配置 DeepSeek 也可以先用。点击“生成下一步提示”后，程序会先给基础提示；需要更完整结果时，再到“DeepSeek 设置”里配置 API Key。";
+    return "还没配置本机 DeepSeek Key 也可以先用。点击“生成下一步提示”后，程序会先给基础提示；需要更完整结果时，再到“DeepSeek 设置”里保存 API Key。";
   }
 
   return "准备好了：先选择 Scratch 软件，打开已选 Scratch，再读取当前作品。";
@@ -146,15 +146,7 @@ export function formatCompactStatus(state: DesktopCompanionState) {
 
 export function formatAiConfigSourceLabel(source?: DesktopCompanionState["aiConfigSource"]) {
   if (source === "custom") {
-    return "设置窗口里保存的自定义 Key";
-  }
-
-  if (source === "env") {
-    return "环境变量 DEEPSEEK_API_KEY";
-  }
-
-  if (source === "packaged") {
-    return "程序自带 deepseek.config.json";
+    return "本机已保存 Key";
   }
 
   return "当前没有可用来源";
@@ -162,18 +154,10 @@ export function formatAiConfigSourceLabel(source?: DesktopCompanionState["aiConf
 
 export function formatAiConfigSummary(state: DesktopCompanionState) {
   if (state.aiConfigSource === "custom") {
-    return "当前优先使用设置页里保存的自定义 DeepSeek Key。";
+    return "当前使用本机保存的 DeepSeek Key。";
   }
 
-  if (state.aiConfigSource === "env") {
-    return "当前优先使用环境变量 DEEPSEEK_API_KEY。";
-  }
-
-  if (state.aiConfigSource === "packaged") {
-    return "当前优先使用程序自带的 DeepSeek 配置。";
-  }
-
-  return "当前还没有可用的 DeepSeek Key。";
+  return "当前还没有保存本机 DeepSeek Key。";
 }
 
 export function formatDefaultDetail(state: DesktopCompanionState) {

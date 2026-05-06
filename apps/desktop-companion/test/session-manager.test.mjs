@@ -32,12 +32,14 @@ function createAiConfigMock(overrides = {}) {
 function createConfigStoreMock(initialPath = undefined) {
   let scratchExecutablePath = initialPath;
   let customAiApiKey;
+  let customAiModel;
   let customAiPrompt;
 
   return {
     load: async () => ({
       ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
       ...(customAiApiKey ? { customAiApiKey } : {}),
+      ...(customAiModel ? { customAiModel } : {}),
       ...(customAiPrompt ? { customAiPrompt } : {})
     }),
     saveScratchExecutablePath: async (value) => {
@@ -45,6 +47,7 @@ function createConfigStoreMock(initialPath = undefined) {
       return {
         ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
         ...(customAiApiKey ? { customAiApiKey } : {}),
+        ...(customAiModel ? { customAiModel } : {}),
         ...(customAiPrompt ? { customAiPrompt } : {})
       };
     },
@@ -53,6 +56,7 @@ function createConfigStoreMock(initialPath = undefined) {
       return {
         ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
         ...(customAiApiKey ? { customAiApiKey } : {}),
+        ...(customAiModel ? { customAiModel } : {}),
         ...(customAiPrompt ? { customAiPrompt } : {})
       };
     },
@@ -60,6 +64,24 @@ function createConfigStoreMock(initialPath = undefined) {
       customAiApiKey = undefined;
       return {
         ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
+        ...(customAiModel ? { customAiModel } : {}),
+        ...(customAiPrompt ? { customAiPrompt } : {})
+      };
+    },
+    saveCustomAiModel: async (value) => {
+      customAiModel = value;
+      return {
+        ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
+        ...(customAiApiKey ? { customAiApiKey } : {}),
+        ...(customAiModel ? { customAiModel } : {}),
+        ...(customAiPrompt ? { customAiPrompt } : {})
+      };
+    },
+    clearCustomAiModel: async () => {
+      customAiModel = undefined;
+      return {
+        ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
+        ...(customAiApiKey ? { customAiApiKey } : {}),
         ...(customAiPrompt ? { customAiPrompt } : {})
       };
     },
@@ -68,6 +90,7 @@ function createConfigStoreMock(initialPath = undefined) {
       return {
         ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
         ...(customAiApiKey ? { customAiApiKey } : {}),
+        ...(customAiModel ? { customAiModel } : {}),
         ...(customAiPrompt ? { customAiPrompt } : {})
       };
     },
@@ -75,7 +98,8 @@ function createConfigStoreMock(initialPath = undefined) {
       customAiPrompt = undefined;
       return {
         ...(scratchExecutablePath ? { scratchExecutablePath } : {}),
-        ...(customAiApiKey ? { customAiApiKey } : {})
+        ...(customAiApiKey ? { customAiApiKey } : {}),
+        ...(customAiModel ? { customAiModel } : {})
       };
     }
   };
@@ -439,13 +463,22 @@ test("SessionManager can switch to a saved custom AI key", async () => {
         savedCustomKey = "";
         return { scratchExecutablePath: "C:\\Scratch 3.exe" };
       },
+      saveCustomAiModel: async (value) => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        customAiApiKey: savedCustomKey || undefined,
+        customAiModel: value
+      }),
+      clearCustomAiModel: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        customAiApiKey: savedCustomKey || undefined
+      }),
       saveCustomAiPrompt: async (value) => ({ scratchExecutablePath: "C:\\Scratch 3.exe", customAiPrompt: value }),
       clearCustomAiPrompt: async () => ({ scratchExecutablePath: "C:\\Scratch 3.exe" })
     },
     loadAiConfig: async (_configPath, options) => ({
       configured: Boolean(options?.customApiKey),
       baseUrl: "https://api.deepseek.com",
-      model: "deepseek-v4-flash",
+      model: options?.customModel ?? "deepseek-v4-flash",
       timeoutMs: 20000,
       configPath: "C:\\config\\deepseek.config.json",
       customKeyConfigured: Boolean(options?.customApiKey),
@@ -468,6 +501,44 @@ test("SessionManager can switch to a saved custom AI key", async () => {
   const clearedState = stateStore.getState();
   assert.equal(clearedState.aiConfigured, false);
   assert.equal(clearedState.aiCustomKeyConfigured, false);
+});
+
+test("SessionManager saves a custom AI model and exposes it in state", async () => {
+  const stateStore = new StateStore();
+  const capturedOptions = [];
+  const manager = new SessionManager(stateStore, {
+    bridgeServer: createBridgeServerMock(),
+    platform: "win32",
+    log: () => {},
+    configStore: createConfigStoreMock("C:\\Scratch 3.exe"),
+    loadAiConfig: async (_configPath, options) => {
+      capturedOptions.push(options);
+      return {
+        configured: Boolean(options?.customApiKey),
+        baseUrl: "https://api.deepseek.com",
+        model: options?.customModel ?? "deepseek-v4-flash",
+        timeoutMs: 20000,
+        configPath: "C:\\config\\deepseek.config.json",
+        customKeyConfigured: Boolean(options?.customApiKey),
+        source: options?.customApiKey ? "custom" : undefined,
+        ...(options?.customApiKey ? { apiKey: options.customApiKey } : {})
+      };
+    },
+    scratchLauncher: {},
+    scratchRemoteDebugger: {}
+  });
+
+  await manager.start();
+  await manager.saveCustomAiModel("deepseek-v4-pro");
+
+  const nextState = stateStore.getState();
+  assert.equal(nextState.aiModel, "deepseek-v4-pro");
+  assert.equal(nextState.aiCustomModelConfigured, true);
+  assert.equal(nextState.aiCustomModel, "deepseek-v4-pro");
+  assert.deepEqual(capturedOptions.at(-1), {
+    customApiKey: undefined,
+    customModel: "deepseek-v4-pro"
+  });
 });
 
 test("SessionManager saves a custom teacher prompt and reuses it for hint generation", async () => {

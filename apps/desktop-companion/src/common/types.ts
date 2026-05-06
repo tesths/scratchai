@@ -16,7 +16,7 @@ export type AiHintStatus = "idle" | "loading" | "ready" | "error";
 
 export type AiHintProvider = "deepseek" | "fallback";
 
-export type AiConfigSource = "custom" | "env" | "packaged";
+export type AiConfigSource = "custom";
 
 export interface RecommendedBlock {
   opcode: string;
@@ -126,6 +126,8 @@ export interface DesktopCompanionState {
   aiConfigPath?: string;
   aiConfigSource?: AiConfigSource;
   aiCustomKeyConfigured: boolean;
+  aiCustomModelConfigured: boolean;
+  aiCustomModel?: string;
   aiCustomPromptConfigured: boolean;
   aiCustomPrompt?: string;
   aiDefaultPrompt?: string;

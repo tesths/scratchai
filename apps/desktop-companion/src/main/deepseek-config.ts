@@ -2,8 +2,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { DEFAULT_DEEPSEEK_MODEL, normalizeDeepSeekModel } from "../common/deepseek";
+
 const DEFAULT_DEEPSEEK_BASE_URL = "https://api.deepseek.com";
-const DEFAULT_DEEPSEEK_MODEL = "deepseek-v4-flash";
 const DEFAULT_DEEPSEEK_TIMEOUT_MS = 20_000;
 const PLACEHOLDER_API_KEYS = new Set([
   "",
@@ -11,7 +12,7 @@ const PLACEHOLDER_API_KEYS = new Set([
   "YOUR_DEEPSEEK_API_KEY"
 ]);
 
-export type DeepSeekConfigSource = "custom" | "env" | "packaged";
+export type DeepSeekConfigSource = "custom";
 
 export interface LoadedDeepSeekConfig {
   configured: boolean;
@@ -26,6 +27,7 @@ export interface LoadedDeepSeekConfig {
 
 interface LoadDeepSeekConfigOptions {
   customApiKey?: string;
+  customModel?: string;
 }
 
 function normalizeBaseUrl(value: unknown) {
@@ -34,8 +36,7 @@ function normalizeBaseUrl(value: unknown) {
 }
 
 function normalizeModel(value: unknown) {
-  const candidate = typeof value === "string" ? value.trim() : "";
-  return candidate || DEFAULT_DEEPSEEK_MODEL;
+  return normalizeDeepSeekModel(value);
 }
 
 function normalizeTimeout(value: unknown) {
@@ -75,16 +76,15 @@ export async function loadDeepSeekConfig(
   }
 
   const customApiKey = typeof options.customApiKey === "string" ? options.customApiKey.trim() : "";
-  const envApiKey = process.env.DEEPSEEK_API_KEY?.trim() ?? "";
-  const fileApiKey = typeof parsed.apiKey === "string" ? parsed.apiKey.trim() : "";
-  const apiKey = customApiKey || envApiKey || fileApiKey;
+  const customModel = normalizeModel(options.customModel);
+  const apiKey = customApiKey;
   const configured = Boolean(apiKey && !PLACEHOLDER_API_KEYS.has(apiKey));
   const customKeyConfigured = Boolean(customApiKey && !PLACEHOLDER_API_KEYS.has(customApiKey));
 
   const config: LoadedDeepSeekConfig = {
     configured,
     baseUrl: normalizeBaseUrl(parsed.baseUrl),
-    model: normalizeModel(parsed.model),
+    model: options.customModel ? customModel : normalizeModel(parsed.model),
     timeoutMs: normalizeTimeout(parsed.timeoutMs),
     configPath,
     customKeyConfigured
@@ -92,11 +92,7 @@ export async function loadDeepSeekConfig(
 
   if (configured) {
     config.apiKey = apiKey;
-    config.source = customKeyConfigured
-      ? "custom"
-      : envApiKey && !PLACEHOLDER_API_KEYS.has(envApiKey)
-        ? "env"
-        : "packaged";
+    config.source = "custom";
   }
 
   return config;

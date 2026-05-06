@@ -151,7 +151,9 @@
         word-break: break-word;
       }
 
-      input[type="password"] {
+      input[type="password"],
+      select,
+      textarea {
         width: 100%;
         min-height: var(--control-height);
         border: 1px solid var(--line);
@@ -159,6 +161,19 @@
         padding: 0 12px;
         font: inherit;
         font-size: var(--text-note);
+        background: #fff;
+        color: var(--ink);
+      }
+
+      select {
+        appearance: none;
+      }
+
+      textarea {
+        min-height: 160px;
+        padding: 10px 12px;
+        line-height: 1.55;
+        resize: vertical;
       }
 
       .action-row {
@@ -227,9 +242,9 @@
     <main class="shell">
       <section class="hero">
         <p class="eyebrow">DeepSeek Settings</p>
-        <h1>本地 API Key 配置</h1>
+        <h1>DeepSeek 本地设置</h1>
         <p class="hero-copy">
-          这里仅保存当前电脑要使用的 DeepSeek API Key。首页不展示这些技术配置，只保留学习流程。
+          这里只保存当前电脑要使用的 DeepSeek Key、模型和提示词，不再支持本地直接填写其他 DeepSeek 连接配置。
         </p>
         <p id="settings-status" class="status-pill">正在读取当前配置…</p>
       </section>
@@ -247,15 +262,19 @@
             <strong id="settings-current-model">正在读取…</strong>
           </div>
           <div class="meta-card">
-            <span>程序自带配置文件</span>
+            <span>程序默认配置文件</span>
             <strong id="settings-config-path">正在读取…</strong>
+          </div>
+          <div class="meta-card">
+            <span>提示词状态</span>
+            <strong id="settings-current-prompt-status">正在读取…</strong>
           </div>
         </div>
       </section>
 
       <section class="panel">
-        <h2>自定义 API Key</h2>
-        <p class="note">只在当前电脑本地保存。保存后优先使用这里的 Key；清除后回退到环境变量和程序自带配置。</p>
+        <h2>DeepSeek API Key</h2>
+        <p class="note">只在当前电脑本地保存。保存后直接用于在线提示；清除后不再请求 DeepSeek，而是自动使用基础提示。</p>
         <input
           id="settings-custom-ai-api-key"
           type="password"
@@ -267,6 +286,31 @@
         </div>
         <p id="settings-feedback" hidden></p>
         <p id="settings-error" hidden></p>
+      </section>
+
+      <section class="panel">
+        <h2>模型选择</h2>
+        <p class="note">模型必须从固定选项中选择，并保存在本机。</p>
+        <select id="settings-custom-ai-model">
+          <option value="deepseek-v4-flash">deepseek-v4-flash</option>
+          <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+        </select>
+        <div class="action-row">
+          <button id="settings-save-custom-ai-model-button" class="button primary" type="button">保存模型</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>提示词</h2>
+        <p class="note">这里的提示词会传给 DeepSeek，可按本机需求单独修改并本地保存。</p>
+        <textarea
+          id="settings-custom-ai-prompt"
+          placeholder="输入要传给 DeepSeek 的提示词"
+        ></textarea>
+        <div class="action-row">
+          <button id="settings-save-custom-ai-prompt-button" class="button primary" type="button">保存提示词</button>
+          <button id="settings-clear-custom-ai-prompt-button" class="button secondary" type="button">恢复默认提示词</button>
+        </div>
       </section>
     </main>
     <script type="module" src="./settings-renderer.js"></script>

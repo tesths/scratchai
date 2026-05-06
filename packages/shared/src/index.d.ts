@@ -76,7 +76,7 @@ export type CoachResponse = {
   followUpQuestion?: string;
 };
 
-export type AiConfigSource = "custom" | "env" | "packaged";
+export type AiConfigSource = "custom";
 
 export type DesktopCompanionState = {
   status: "starting" | "waiting" | "injecting" | "connected" | "error" | "unsupported";
@@ -101,6 +101,8 @@ export type DesktopCompanionState = {
   aiConfigPath?: string;
   aiConfigSource?: AiConfigSource;
   aiCustomKeyConfigured: boolean;
+  aiCustomModelConfigured: boolean;
+  aiCustomModel?: string;
   aiCustomPromptConfigured: boolean;
   aiCustomPrompt?: string;
   aiDefaultPrompt?: string;

@@ -46,8 +46,6 @@
 
 - `../../installers/ScratchDesktopCompanion-setup.exe`
 - `../../installers/ScratchDesktopCompanion-portable.exe`
-- `../../installers/ScratchDesktopCompanion-with-key-setup.exe`
-- `../../installers/ScratchDesktopCompanion-with-key-portable.exe`
 - `../../installers/ScratchDesktopCompanion-win-unpacked/ScratchDesktopCompanion.exe`
 - `../../installers/SHA256SUMS.txt`
 - `../../installers/RELEASE-NOTES.md`
@@ -55,7 +53,7 @@
 说明：
 
 - 单机或小规模部署可以优先使用 `../../installers/ScratchDesktopCompanion-setup.exe`
-- 如果交付目标是“开箱即可直接使用已打包的 DeepSeek 配置”，优先发 `../../installers/ScratchDesktopCompanion-with-key-setup.exe` 或 `../../installers/ScratchDesktopCompanion-with-key-portable.exe`
+- DeepSeek Key 现在统一由设置页在本机填写和保存，不再依赖带内置 Key 的安装包
 - 发包前可以对照 `../../installers/SHA256SUMS.txt` 校验文件，并查看 `../../installers/RELEASE-NOTES.md` 确认本次交付说明
 - `win-unpacked` 是当前最稳的交付形态，优先使用根目录 `../../installers/ScratchDesktopCompanion-win-unpacked/`
 - `portable.exe` 可发现场，但启动速度通常慢于 `win-unpacked`

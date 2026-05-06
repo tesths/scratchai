@@ -1,6 +1,7 @@
 import { desktopCompanionStateSchema } from "@scratch-ai/shared";
 
 import { formatAiConfigSourceLabel, formatAiConfigSummary } from "./renderer-view";
+import { DEFAULT_DEEPSEEK_MODEL, normalizeDeepSeekModel } from "../common/deepseek";
 import type { DesktopCompanionApi } from "../common/desktop-companion-api";
 import type { DesktopCompanionState } from "../common/types";
 
@@ -22,6 +23,10 @@ const saveCustomAiApiKeyButton = document.getElementById(
 ) as HTMLButtonElement | null;
 const clearCustomAiApiKeyButton = document.getElementById(
   "settings-clear-custom-ai-api-key-button"
+) as HTMLButtonElement | null;
+const customAiModelSelect = document.getElementById("settings-custom-ai-model") as HTMLSelectElement | null;
+const saveCustomAiModelButton = document.getElementById(
+  "settings-save-custom-ai-model-button"
 ) as HTMLButtonElement | null;
 const customAiPromptInput = document.getElementById("settings-custom-ai-prompt") as HTMLTextAreaElement | null;
 const saveCustomAiPromptButton = document.getElementById(
@@ -99,8 +104,8 @@ function normalizeState(rawState: unknown): DesktopCompanionState {
 function renderState(state: DesktopCompanionState) {
   if (statusElement) {
     statusElement.textContent = state.aiConfigured
-      ? "已检测到可用的 DeepSeek 配置"
-      : "当前还没有可用的 DeepSeek 配置";
+      ? "已检测到本机可用 DeepSeek Key"
+      : "当前还没有保存本机 DeepSeek Key";
   }
 
   if (configSummaryElement) {
@@ -112,7 +117,7 @@ function renderState(state: DesktopCompanionState) {
   }
 
   if (configModelElement) {
-    configModelElement.textContent = state.aiModel ?? "deepseek-v4-flash";
+    configModelElement.textContent = state.aiModel ?? DEFAULT_DEEPSEEK_MODEL;
   }
 
   if (configPathElement) {
@@ -135,6 +140,15 @@ function renderState(state: DesktopCompanionState) {
 
   if (clearCustomAiApiKeyButton) {
     clearCustomAiApiKeyButton.disabled = state.aiStatus === "loading" || !state.aiCustomKeyConfigured;
+  }
+
+  if (customAiModelSelect) {
+    customAiModelSelect.disabled = state.aiStatus === "loading";
+    customAiModelSelect.value = normalizeDeepSeekModel(state.aiCustomModel ?? state.aiModel);
+  }
+
+  if (saveCustomAiModelButton) {
+    saveCustomAiModelButton.disabled = state.aiStatus === "loading";
   }
 
   syncCustomPromptInput(state.aiCustomPrompt, state.aiDefaultPrompt);
@@ -170,7 +184,7 @@ saveCustomAiApiKeyButton?.addEventListener("click", () => {
         customAiApiKeyInput.value = "";
       }
 
-      showMessage("已保存自定义 DeepSeek API Key，后续会优先使用它。", "success");
+      showMessage("已保存本机 DeepSeek API Key。", "success");
     })
     .catch((error) => {
       showMessage(error instanceof Error ? error.message : "保存自定义 DeepSeek API Key 失败，请查看日志。", "error");
@@ -197,7 +211,7 @@ clearCustomAiApiKeyButton?.addEventListener("click", () => {
         customAiApiKeyInput.value = "";
       }
 
-      showMessage("已清除自定义 DeepSeek API Key，程序会按环境变量和内置配置继续回退。", "success");
+      showMessage("已清除本机 DeepSeek API Key，后续会自动使用基础提示。", "success");
     })
     .catch((error) => {
       showMessage(error instanceof Error ? error.message : "清除自定义 DeepSeek API Key 失败，请查看日志。", "error");
@@ -211,6 +225,30 @@ clearCustomAiApiKeyButton?.addEventListener("click", () => {
     });
 });
 
+saveCustomAiModelButton?.addEventListener("click", () => {
+  saveCustomAiModelButton.disabled = true;
+  const model = normalizeDeepSeekModel(customAiModelSelect?.value);
+
+  void Promise.resolve()
+    .then(() => {
+      clearError();
+      return getDesktopCompanionApi().saveCustomAiModel(model);
+    })
+    .then(() => {
+      showMessage(`已保存模型：${model}。`, "success");
+    })
+    .catch((error) => {
+      showMessage(error instanceof Error ? error.message : "保存模型失败，请查看日志。", "error");
+    })
+    .finally(() => {
+      window.setTimeout(() => {
+        if (saveCustomAiModelButton) {
+          saveCustomAiModelButton.disabled = false;
+        }
+      }, 400);
+    });
+});
+
 saveCustomAiPromptButton?.addEventListener("click", () => {
   saveCustomAiPromptButton.disabled = true;
   const prompt = customAiPromptInput?.value?.trim() ?? "";
@@ -219,16 +257,16 @@ saveCustomAiPromptButton?.addEventListener("click", () => {
     .then(() => {
       clearError();
       if (!prompt) {
-        throw new Error("请先输入教师提示词。");
+        throw new Error("请先输入要传给 DeepSeek 的提示词。");
       }
 
       return getDesktopCompanionApi().saveCustomAiPrompt(prompt);
     })
     .then(() => {
-      showMessage("已保存教师提示词，后续生成的下一步提示会优先使用它。", "success");
+      showMessage("已保存本机提示词，后续生成提示会优先使用它。", "success");
     })
     .catch((error) => {
-      showMessage(error instanceof Error ? error.message : "保存教师提示词失败，请查看日志。", "error");
+      showMessage(error instanceof Error ? error.message : "保存提示词失败，请查看日志。", "error");
     })
     .finally(() => {
       window.setTimeout(() => {
@@ -252,10 +290,10 @@ clearCustomAiPromptButton?.addEventListener("click", () => {
         customAiPromptInput.value = lastDefaultPromptFromState;
       }
       lastPromptFromState = lastDefaultPromptFromState;
-      showMessage("已恢复默认教师提示词。", "success");
+      showMessage("已恢复默认提示词。", "success");
     })
     .catch((error) => {
-      showMessage(error instanceof Error ? error.message : "恢复默认教师提示词失败，请查看日志。", "error");
+      showMessage(error instanceof Error ? error.message : "恢复默认提示词失败，请查看日志。", "error");
     })
     .finally(() => {
       window.setTimeout(() => {
