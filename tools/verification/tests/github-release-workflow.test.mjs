@@ -13,8 +13,9 @@ test("desktop release workflow packages Windows and macOS artifacts for PRs and 
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /-\s*"tsconfig\.base\.json"/);
 
-  assert.match(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-2025/);
+  assert.match(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-2022/);
   assert.doesNotMatch(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-latest/);
+  assert.doesNotMatch(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-2025/);
   assert.doesNotMatch(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-2025-vs2026/);
   assert.match(workflow, /windows:\s*\n[\s\S]*npm run package:win:bundle/);
   assert.match(workflow, /windows:\s*\n[\s\S]*name:\s*scratch-desktop-companion-windows/);

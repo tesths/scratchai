@@ -10,8 +10,9 @@ test("ci workflow keeps cross-platform workspace checks on the expected matrix",
 
   assert.match(workflow, /workspace-check:/);
   assert.match(workflow, /-\s*ubuntu-latest/);
-  assert.match(workflow, /-\s*windows-2025/);
+  assert.match(workflow, /-\s*windows-2022/);
   assert.doesNotMatch(workflow, /-\s*windows-latest/);
+  assert.doesNotMatch(workflow, /-\s*windows-2025/);
   assert.doesNotMatch(workflow, /-\s*windows-2025-vs2026/);
   assert.match(workflow, /-\s*macos-latest/);
   assert.match(workflow, /npm run build/);

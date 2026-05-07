@@ -7,6 +7,7 @@
 
 ## 已完成
 
+- 2026-05-07：将 GitHub Actions Windows runner 从 `windows-2025` 调整为 `windows-2022`：在保留 `actions/checkout` / `actions/setup-node` 的 Node 24 runtime 升级基础上，把 `CI` 与 `Desktop Release Artifacts` 的 Windows job 改回稳定的 `windows-2022`，避开 `windows-2025` 重定向 notice；同步将 workflow 回归测试口径改到 `windows-2022`。已按 TDD 先让 workflow 测试失败，再完成修复，并通过根级 `npm run test`。
 - 2026-05-07：收口 GitHub Actions runtime 弃用告警：为 `CI` 与 `Desktop Release Artifacts` workflow 升级 `actions/checkout`、`actions/setup-node` 到 Node 24 runtime 的最新 major，并将产物上传同步升级；同时把 Windows runner 从 `windows-latest` 明确钉到 GA 的 `windows-2025`，避免继续依赖 `latest` alias 漂移，但不切到 GitHub 标记为 Beta 的 `windows-2025-vs2026`。已补 workflow 回归测试，并完成根级 `npm run test`。
 - 2026-05-07：修复 GitHub Actions `Desktop Release Artifacts` 的 Windows bundle 出包入口：定位到 `package-win-bundle.mjs` 在 import 阶段就错误读取不存在的 `src/deepseek.config.json`，导致 `npm run package:win:bundle` 直接失败；现已改为显式 `main()` 入口、使用真实的 `src/main/deepseek.config.json`，并将 bundle 子脚本统一改成 `--skip-installers-copy` 后由 bundle 脚本自己收口 root `installers/` 中的 exe / `win-unpacked`。已新增定向回归测试，并完成 `desktop-companion` 全量测试与根级 `npm run test`。
 - 2026-05-07：修复 GitHub Actions Windows runner 上 `@scratch-ai/desktop-companion` 的 7 个测试回归：定位到两类跨平台测试脆弱点，一是 `electron-builder-config.test.mjs` 使用 `URL.pathname` 组本地路径，Windows 下会把 `C:` 盘符变成非法伪路径；二是 symlink / macOS 缓存目录相关测试默认假设 POSIX 分隔符和相对 symlink 能力。现已改为 `fileURLToPath(...)`、按当前平台路径规则断言，并为相对 symlink 用例先做能力探测后再执行或跳过；已完成 `desktop-companion` 全量单测与根级 `npm run test`。
