@@ -30,6 +30,7 @@ test("probeElectronBinarySupport reports SIGABRT environments as unsupported", (
 test("probeMacDmgSupport reports support when hdiutil succeeds", () => {
   const result = probeMacDmgSupport({
     platform: "darwin",
+    osRelease: "22.6.0",
     tempDir: "/private/tmp",
     spawnSyncImpl: () => ({
       status: 0,
@@ -45,6 +46,7 @@ test("probeMacDmgSupport reports support when hdiutil succeeds", () => {
 test("probeMacDmgSupport recognizes Device not configured failures", () => {
   const result = probeMacDmgSupport({
     platform: "darwin",
+    osRelease: "22.6.0",
     tempDir: "/private/tmp",
     spawnSyncImpl: () => ({
       status: 1,
@@ -56,4 +58,18 @@ test("probeMacDmgSupport recognizes Device not configured failures", () => {
 
   assert.equal(result.supported, false);
   assert.equal(result.reason.includes("Device not configured"), true);
+});
+
+test("probeMacDmgSupport rejects older Darwin runtimes before invoking dmg tooling", () => {
+  const result = probeMacDmgSupport({
+    platform: "darwin",
+    osRelease: "21.6.0",
+    tempDir: "/private/tmp",
+    spawnSyncImpl: () => {
+      throw new Error("spawn should not be called");
+    }
+  });
+
+  assert.equal(result.supported, false);
+  assert.equal(result.reason.includes("Darwin 22"), true);
 });

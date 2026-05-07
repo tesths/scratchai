@@ -7,6 +7,9 @@ import { build } from "electron-builder";
 
 import { probeMacDmgSupport } from "../../../tools/verification/scripts/runtime-support.mjs";
 import { copyFileWithRetry, copyPathWithRetry } from "./copy-with-retry.mjs";
+import {
+  buildDesktopCompanionBuilderBaseConfig
+} from "./electron-builder-config.mjs";
 import { getMacDistributionArtifactInfo } from "./package-artifact-layout.mjs";
 import {
   getPackageVariantMeta,
@@ -79,18 +82,10 @@ export function buildMacBuilderConfig({
     ? env[MAC_SIGN_IDENTITY_ENV_NAME].trim()
     : "";
   const config = {
-    appId: "com.scratchai.desktopcompanion",
-    productName: "ScratchDesktopCompanion",
-    compression: "maximum",
-    electronLanguages: ["zh-CN", "en-US"],
-    directories: {
-      output: outputDir
-    },
-    files: ["dist/**/*", "node_modules/**/*", "package.json"],
-    extraMetadata: {
-      main: "dist/main.js"
-    },
-    asar: true,
+    ...buildDesktopCompanionBuilderBaseConfig({
+      appDir,
+      outputDir
+    }),
     mac: {
       category: "public.app-category.education",
       icon: path.join(appDir, "buildResources", "ScratchDesktop.icns"),

@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, mkdir, readlink, symlink, writeFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
 
@@ -12,6 +13,8 @@ import {
   parseMacPackageTargetArg,
   resolveMacBuildCacheEnv
 } from "../scripts/package-mac.mjs";
+
+const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("parseMacPackageTargetArg defaults to dir", () => {
   assert.equal(parseMacPackageTargetArg(["node", "package-mac.mjs"]), "dir");
@@ -48,7 +51,7 @@ test("getMacPackageArtifactInfo keeps with-key variants explicit", () => {
 
 test("buildMacBuilderConfig disables signing by default for internal macOS builds", () => {
   const config = buildMacBuilderConfig({
-    appDir: "/tmp/scratchai/apps/desktop-companion",
+    appDir,
     outputDir: "/tmp/scratchai/apps/desktop-companion/release-mac-no-key",
     target: "dir",
     env: {}
@@ -57,13 +60,13 @@ test("buildMacBuilderConfig disables signing by default for internal macOS build
   assert.equal(config.mac.identity, null);
   assert.equal(
     config.mac.icon,
-    "/tmp/scratchai/apps/desktop-companion/buildResources/ScratchDesktop.icns"
+    path.join(appDir, "buildResources", "ScratchDesktop.icns")
   );
 });
 
 test("buildMacBuilderConfig allows explicit signing identity overrides", () => {
   const config = buildMacBuilderConfig({
-    appDir: "/tmp/scratchai/apps/desktop-companion",
+    appDir,
     outputDir: "/tmp/scratchai/apps/desktop-companion/release-dmg-with-key",
     target: "dmg",
     env: {

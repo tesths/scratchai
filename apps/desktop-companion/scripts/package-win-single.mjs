@@ -4,45 +4,27 @@ import {fileURLToPath} from 'node:url';
 
 import {build} from 'electron-builder';
 import {copyFileWithRetry, copyPathWithRetry} from './copy-with-retry.mjs';
+import {
+    buildDesktopCompanionBuilderBaseConfig
+} from './electron-builder-config.mjs';
 import {getWindowsDistributionArtifactInfo} from './package-artifact-layout.mjs';
 import {getPackageVariantMeta, hasCliFlag, parsePackageVariantArg, runBuildForVariant} from './package-variant.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const thisFilePath = fileURLToPath(import.meta.url);
 const appDir = path.resolve(__dirname, '..');
 const iconPath = path.join(appDir, 'buildResources', 'ScratchDesktop.ico');
-const variant = parsePackageVariantArg(process.argv);
-const variantMeta = getPackageVariantMeta(variant);
-const distributionInfo = getWindowsDistributionArtifactInfo(variant);
-const outputDir = path.join(appDir, `release-single${variantMeta.outputDirSuffix}`);
-const portableFileName = `${variantMeta.artifactBaseName}-portable.exe`;
-const rootInstallersDir = path.resolve(appDir, '..', '..', 'installers');
-const rootPortablePath = path.join(rootInstallersDir, distributionInfo.portableFileName);
-const rootUnpackedPath = path.join(rootInstallersDir, distributionInfo.unpackedDirName);
-
-if (!hasCliFlag(process.argv, '--skip-build')) {
-    runBuildForVariant(appDir, variant);
-}
-
-await build({
-    projectDir: appDir,
-    targets: undefined,
-    config: {
-        appId: 'com.scratchai.desktopcompanion',
-        productName: 'ScratchDesktopCompanion',
-        compression: 'maximum',
-        electronLanguages: ['zh-CN', 'en-US'],
-        directories: {
-            output: outputDir
-        },
-        files: [
-            'dist/**/*',
-            'node_modules/**/*',
-            'package.json'
-        ],
-        extraMetadata: {
-            main: 'dist/main.js'
-        },
-        asar: true,
+export function buildWindowsPortableBuilderConfig({
+    appDir,
+    outputDir,
+    iconPath,
+    artifactBaseName
+}) {
+    return {
+        ...buildDesktopCompanionBuilderBaseConfig({
+            appDir,
+            outputDir
+        }),
         win: {
             icon: iconPath,
             target: [
@@ -52,18 +34,48 @@ await build({
                 }
             ]
         },
-        artifactName: `${variantMeta.artifactBaseName}-portable.\${ext}`
-    }
-});
-
-if (!hasCliFlag(process.argv, '--skip-installers-copy')) {
-    await mkdir(rootInstallersDir, {recursive: true});
-    await copyFileWithRetry(path.join(outputDir, portableFileName), rootPortablePath);
-    await copyPathWithRetry(path.join(outputDir, 'win-unpacked'), rootUnpackedPath);
+        artifactName: `${artifactBaseName}-portable.\${ext}`
+    };
 }
 
-process.stdout.write(`Portable build (${variantMeta.displayName}) written to ${outputDir}\n`);
-if (!hasCliFlag(process.argv, '--skip-installers-copy')) {
-    process.stdout.write(`Portable copied to root installers folder: ${rootPortablePath}\n`);
-    process.stdout.write(`win-unpacked copied to root installers folder: ${rootUnpackedPath}\n`);
+async function main() {
+    const variant = parsePackageVariantArg(process.argv);
+    const variantMeta = getPackageVariantMeta(variant);
+    const distributionInfo = getWindowsDistributionArtifactInfo(variant);
+    const outputDir = path.join(appDir, `release-single${variantMeta.outputDirSuffix}`);
+    const portableFileName = `${variantMeta.artifactBaseName}-portable.exe`;
+    const rootInstallersDir = path.resolve(appDir, '..', '..', 'installers');
+    const rootPortablePath = path.join(rootInstallersDir, distributionInfo.portableFileName);
+    const rootUnpackedPath = path.join(rootInstallersDir, distributionInfo.unpackedDirName);
+
+    if (!hasCliFlag(process.argv, '--skip-build')) {
+        runBuildForVariant(appDir, variant);
+    }
+
+    await build({
+        projectDir: appDir,
+        targets: undefined,
+        config: buildWindowsPortableBuilderConfig({
+            appDir,
+            outputDir,
+            iconPath,
+            artifactBaseName: variantMeta.artifactBaseName
+        })
+    });
+
+    if (!hasCliFlag(process.argv, '--skip-installers-copy')) {
+        await mkdir(rootInstallersDir, {recursive: true});
+        await copyFileWithRetry(path.join(outputDir, portableFileName), rootPortablePath);
+        await copyPathWithRetry(path.join(outputDir, 'win-unpacked'), rootUnpackedPath);
+    }
+
+    process.stdout.write(`Portable build (${variantMeta.displayName}) written to ${outputDir}\n`);
+    if (!hasCliFlag(process.argv, '--skip-installers-copy')) {
+        process.stdout.write(`Portable copied to root installers folder: ${rootPortablePath}\n`);
+        process.stdout.write(`win-unpacked copied to root installers folder: ${rootUnpackedPath}\n`);
+    }
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === thisFilePath) {
+    await main();
 }
