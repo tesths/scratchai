@@ -1,6 +1,10 @@
 import * as ScratchBlocks from "scratch-blocks";
+import {
+  createReadonlyWorkspaceOptions,
+  resolveScratchWorkspaceFallbackText,
+  READONLY_WORKSPACE_SCALE
+} from "../common/scratch-workspace-config";
 
-const MEDIA_PATH = "./assets/scratch-blocks-media/";
 const activeWorkspaces = new Map<HTMLElement, ScratchBlocks.WorkspaceSvg>();
 const scratchReadonlyTheme = ScratchBlocks.Theme.defineTheme("scratch-readonly", {
   blockStyles: {
@@ -200,8 +204,14 @@ function resizeWorkspaceHost(host: HTMLElement, workspace: ScratchBlocks.Workspa
 
   const bbox = blockCanvas.getBBox();
   const layout = host.dataset.layout;
-  const width = Math.max(Math.ceil(bbox.x + bbox.width + 28), layout === "inline" ? 132 : 0);
-  const height = Math.max(Math.ceil(bbox.y + bbox.height + 26), layout === "inline" ? 56 : 88);
+  const width = Math.max(
+    Math.ceil((bbox.x + bbox.width) * READONLY_WORKSPACE_SCALE + 28),
+    layout === "inline" ? 132 : 0
+  );
+  const height = Math.max(
+    Math.ceil((bbox.y + bbox.height) * READONLY_WORKSPACE_SCALE + 26),
+    layout === "inline" ? 56 : 88
+  );
 
   host.style.setProperty("--scratch-workspace-width", `${width}px`);
   host.style.setProperty("--scratch-workspace-height", `${height}px`);
@@ -216,29 +226,13 @@ function renderScratchWorkspace(host: HTMLElement) {
     return;
   }
 
+  host.classList.remove("scratch-workspace-host-fallback");
   host.replaceChildren();
 
-  const workspace = ScratchBlocks.inject(host, {
-    readOnly: true,
-    scrollbars: false,
-    trashcan: false,
-    move: {
-      drag: false,
-      scrollbars: false,
-      wheel: false
-    },
-    zoom: {
-      controls: false,
-      wheel: false,
-      pinch: false,
-      startScale: 1,
-      maxScale: 1,
-      minScale: 1
-    },
-    pathToMedia: MEDIA_PATH,
+  const workspace = ScratchBlocks.inject(host, createReadonlyWorkspaceOptions({
     scratchTheme: ScratchBlocks.ScratchBlocksTheme.CLASSIC,
     theme: scratchReadonlyTheme
-  });
+  }));
 
   const parsedXml = new DOMParser().parseFromString(xmlText, "text/xml").documentElement;
   ScratchBlocks.clearWorkspaceAndLoadFromXml(parsedXml, workspace);
@@ -263,7 +257,8 @@ export function renderScratchWorkspaces(documentRef: Document = document) {
       renderScratchWorkspace(host);
     } catch (error) {
       console.error("Failed to render Scratch workspace host", error);
-      host.textContent = "积木渲染失败";
+      host.classList.add("scratch-workspace-host-fallback");
+      host.textContent = resolveScratchWorkspaceFallbackText(host.dataset.fallbackText);
     }
   }
 }

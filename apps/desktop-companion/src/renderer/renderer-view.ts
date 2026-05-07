@@ -253,34 +253,40 @@ function createTextChild(documentRef: MinimalDocument, tagName: string, classNam
 function createScratchWorkspaceHost(
   documentRef: MinimalDocument,
   xml: string,
-  layout: "frame" | "inline"
+  layout: "frame" | "inline",
+  fallbackText?: string
 ) {
   const host = documentRef.createElement("div");
   host.className = "scratch-workspace-host";
   if (host.dataset) {
     host.dataset.xml = xml;
     host.dataset.layout = layout;
+    if (fallbackText) {
+      host.dataset.fallbackText = fallbackText;
+    }
   }
   return host;
 }
 
 function createScratchWorkspaceFrame(
   documentRef: MinimalDocument,
-  xml: string
+  xml: string,
+  fallbackText?: string
 ) {
   const frame = documentRef.createElement("div");
   frame.className = "scratch-workspace-frame";
-  frame.append(createScratchWorkspaceHost(documentRef, xml, "frame"));
+  frame.append(createScratchWorkspaceHost(documentRef, xml, "frame", fallbackText));
   return frame;
 }
 
 function createScratchWorkspaceInline(
   documentRef: MinimalDocument,
-  xml: string
+  xml: string,
+  fallbackText?: string
 ) {
   const inline = documentRef.createElement("div");
   inline.className = "scratch-workspace-inline";
-  inline.append(createScratchWorkspaceHost(documentRef, xml, "inline"));
+  inline.append(createScratchWorkspaceHost(documentRef, xml, "inline", fallbackText));
   return inline;
 }
 
@@ -288,6 +294,7 @@ function renderCurrentTargetScriptXmlList(
   documentRef: MinimalDocument,
   container: MinimalElement | null | undefined,
   xmlList: string[],
+  fallbackPrograms: string[],
   emptyText: string
 ) {
   if (!container) {
@@ -307,7 +314,7 @@ function renderCurrentTargetScriptXmlList(
     const item = documentRef.createElement("li");
     item.className = "program-item scratch-script-item";
     item.append(createTextChild(documentRef, "span", "script-pill", `脚本 ${index + 1}`));
-    item.append(createScratchWorkspaceFrame(documentRef, xml));
+    item.append(createScratchWorkspaceFrame(documentRef, xml, fallbackPrograms[index]));
     container.append(item);
   }
 }
@@ -335,7 +342,7 @@ function renderRecommendedBlockCards(
     const item = documentRef.createElement("li");
     item.className = "hint-item recommended-block-item";
 
-    item.append(createScratchWorkspaceInline(documentRef, buildRecommendedBlockXml(block)));
+    item.append(createScratchWorkspaceInline(documentRef, buildRecommendedBlockXml(block), block.label));
     item.append(createTextChild(documentRef, "p", "recommended-block-reason", block.reason));
 
     if (block.example) {
@@ -389,6 +396,7 @@ export function renderState(state: DesktopCompanionState, elements: RendererElem
       elements.documentRef,
       elements.currentTargetProgramsElement,
       currentTargetScriptXmlList,
+      state.currentTargetPrograms,
       "当前角色还没有可读取的脚本。"
     );
   } else {

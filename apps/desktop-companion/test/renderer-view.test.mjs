@@ -302,6 +302,10 @@ test("renderState renders Scratch-style block stacks for current programs and re
     currentTargetProgramsElement.children[0].children[1].children[0].dataset.xml,
     /type="control_repeat"/
   );
+  assert.equal(
+    currentTargetProgramsElement.children[0].children[1].children[0].dataset.fallbackText,
+    "当绿旗被点击 -> 一直重复 -> 移动 10 步"
+  );
 
   assert.equal(aiRecommendedBlocksElement.children.length, 1);
   assert.equal(aiRecommendedBlocksElement.children[0].className, "hint-item recommended-block-item");
@@ -310,6 +314,10 @@ test("renderState renders Scratch-style block stacks for current programs and re
   assert.match(
     aiRecommendedBlocksElement.children[0].children[0].children[0].dataset.xml,
     /type="motion_movesteps"/
+  );
+  assert.equal(
+    aiRecommendedBlocksElement.children[0].children[0].children[0].dataset.fallbackText,
+    "移动 10 步"
   );
   assert.equal(aiRecommendedBlocksElement.children[0].children[1].textContent, "先做一个最容易看见的动作。");
   assert.equal(aiRecommendedBlocksElement.children[0].children[2].textContent, "示例：比如让小猫往前走一步");
