@@ -19,6 +19,7 @@ export class StateStore {
     aiCustomKeyConfigured: false,
     aiCustomModelConfigured: false,
     aiCustomPromptConfigured: false,
+    aiHintTriggerMode: "auto",
     aiStatus: "idle"
   };
 
@@ -56,6 +57,7 @@ export class StateStore {
       patch.aiCustomModelConfigured ?? this.state.aiCustomModelConfigured;
     nextState.aiCustomPromptConfigured =
       patch.aiCustomPromptConfigured ?? this.state.aiCustomPromptConfigured;
+    nextState.aiHintTriggerMode = patch.aiHintTriggerMode ?? this.state.aiHintTriggerMode;
     nextState.aiStatus = patch.aiStatus ?? this.state.aiStatus;
 
     this.setState(nextState as DesktopCompanionState);

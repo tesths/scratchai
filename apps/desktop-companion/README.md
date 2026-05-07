@@ -12,7 +12,7 @@
 3. 点击 `打开已选 Scratch`，由伴随程序受控启动 Scratch。
 4. 伴随程序通过 CDP 注入只读桥接脚本并建立连接。
 5. 读取当前角色、项目快照和当前角色脚本，并生成只读 Scratch 积木视图。
-6. 点击 `生成下一步提示`，桌面端把当前作品上下文发送给 DeepSeek，并返回下一步建议和推荐积木；推荐积木同样按 Scratch 原版样式展示。
+6. 默认在连接成功后、以及后续积木状态变化时自动刷新下一步提示；如果在设置里切到手动模式，也可以继续点击 `生成下一步提示` 主动请求 DeepSeek，并返回下一步建议和推荐积木；推荐积木同样按 Scratch 原版样式展示。
 
 当前界面重点已经收敛为：
 
@@ -48,6 +48,7 @@
 补充：
 
 - `currentTargetPrograms` 这条文本链路仍然保留，主要给 AI、兼容层和排障使用；UI 主显示优先使用官方积木 SVG。
+- `AI 下一步提示` 默认会随积木变化自动刷新；如果希望课堂上手动控制，也可以在设置里切回手动点击模式。
 - 当前界面截图可参考：[current-ui-desktop-companion-scratch-blocks.png](../../docs/assets/screenshots/current-ui-desktop-companion-scratch-blocks.png)
 
 ## 当前实现要点
@@ -85,7 +86,7 @@
 当前显示细节补充：
 
 - 只读 workspace 统一走本地 `scratch-blocks/media` 资源，不再依赖外部默认地址
-- 只读积木缩放已继续下调，当前固定比例为 `0.68`，主窗口里会比初版更紧凑
+- 只读积木缩放已继续下调，当前固定比例为 `0.64`，主窗口里会比初版更紧凑
 - 推荐积木如果遇到未支持 opcode，会先在 `coach-service` 里做归一化，再进入 XML 渲染链路，避免直接出现“有推荐但渲染失败”
 
 这意味着像 `重复执行` 包裹 `移动 10 步`、`一直重复`、`如果` 这类结构，现在显示的是实际嵌套积木，而不是字符串或近似卡片。
@@ -114,11 +115,11 @@
 
 说明：
 
-- 程序提供独立的 `DeepSeek 设置` 窗口，允许在本机保存 `DeepSeek API Key`，并选择 `deepseek-v4-flash / deepseek-v4-pro`。
-- `DeepSeek API Key` 和模型选择都只保存在当前电脑本地。
+- 程序提供独立的 `DeepSeek 设置` 窗口，允许在本机保存 `DeepSeek API Key`，选择 `deepseek-v4-flash / deepseek-v4-pro`，并切换“自动刷新 / 手动点击”两种提示触发方式。
+- `DeepSeek API Key`、模型选择和提示触发方式都只保存在当前电脑本地。
 - 运行时只认设置窗口里保存的本机 Key，不再回退 `DEEPSEEK_API_KEY` 或 `deepseek.config.json` 里的 `apiKey`。
 - `deepseek.config.json` 现在只保留 `baseUrl`、`timeoutMs` 和默认 `model` 这类非敏感默认项。
-- 如果不填 key，`生成下一步提示` 仍可用，但会自动走本地 fallback 提示，而不是线上 DeepSeek。
+- 如果不填 key，自动或手动提示仍可用，但会自动走本地 fallback 提示，而不是线上 DeepSeek。
 - 桌面端当前显式使用 JSON Output，并把 `thinking` 设为 `disabled`，这样更适合 Scratch 教练提示这种低延迟、稳定 JSON 返回的场景。
 - 桌面端当前还会在系统提示里显式限制 `recommendedBlocks.opcode` 只能从官方白名单中选择，减少模型返回坏积木的概率。
 - 主窗口与设置窗口都提供鼠标右键菜单；设置页输入框支持复制、粘贴、全选。

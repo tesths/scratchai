@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { normalizeAiHintTriggerMode } from "../common/types";
+
 const CONFIG_FILE_NAME = "desktop-companion.config.json";
 
 export class ScratchExecutableConfigStore {
@@ -17,6 +19,7 @@ export class ScratchExecutableConfigStore {
       customAiApiKey?: string;
       customAiModel?: string;
       customAiPrompt?: string;
+      aiHintTriggerMode?: "auto" | "manual";
     } = {};
 
     if (typeof parsed.scratchExecutablePath === "string" && parsed.scratchExecutablePath.trim()) {
@@ -34,6 +37,8 @@ export class ScratchExecutableConfigStore {
     if (typeof parsed.customAiPrompt === "string" && parsed.customAiPrompt.trim()) {
       nextConfig.customAiPrompt = parsed.customAiPrompt.trim();
     }
+
+    nextConfig.aiHintTriggerMode = normalizeAiHintTriggerMode(parsed.aiHintTriggerMode);
 
     return nextConfig;
   }
@@ -113,6 +118,17 @@ export class ScratchExecutableConfigStore {
     };
 
     delete nextConfig.customAiPrompt;
+
+    await this.writeConfig(nextConfig);
+    return nextConfig;
+  }
+
+  async saveAiHintTriggerMode(aiHintTriggerMode: "auto" | "manual") {
+    const currentConfig = await this.load();
+    const nextConfig = {
+      ...currentConfig,
+      aiHintTriggerMode: normalizeAiHintTriggerMode(aiHintTriggerMode)
+    };
 
     await this.writeConfig(nextConfig);
     return nextConfig;

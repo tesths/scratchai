@@ -18,6 +18,17 @@ export type AiHintProvider = "deepseek" | "fallback";
 
 export type AiConfigSource = "custom";
 
+export const AI_HINT_TRIGGER_MODES = ["auto", "manual"] as const;
+
+export type AiHintTriggerMode = (typeof AI_HINT_TRIGGER_MODES)[number];
+
+export function normalizeAiHintTriggerMode(value: unknown): AiHintTriggerMode {
+  const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return AI_HINT_TRIGGER_MODES.includes(candidate as AiHintTriggerMode)
+    ? (candidate as AiHintTriggerMode)
+    : "auto";
+}
+
 export interface RecommendedBlock {
   opcode: string;
   category: string;
@@ -143,6 +154,7 @@ export interface DesktopCompanionState {
   aiCustomPromptConfigured: boolean;
   aiCustomPrompt?: string;
   aiDefaultPrompt?: string;
+  aiHintTriggerMode: AiHintTriggerMode;
   aiStatus: AiHintStatus;
   aiProvider?: AiHintProvider;
   aiModel?: string;

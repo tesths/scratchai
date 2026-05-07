@@ -236,7 +236,7 @@
         <p class="eyebrow">DeepSeek Settings</p>
         <h1>DeepSeek 本地设置</h1>
         <p class="hero-copy">
-          这里只保存当前电脑要使用的 DeepSeek Key 和模型，不再支持本地直接填写其他 DeepSeek 连接配置。
+          这里只保存当前电脑要使用的 DeepSeek Key、模型，以及“下一步提示”是自动刷新还是手动触发。
         </p>
         <p id="settings-status" class="status-pill">正在读取当前配置…</p>
       </section>
@@ -266,6 +266,18 @@
         </select>
         <div class="action-row">
           <button id="settings-save-custom-ai-model-button" class="button primary" type="button">保存模型</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>下一步提示触发方式</h2>
+        <p class="note">默认自动刷新。若希望课堂上由老师或学生手动控制，也可以切回按钮触发。</p>
+        <select id="settings-ai-hint-trigger-mode">
+          <option value="auto">自动刷新</option>
+          <option value="manual">手动点击</option>
+        </select>
+        <div class="action-row">
+          <button id="settings-save-ai-hint-trigger-mode-button" class="button primary" type="button">保存触发方式</button>
         </div>
       </section>
     </main>

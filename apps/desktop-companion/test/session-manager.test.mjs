@@ -105,6 +105,39 @@ function createConfigStoreMock(initialPath = undefined) {
   };
 }
 
+function flushAsyncWork() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function createLinearProjectData(opcodes) {
+  const blocks = {};
+
+  for (const [index, opcode] of opcodes.entries()) {
+    const id = String.fromCharCode(97 + index);
+    const nextId = index < opcodes.length - 1 ? String.fromCharCode(97 + index + 1) : null;
+    blocks[id] = {
+      opcode,
+      next: nextId,
+      parent: index === 0 ? null : String.fromCharCode(97 + index - 1),
+      inputs: {},
+      fields: {},
+      shadow: false,
+      topLevel: index === 0
+    };
+  }
+
+  return {
+    targets: [
+      {
+        id: "sprite-a",
+        name: "Cat",
+        isStage: false,
+        blocks
+      }
+    ]
+  };
+}
+
 test("SessionManager enters waiting state when Scratch path is not configured", async () => {
   const stateStore = new StateStore();
   const manager = new SessionManager(stateStore, {
@@ -129,6 +162,7 @@ test("SessionManager enters waiting state when Scratch path is not configured", 
   assert.deepEqual(nextState.currentTargetPrograms, []);
   assert.equal(nextState.aiConfigured, false);
   assert.equal(nextState.aiCustomKeyConfigured, false);
+  assert.equal(nextState.aiHintTriggerMode, "auto");
   assert.equal(nextState.aiStatus, "idle");
   assert.equal(nextState.statusText, "请先选择 Scratch 软件");
   assert.equal(nextState.detail.includes("请先选择本机的 Scratch 软件"), true);
@@ -427,6 +461,178 @@ test("SessionManager returns fallback AI hints when DeepSeek key is not configur
   assert.equal(nextState.aiCoachResponse?.recommendedBlocks.length > 0, true);
 });
 
+test("SessionManager does not auto refresh hints when hint trigger mode is manual", async () => {
+  const stateStore = new StateStore();
+  const capturedOptions = [];
+
+  const manager = new SessionManager(stateStore, {
+    bridgeServer: createBridgeServerMock(),
+    platform: "win32",
+    log: () => {},
+    configStore: {
+      load: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: "manual"
+      }),
+      saveScratchExecutablePath: async (value) => ({
+        scratchExecutablePath: value,
+        aiHintTriggerMode: "manual"
+      }),
+      saveCustomAiApiKey: async (value) => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        customAiApiKey: value,
+        aiHintTriggerMode: "manual"
+      }),
+      clearCustomAiApiKey: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: "manual"
+      }),
+      saveCustomAiModel: async (value) => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        customAiModel: value,
+        aiHintTriggerMode: "manual"
+      }),
+      clearCustomAiModel: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: "manual"
+      }),
+      saveCustomAiPrompt: async (value) => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        customAiPrompt: value,
+        aiHintTriggerMode: "manual"
+      }),
+      clearCustomAiPrompt: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: "manual"
+      }),
+      saveAiHintTriggerMode: async (value) => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: value
+      })
+    },
+    loadAiConfig: createAiConfigMock({
+      configured: true,
+      apiKey: "sk-test-demo",
+      source: "custom",
+      customKeyConfigured: true
+    }),
+    coachService: {
+      generateHint: async (options) => {
+        capturedOptions.push(options);
+        return {
+          source: "deepseek",
+          model: "deepseek-v4-flash",
+          coachResponse: {
+            answerText: "先补一个起步积木。",
+            recommendedBlocks: [],
+            nextStep: "先补一个起步积木。",
+            detectedIssues: []
+          }
+        };
+      }
+    },
+    scratchLauncher: {},
+    scratchRemoteDebugger: {}
+  });
+
+  await manager.start();
+
+  manager.handlePayload({
+    source: "test",
+    currentTargetId: "sprite-a",
+    currentTargetName: "Cat",
+    toolboxCategories: ["event", "motion"],
+    projectData: createLinearProjectData(["event_whenflagclicked", "motion_movesteps"])
+  });
+
+  await flushAsyncWork();
+
+  assert.equal(stateStore.getState().aiHintTriggerMode, "manual");
+  assert.equal(capturedOptions.length, 0);
+});
+
+test("SessionManager queues an automatic hint refresh when Scratch blocks change during loading", async () => {
+  const stateStore = new StateStore();
+  const capturedOptions = [];
+  let resolveFirstRequest;
+  let requestCount = 0;
+  const firstRequestGate = new Promise((resolve) => {
+    resolveFirstRequest = resolve;
+  });
+
+  const manager = new SessionManager(stateStore, {
+    bridgeServer: createBridgeServerMock(),
+    platform: "win32",
+    log: () => {},
+    configStore: createConfigStoreMock("C:\\Scratch 3.exe"),
+    loadAiConfig: createAiConfigMock({
+      configured: true,
+      apiKey: "sk-test-demo",
+      source: "custom",
+      customKeyConfigured: true
+    }),
+    coachService: {
+      generateHint: async (options) => {
+        capturedOptions.push(options);
+        requestCount += 1;
+        if (requestCount === 1) {
+          await firstRequestGate;
+        }
+        return {
+          source: "deepseek",
+          model: "deepseek-v4-flash",
+          coachResponse: {
+            answerText: "继续补下一块。",
+            recommendedBlocks: [],
+            nextStep: "继续补下一块。",
+            detectedIssues: []
+          }
+        };
+      }
+    },
+    scratchLauncher: {},
+    scratchRemoteDebugger: {}
+  });
+
+  await manager.start();
+
+  manager.handlePayload({
+    source: "test",
+    currentTargetId: "sprite-a",
+    currentTargetName: "Cat",
+    toolboxCategories: ["event", "motion"],
+    projectData: createLinearProjectData(["event_whenflagclicked", "motion_movesteps"])
+  });
+
+  await flushAsyncWork();
+  assert.equal(capturedOptions.length, 1);
+  assert.deepEqual(capturedOptions[0].currentTargetPrograms, ["当绿旗被点击 -> 移动 10 步"]);
+
+  manager.handlePayload({
+    source: "test",
+    currentTargetId: "sprite-a",
+    currentTargetName: "Cat",
+    toolboxCategories: ["event", "motion"],
+    projectData: createLinearProjectData([
+      "event_whenflagclicked",
+      "motion_movesteps",
+      "motion_turnright"
+    ])
+  });
+
+  await flushAsyncWork();
+  assert.equal(capturedOptions.length, 1);
+
+  resolveFirstRequest();
+  await flushAsyncWork();
+  await flushAsyncWork();
+
+  assert.equal(capturedOptions.length, 2);
+  assert.deepEqual(capturedOptions[1].currentTargetPrograms, [
+    "当绿旗被点击 -> 移动 10 步 -> 右转 15 度"
+  ]);
+});
+
 test("SessionManager returns an error when requesting a hint before Scratch connects", async () => {
   const stateStore = new StateStore();
   const manager = new SessionManager(stateStore, {
@@ -618,6 +824,72 @@ test("SessionManager saves a custom AI model and exposes it in state", async () 
     customApiKey: undefined,
     customModel: "deepseek-v4-pro"
   });
+});
+
+test("SessionManager saves AI hint trigger mode and exposes it in state", async () => {
+  const stateStore = new StateStore();
+  let savedMode = "auto";
+  const manager = new SessionManager(stateStore, {
+    bridgeServer: createBridgeServerMock(),
+    platform: "win32",
+    log: () => {},
+    configStore: {
+      load: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: savedMode
+      }),
+      saveScratchExecutablePath: async (value) => ({
+        scratchExecutablePath: value,
+        aiHintTriggerMode: savedMode
+      }),
+      saveCustomAiApiKey: async (value) => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        customAiApiKey: value,
+        aiHintTriggerMode: savedMode
+      }),
+      clearCustomAiApiKey: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: savedMode
+      }),
+      saveCustomAiModel: async (value) => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        customAiModel: value,
+        aiHintTriggerMode: savedMode
+      }),
+      clearCustomAiModel: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: savedMode
+      }),
+      saveCustomAiPrompt: async (value) => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        customAiPrompt: value,
+        aiHintTriggerMode: savedMode
+      }),
+      clearCustomAiPrompt: async () => ({
+        scratchExecutablePath: "C:\\Scratch 3.exe",
+        aiHintTriggerMode: savedMode
+      }),
+      saveAiHintTriggerMode: async (value) => {
+        savedMode = value;
+        return {
+          scratchExecutablePath: "C:\\Scratch 3.exe",
+          aiHintTriggerMode: savedMode
+        };
+      }
+    },
+    loadAiConfig: createAiConfigMock(),
+    scratchLauncher: {},
+    scratchRemoteDebugger: {}
+  });
+
+  await manager.start();
+  assert.equal(stateStore.getState().aiHintTriggerMode, "auto");
+
+  await manager.saveAiHintTriggerMode("manual");
+  assert.equal(stateStore.getState().aiHintTriggerMode, "manual");
+
+  await manager.saveAiHintTriggerMode("auto");
+  assert.equal(stateStore.getState().aiHintTriggerMode, "auto");
 });
 
 test("SessionManager saves a custom teacher prompt and reuses it for hint generation", async () => {

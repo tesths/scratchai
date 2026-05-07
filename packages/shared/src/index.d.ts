@@ -118,6 +118,7 @@ export type DesktopCompanionState = {
   aiCustomPromptConfigured: boolean;
   aiCustomPrompt?: string;
   aiDefaultPrompt?: string;
+  aiHintTriggerMode: "auto" | "manual";
   aiStatus: "idle" | "loading" | "ready" | "error";
   aiProvider?: "deepseek" | "fallback";
   aiModel?: string;

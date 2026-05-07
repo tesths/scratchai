@@ -9,6 +9,7 @@ export interface DesktopCompanionApi {
   saveCustomAiApiKey: (apiKey: string) => Promise<void>;
   clearCustomAiApiKey: () => Promise<void>;
   saveCustomAiModel: (model: string) => Promise<void>;
+  saveAiHintTriggerMode: (mode: "auto" | "manual") => Promise<void>;
   saveCustomAiPrompt: (prompt: string) => Promise<void>;
   clearCustomAiPrompt: () => Promise<void>;
 }

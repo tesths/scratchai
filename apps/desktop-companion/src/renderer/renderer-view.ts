@@ -95,6 +95,10 @@ export function formatProgramAreaModules(
   return modules.map((module) => `${module.label} x ${module.blockCount}`);
 }
 
+function isManualHintTriggerMode(state: DesktopCompanionState) {
+  return state.aiHintTriggerMode === "manual";
+}
+
 export function formatAiStatus(state: DesktopCompanionState) {
   if (state.aiStatus === "loading") {
     return "AI 正在整理作品并生成下一步提示…";
@@ -116,11 +120,15 @@ export function formatAiStatus(state: DesktopCompanionState) {
   }
 
   if (state.status === "connected") {
-    return "Scratch 已连接。点击“生成下一步提示”后，我会基于当前作品给出下一步建议。";
+    return isManualHintTriggerMode(state)
+      ? "Scratch 已连接。点击“生成下一步提示”后，我会基于当前作品给出下一步建议。"
+      : "Scratch 已连接。继续修改积木后，我会基于当前作品自动刷新下一步建议。";
   }
 
   if (!state.aiConfigured) {
-    return "还没配置本机 DeepSeek Key 也可以先用。点击“生成下一步提示”后，程序会先给基础提示；需要更完整结果时，再到“DeepSeek 设置”里保存 API Key。";
+    return isManualHintTriggerMode(state)
+      ? "还没配置本机 DeepSeek Key 也可以先用。点击“生成下一步提示”后，程序会先给基础提示；需要更完整结果时，再到“DeepSeek 设置”里保存 API Key。"
+      : "还没配置本机 DeepSeek Key 也可以先用。自动模式下，程序会先给基础提示；需要更完整结果时，再到“DeepSeek 设置”里保存 API Key。";
   }
 
   return "准备好了：先选择 Scratch 软件，打开已选 Scratch，再读取当前作品。";
@@ -172,7 +180,9 @@ export function formatDefaultDetail(state: DesktopCompanionState) {
   }
 
   if (state.status === "connected") {
-    return "Scratch 已连接。现在可以直接读取当前作品，并生成下一步提示。";
+    return isManualHintTriggerMode(state)
+      ? "Scratch 已连接。现在可以直接读取当前作品，并生成下一步提示。"
+      : "Scratch 已连接。现在可以直接读取当前作品；继续修改积木后，我会自动刷新下一步提示。";
   }
 
   if (state.scratchExecutablePath) {
@@ -188,7 +198,9 @@ export function formatDefaultNextStep(state: DesktopCompanionState) {
   }
 
   if (state.status === "connected") {
-    return "先看当前提示完成这一小步；学生补完后，再点击“生成下一步提示”。";
+    return isManualHintTriggerMode(state)
+      ? "先看当前提示完成这一小步；学生补完后，再点击“生成下一步提示”。"
+      : "先看当前提示完成这一小步；你继续改积木时，我会自动刷新下一步提示。";
   }
 
   if (state.scratchExecutablePath) {

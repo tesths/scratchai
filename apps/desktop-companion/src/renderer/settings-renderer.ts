@@ -1,6 +1,7 @@
 import { desktopCompanionStateSchema } from "@scratch-ai/shared";
 
 import { DEFAULT_DEEPSEEK_MODEL, normalizeDeepSeekModel } from "../common/deepseek";
+import { normalizeAiHintTriggerMode } from "../common/types";
 import type { DesktopCompanionApi } from "../common/desktop-companion-api";
 import type { DesktopCompanionState } from "../common/types";
 
@@ -21,6 +22,12 @@ const clearCustomAiApiKeyButton = document.getElementById(
 const customAiModelSelect = document.getElementById("settings-custom-ai-model") as HTMLSelectElement | null;
 const saveCustomAiModelButton = document.getElementById(
   "settings-save-custom-ai-model-button"
+) as HTMLButtonElement | null;
+const aiHintTriggerModeSelect = document.getElementById(
+  "settings-ai-hint-trigger-mode"
+) as HTMLSelectElement | null;
+const saveAiHintTriggerModeButton = document.getElementById(
+  "settings-save-ai-hint-trigger-mode-button"
 ) as HTMLButtonElement | null;
 const errorElement = document.getElementById("settings-error");
 const feedbackElement = document.getElementById("settings-feedback");
@@ -82,6 +89,15 @@ function renderState(state: DesktopCompanionState) {
 
   if (saveCustomAiModelButton) {
     saveCustomAiModelButton.disabled = state.aiStatus === "loading";
+  }
+
+  if (aiHintTriggerModeSelect) {
+    aiHintTriggerModeSelect.disabled = state.aiStatus === "loading";
+    aiHintTriggerModeSelect.value = normalizeAiHintTriggerMode(state.aiHintTriggerMode);
+  }
+
+  if (saveAiHintTriggerModeButton) {
+    saveAiHintTriggerModeButton.disabled = state.aiStatus === "loading";
   }
 }
 
@@ -163,6 +179,31 @@ saveCustomAiModelButton?.addEventListener("click", () => {
       window.setTimeout(() => {
         if (saveCustomAiModelButton) {
           saveCustomAiModelButton.disabled = false;
+        }
+      }, 400);
+    });
+});
+
+saveAiHintTriggerModeButton?.addEventListener("click", () => {
+  saveAiHintTriggerModeButton.disabled = true;
+  const mode = normalizeAiHintTriggerMode(aiHintTriggerModeSelect?.value);
+  const modeLabel = mode === "manual" ? "手动点击" : "自动刷新";
+
+  void Promise.resolve()
+    .then(() => {
+      clearError();
+      return getDesktopCompanionApi().saveAiHintTriggerMode(mode);
+    })
+    .then(() => {
+      showMessage(`已保存下一步提示触发方式：${modeLabel}。`, "success");
+    })
+    .catch((error) => {
+      showMessage(error instanceof Error ? error.message : "保存下一步提示触发方式失败，请查看日志。", "error");
+    })
+    .finally(() => {
+      window.setTimeout(() => {
+        if (saveAiHintTriggerModeButton) {
+          saveAiHintTriggerModeButton.disabled = false;
         }
       }, 400);
     });

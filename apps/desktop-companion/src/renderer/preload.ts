@@ -35,6 +35,9 @@ const api = {
   saveCustomAiModel: async (model: string) => {
     await ipcRenderer.invoke("desktop-companion:save-custom-ai-model", model);
   },
+  saveAiHintTriggerMode: async (mode: "auto" | "manual") => {
+    await ipcRenderer.invoke("desktop-companion:save-ai-hint-trigger-mode", mode);
+  },
   saveCustomAiPrompt: async (prompt: string) => {
     await ipcRenderer.invoke("desktop-companion:save-custom-ai-prompt", prompt);
   },

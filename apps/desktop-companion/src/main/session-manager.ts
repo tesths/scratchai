@@ -18,9 +18,11 @@ import { ScratchLauncher } from "./scratch-launcher";
 import { ScratchRemoteDebugger } from "./scratch-remote-debugger";
 import { StateStore } from "./state-store";
 import { buildCurrentTargetScriptXmlList } from "../common/scratch-block-xml";
+import { normalizeAiHintTriggerMode } from "../common/types";
 import type { LoadedDeepSeekConfig } from "./deepseek-config";
 import type { ScratchPlatformAdapter } from "./platform-adapter";
 import type {
+  AiHintTriggerMode,
   CurrentTargetScriptDescriptor,
   DesktopCompanionState,
   ProgramAreaModule,
@@ -131,6 +133,7 @@ export class SessionManager {
     customAiApiKey?: string;
     customAiModel?: string;
     customAiPrompt?: string;
+    aiHintTriggerMode?: AiHintTriggerMode;
   } = {};
 
   private activeLaunchSession?: ScratchLaunchSession;
@@ -144,6 +147,12 @@ export class SessionManager {
   private liveProjectSnapshot: ProjectSnapshot | null = null;
 
   private isLaunching = false;
+
+  private autoHintRefreshRunning = false;
+
+  private queuedAutoHintSignature?: string;
+
+  private lastAutoHintSignature?: string;
 
   constructor(
     private readonly stateStore: StateStore,
@@ -203,6 +212,7 @@ export class SessionManager {
         aiCustomKeyConfigured: false,
         aiCustomModelConfigured: false,
         aiCustomPromptConfigured: false,
+        aiHintTriggerMode: "auto",
         aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
         aiStatus: "idle"
       });
@@ -220,6 +230,7 @@ export class SessionManager {
     this.unsubscribeLaunchExit = undefined;
     this.activeLaunchSession = undefined;
     this.liveProjectSnapshot = null;
+    this.resetAutoHintRefreshState();
     this.flushBridgeConnectionWaiters(false);
     await this.bridgeServer.stop();
   }
@@ -287,11 +298,42 @@ export class SessionManager {
     });
   }
 
+  async saveAiHintTriggerMode(mode: AiHintTriggerMode) {
+    this.config = await this.configStore.saveAiHintTriggerMode(normalizeAiHintTriggerMode(mode));
+    this.stateStore.update({
+      ...this.getAiStatePatch(),
+      aiError: undefined
+    });
+
+    if (this.getAiHintTriggerMode() === "manual") {
+      this.queuedAutoHintSignature = undefined;
+      return;
+    }
+
+    const currentState = this.stateStore.getState();
+    const signature = this.buildAutoHintRefreshSignature(
+      currentState.currentTargetId,
+      currentState.currentTargetName,
+      currentState.currentTargetPrograms,
+      currentState.currentTargetScriptXmlList
+    );
+
+    if (currentState.status === "connected" && this.liveProjectSnapshot && signature) {
+      this.queueAutoHintRefresh(signature);
+    }
+  }
+
   async requestAiHint(goal?: string) {
     await this.refreshAiConfig();
 
     const currentState = this.stateStore.getState();
     const activeSnapshot = this.liveProjectSnapshot;
+    const currentHintSignature = this.buildAutoHintRefreshSignature(
+      currentState.currentTargetId,
+      currentState.currentTargetName,
+      currentState.currentTargetPrograms,
+      currentState.currentTargetScriptXmlList
+    );
 
     if (!activeSnapshot) {
       this.stateStore.update({
@@ -321,6 +363,9 @@ export class SessionManager {
         aiStatus: "error",
         aiError: "AI 配置尚未加载完成，请稍后重试。"
       });
+      if (currentHintSignature) {
+        this.lastAutoHintSignature = currentHintSignature;
+      }
       return;
     }
 
@@ -348,6 +393,10 @@ export class SessionManager {
       aiLastUpdatedAt: new Date().toISOString(),
       aiError: result.warning
     });
+
+    if (currentHintSignature) {
+      this.lastAutoHintSignature = currentHintSignature;
+    }
   }
 
   async launchScratchNow() {
@@ -468,6 +517,13 @@ export class SessionManager {
       this.liveProjectSnapshot = snapshot;
     }
 
+    const nextAutoHintSignature = this.buildAutoHintRefreshSignature(
+      payload.currentTargetId,
+      payload.currentTargetName,
+      currentTargetPrograms,
+      currentTargetScriptXmlList
+    );
+
     this.stateStore.update({
       status: "connected",
       statusText: "已连接到 Scratch Desktop",
@@ -495,9 +551,10 @@ export class SessionManager {
       this.log(
         `Scratch bridge connected pid=${payload.scratchPid ?? this.activeLaunchSession?.pid ?? "unknown"} target=${JSON.stringify(payload.currentTargetName ?? "unknown")} toolboxCategories=${toolboxCategories.length} loadedExtensions=${loadedExtensions.length} programAreaModules=${programAreaModules.length}`
       );
-      void this.requestAiHint().catch((error) => {
-        this.log("Automatic hint refresh after Scratch connect failed", error);
-      });
+    }
+
+    if (snapshot && this.getAiHintTriggerMode() === "auto" && nextAutoHintSignature) {
+      this.queueAutoHintRefresh(nextAutoHintSignature);
     }
     this.flushBridgeConnectionWaiters(true);
   }
@@ -632,12 +689,14 @@ export class SessionManager {
     this.unsubscribeLaunchExit = undefined;
     this.activeLaunchSession = undefined;
     this.liveProjectSnapshot = null;
+    this.resetAutoHintRefreshState();
     this.flushBridgeConnectionWaiters(false);
     this.setWaitingState("Scratch 已关闭，请重新点击“打开已选 Scratch”。");
   }
 
   private setWaitingState(detail?: string) {
     this.liveProjectSnapshot = null;
+    this.resetAutoHintRefreshState();
 
     const scratchExecutablePath = this.config.scratchExecutablePath;
     const hasScratchPath = typeof scratchExecutablePath === "string" && scratchExecutablePath.length > 0;
@@ -658,6 +717,7 @@ export class SessionManager {
       aiCustomKeyConfigured: this.aiConfig?.customKeyConfigured ?? false,
       aiCustomModelConfigured: Boolean(trimText(this.config.customAiModel)),
       aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
+      aiHintTriggerMode: this.getAiHintTriggerMode(),
       aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
       aiStatus: "idle",
       detail: detail ?? this.buildWaitingDetail(hasScratchPath, scratchExecutablePath)
@@ -708,9 +768,76 @@ export class SessionManager {
       aiCustomModel: this.config.customAiModel,
       aiCustomPromptConfigured: Boolean(trimText(this.config.customAiPrompt)),
       aiCustomPrompt: this.config.customAiPrompt,
+      aiHintTriggerMode: this.getAiHintTriggerMode(),
       aiDefaultPrompt: DEFAULT_HINT_ONLY_SYSTEM_PROMPT,
       aiModel: this.aiConfig?.model
     };
+  }
+
+  private getAiHintTriggerMode(): AiHintTriggerMode {
+    return normalizeAiHintTriggerMode(this.config.aiHintTriggerMode);
+  }
+
+  private resetAutoHintRefreshState() {
+    this.autoHintRefreshRunning = false;
+    this.queuedAutoHintSignature = undefined;
+    this.lastAutoHintSignature = undefined;
+  }
+
+  private buildAutoHintRefreshSignature(
+    currentTargetId: string | undefined,
+    currentTargetName: string | undefined,
+    currentTargetPrograms: string[],
+    currentTargetScriptXmlList: string[]
+  ) {
+    return JSON.stringify({
+      currentTargetId: currentTargetId ?? "",
+      currentTargetName: currentTargetName ?? "",
+      currentTargetPrograms,
+      currentTargetScriptXmlList
+    });
+  }
+
+  private queueAutoHintRefresh(signature: string) {
+    if (this.getAiHintTriggerMode() !== "auto") {
+      return;
+    }
+
+    if (this.lastAutoHintSignature === signature || this.queuedAutoHintSignature === signature) {
+      return;
+    }
+
+    this.queuedAutoHintSignature = signature;
+    if (this.autoHintRefreshRunning) {
+      return;
+    }
+
+    void this.flushAutoHintRefreshQueue().catch((error) => {
+      this.log("Automatic hint refresh after Scratch change failed", error);
+    });
+  }
+
+  private async flushAutoHintRefreshQueue() {
+    if (this.autoHintRefreshRunning) {
+      return;
+    }
+
+    while (this.queuedAutoHintSignature && this.getAiHintTriggerMode() === "auto" && this.liveProjectSnapshot) {
+      const signature = this.queuedAutoHintSignature;
+      this.queuedAutoHintSignature = undefined;
+
+      if (this.lastAutoHintSignature === signature) {
+        continue;
+      }
+
+      this.autoHintRefreshRunning = true;
+      try {
+        await this.requestAiHint();
+      } finally {
+        this.autoHintRefreshRunning = false;
+        this.lastAutoHintSignature = signature;
+      }
+    }
   }
 
   private buildProjectSnapshot(
@@ -732,10 +859,14 @@ export class SessionManager {
   private buildConnectedDetail(source?: string, currentTargetPrograms: string[] = []) {
     const base = `最近更新来源：${source ?? "unknown"}`;
     if (currentTargetPrograms.length === 0) {
-      return `${base}；当前 Scratch 还是新项目。先做一个最小脚本，再点“生成下一步提示”继续推进。`;
+      return this.getAiHintTriggerMode() === "manual"
+        ? `${base}；当前 Scratch 还是新项目。先做一个最小脚本，再点“生成下一步提示”继续推进。`
+        : `${base}；当前 Scratch 还是新项目。先做一个最小脚本，之后我会自动刷新下一步提示。`;
     }
 
-    return `${base}；AI 会继续根据当前作品进度，给出下一步建议。`;
+    return this.getAiHintTriggerMode() === "manual"
+      ? `${base}；AI 会继续根据当前作品进度，给出下一步建议。`
+      : `${base}；AI 会在你修改积木后，自动刷新下一步建议。`;
   }
 
   private buildWaitingDetail(

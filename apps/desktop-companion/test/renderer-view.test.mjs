@@ -152,7 +152,7 @@ test("formats default detail and next step for the new scratch-first flow", () =
     formatDefaultNextStep({
       status: "connected"
     }),
-    "先看当前提示完成这一小步；学生补完后，再点击“生成下一步提示”。"
+    "先看当前提示完成这一小步；你继续改积木时，我会自动刷新下一步提示。"
   );
 });
 
@@ -161,11 +161,35 @@ test("formats local-only AI guidance without teacher sb3 wording", () => {
     formatDefaultDetail({
       status: "connected"
     }),
-    "Scratch 已连接。现在可以直接读取当前作品，并生成下一步提示。"
+    "Scratch 已连接。现在可以直接读取当前作品；继续修改积木后，我会自动刷新下一步提示。"
   );
   assert.equal(
     formatAiStatus({
       status: "connected"
+    }),
+    "Scratch 已连接。继续修改积木后，我会基于当前作品自动刷新下一步建议。"
+  );
+});
+
+test("formats manual hint mode guidance for connected Scratch", () => {
+  assert.equal(
+    formatDefaultDetail({
+      status: "connected",
+      aiHintTriggerMode: "manual"
+    }),
+    "Scratch 已连接。现在可以直接读取当前作品，并生成下一步提示。"
+  );
+  assert.equal(
+    formatDefaultNextStep({
+      status: "connected",
+      aiHintTriggerMode: "manual"
+    }),
+    "先看当前提示完成这一小步；学生补完后，再点击“生成下一步提示”。"
+  );
+  assert.equal(
+    formatAiStatus({
+      status: "connected",
+      aiHintTriggerMode: "manual"
     }),
     "Scratch 已连接。点击“生成下一步提示”后，我会基于当前作品给出下一步建议。"
   );

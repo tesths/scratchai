@@ -16,7 +16,7 @@ test("readonly workspace options use local media assets and reduced scale", () =
 
   assert.equal(options.media, SCRATCH_WORKSPACE_MEDIA_PATH);
   assert.equal("pathToMedia" in options, false);
-  assert.equal(READONLY_WORKSPACE_SCALE, 0.68);
+  assert.equal(READONLY_WORKSPACE_SCALE, 0.64);
   assert.equal(options.zoom.startScale, READONLY_WORKSPACE_SCALE);
   assert.equal(options.zoom.minScale, READONLY_WORKSPACE_SCALE);
   assert.equal(options.zoom.maxScale, READONLY_WORKSPACE_SCALE);

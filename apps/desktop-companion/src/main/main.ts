@@ -345,6 +345,13 @@ async function handleSaveCustomAiModel(model: string) {
   await sessionManager?.saveCustomAiModel(model);
 }
 
+async function handleSaveAiHintTriggerMode(mode: "auto" | "manual") {
+  if (launchOptions.automationActions) {
+    return;
+  }
+  await sessionManager?.saveAiHintTriggerMode(mode);
+}
+
 async function handleSaveCustomAiPrompt(prompt: string) {
   if (launchOptions.automationActions) {
     return;
@@ -387,6 +394,9 @@ ipcMain.handle("desktop-companion:clear-custom-ai-api-key", async () => {
 });
 ipcMain.handle("desktop-companion:save-custom-ai-model", async (_event, model: string) => {
   await handleSaveCustomAiModel(model);
+});
+ipcMain.handle("desktop-companion:save-ai-hint-trigger-mode", async (_event, mode: "auto" | "manual") => {
+  await handleSaveAiHintTriggerMode(mode);
 });
 ipcMain.handle("desktop-companion:save-custom-ai-prompt", async (_event, prompt: string) => {
   await handleSaveCustomAiPrompt(prompt);

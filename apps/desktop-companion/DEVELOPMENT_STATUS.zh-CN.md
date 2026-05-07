@@ -11,7 +11,7 @@
 - 只支持 Windows + macOS
 - 只做本机 `Scratch Desktop` 连接与 AI 辅助提示
 - 只看学生当前作品，不再走教师参考作品 / 远程 `sb3` / 课堂流
-- DeepSeek 配置入口收敛为独立设置窗口里的 `API Key + 模型选择`
+- DeepSeek 配置入口收敛为独立设置窗口里的 `API Key + 模型选择 + 提示触发方式`
 
 也就是说，当前桌面伴随程序的主交付是：
 
@@ -28,6 +28,7 @@
 - 移除了 `教师 sb3 地址` 输入和参考作品导入链路
 - 移除了“跟老师做 / 自己先做”模式切换
 - AI 提示现在只消费当前学生作品上下文
+- `AI 下一步提示` 默认改为自动刷新，设置里可切回手动点击模式
 - 主界面改为更像桌面工具的布局，不再是网页式教学流程页
 
 ### 原版积木渲染
@@ -38,7 +39,7 @@
 - 原有 `currentTargetPrograms` 文本链路保留，继续给 AI、兼容层和排障使用
 - `scratch-blocks` 图标资源已统一切到本地 `media` 目录，不再依赖默认外链
 - 推荐积木现在收敛到一份官方 opcode 白名单；如果 AI 返回未支持或编造的 opcode，会先自动映射到安全、可渲染的官方积木
-- 只读积木缩放已继续下调，当前固定比例为 `0.68`
+- 只读积木缩放已继续下调，当前固定比例为 `0.64`
 - 最初切换到官方 `scratch-blocks` 只读渲染的核心提交为 `f725ffe`，整体变更量为 `18 files changed, 1528 insertions(+), 291 deletions(-)`
 
 ### 这轮显示收尾
@@ -59,7 +60,7 @@
   - 推荐积木
   - AI 当前提示
   - 关键操作按钮
-- `DeepSeek 设置` 页现在只保留本地 `API Key` 和 `Flash / Pro 模型选择`
+- `DeepSeek 设置` 页现在只保留本地 `API Key`、`Flash / Pro 模型选择`，以及 `自动刷新 / 手动点击` 提示方式
 - 主窗口与设置窗口都保留右键菜单支持
 
 ### 测试与验证
@@ -113,6 +114,7 @@
 - `当前角色程序` 现在会继续展开 `重复执行 / 一直重复 / 如果` 这类控制积木里的嵌套子堆栈，不再只读取顶层 `next` 链。
 - 主窗口优先显示官方积木 SVG，文本序列现在退居为内部兼容链路。
 - 当前积木缩放比初版更紧凑，主窗口里更适合并排展示“当前角色程序 / 推荐积木”。
+- `AI 下一步提示` 默认会在连接成功后和后续积木变化时自动刷新；切到手动模式后，仍可继续使用按钮触发。
 - 最新截图：[current-ui-desktop-companion-scratch-blocks.png](../../docs/assets/screenshots/current-ui-desktop-companion-scratch-blocks.png)
 
 ### 当前常见状态文案
@@ -134,6 +136,7 @@
 - `loadedExtensions`
 - `usedExtensions`
 - `programAreaModules`
+- `aiHintTriggerMode`
 
 注意：
 
