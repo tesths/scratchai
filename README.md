@@ -45,6 +45,9 @@ npm run package:mac:dmg
 - 当前这台机器上的 `npm` 会对 `Node.js v22.16.0` 打兼容性 warning；只要命令最终退出码为 `0`，可先按告警处理，不是这次桌面端启动问题的根因
 - 本地默认只保证“当前平台可开发、可测试、可出包”
 - 正式双平台产物由 GitHub Actions 分别在 Windows 和 macOS runner 生成
+- `CI` workflow 当前只负责 `build + test`，不会上传可下载产物
+- `Desktop Release Artifacts` workflow 会把 `installers/**` 上传为 GitHub Actions artifact；Windows 名称是 `scratch-desktop-companion-windows`，macOS 名称是 `scratch-desktop-companion-macos`，默认保留 `7` 天
+- 当前仓库还没有把安装包自动发布到 GitHub Releases；如需正式 Release asset，仍需单独补 release/tag workflow
 - `installers/` 只作为本地产物收口目录，不纳入 git
 
 ## 目录约定

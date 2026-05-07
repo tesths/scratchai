@@ -70,6 +70,14 @@
 - macOS 源码版 UI 冒烟已确认能读取 mock state
 - 真实联调时不要带 `DESKTOP_COMPANION_MOCK_STATE_FILE`、`DESKTOP_COMPANION_AUTOMATION_ACTIONS`、`DESKTOP_COMPANION_AUTOMATION_SCRATCH_PATH`；这些只给自动化和纯界面演示用，带上后主窗口会显示 mock 路径，且路径选择不会写回真实会话
 
+### GitHub Actions 产物
+
+- `CI` workflow 只负责 `build + test`，不会上传可下载产物
+- `Desktop Release Artifacts` workflow 会在 `windows-2022` 和 `macos-latest` 上出包，并把 `installers/**` 上传为 Actions artifact
+- 当前 artifact 名称分别是 `scratch-desktop-companion-windows` 和 `scratch-desktop-companion-macos`
+- 这两个 artifact 默认保留 `7` 天
+- 当前仓库还没有把安装包自动发布到 GitHub Releases；如果 Release 页面没有资产，是当前预期口径
+
 ## 3. 当前已完成能力
 
 截至 2026-05-07，已完成：

@@ -173,6 +173,27 @@ npm run package:mac:dmg
 - `npm run test:windows-ui` 这个脚本名沿用历史命名，但当前源码版 UI 自动化已可在 Windows 和 macOS 跑
 - `tools/verification/scripts/verify-scratch-local.mjs`、`tools/verification/scripts/verify-scratch-bridge.mjs` 和 `tools/verification/scripts/verify-desktop-companion-real-e2e.mjs` 现在都按当前平台自动选择默认二进制路径；需要复现时仍建议显式传 `--exe` / `--scratch-exe` / `--companion-exe`
 
+## GitHub Actions 产物口径
+
+当前仓库里和桌面端交付物相关的 workflow 有两条：
+
+- `CI`
+  只做 `build + test`，当前不会上传可下载产物。
+- `Desktop Release Artifacts`
+  在 Windows 和 macOS runner 上实际出包，并把 `installers/**` 上传为 GitHub Actions artifact。
+
+当前 artifact 名称固定为：
+
+- Windows：`scratch-desktop-companion-windows`
+- macOS：`scratch-desktop-companion-macos`
+
+补充：
+
+- 这两个 artifact 默认保留 `7` 天。
+- 下载入口在仓库 `Actions` 页里对应 run 的 `Artifacts` 区域。
+- 当前 workflow 使用 `windows-2022` 和 `macos-latest` runner。
+- 当前仓库还没有把安装包自动同步到 GitHub Releases；如果看到 Release 页面为空，这是当前预期，不是出包失败。
+
 ## 真实 Scratch 联调命令
 
 从仓库根目录执行：

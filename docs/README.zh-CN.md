@@ -20,6 +20,7 @@
 ## 当前目录收口
 
 - 分发产物统一收口到 `../installers/`
+- GitHub Actions `Desktop Release Artifacts` 会把 `../installers/**` 上传为临时 artifact；当前不会自动同步到 GitHub Release assets
 - 文档截图统一放 `./assets/screenshots/`
 - `../tools/verification/generated/`、`../tools/verification/artifacts/`、`../tools/verification/tmp-*/` 都是可再生产物
 - 根目录不再保留上游 Scratch clone、历史截图和历史安装包
