@@ -48,12 +48,21 @@ export function probeElectronBinarySupport(
 export function probeMacDmgSupport({
   spawnSyncImpl = spawnSync,
   tempDir = os.tmpdir(),
-  platform = process.platform
+  platform = process.platform,
+  osRelease = os.release()
 } = {}) {
   if (platform !== "darwin") {
     return {
       supported: false,
       reason: "DMG builds require macOS."
+    };
+  }
+
+  const darwinMajorVersion = Number.parseInt(String(osRelease).split(".")[0] ?? "", 10);
+  if (Number.isFinite(darwinMajorVersion) && darwinMajorVersion < 22) {
+    return {
+      supported: false,
+      reason: "DMG builds require Darwin 22 / macOS 13 or newer in this environment."
     };
   }
 
