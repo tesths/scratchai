@@ -24,11 +24,13 @@ test("package artifact layout exposes root distribution names for Windows and ma
 
   assert.deepEqual(layoutModule.getMacDistributionArtifactInfo("no-key"), {
     appBundleName: "ScratchDesktopCompanion-mac.app",
+    zipFileName: "ScratchDesktopCompanion-mac.zip",
     dmgFileName: "ScratchDesktopCompanion-mac.dmg"
   });
 
   assert.deepEqual(layoutModule.getMacDistributionArtifactInfo("with-key"), {
     appBundleName: "ScratchDesktopCompanion-with-key-mac.app",
+    zipFileName: "ScratchDesktopCompanion-with-key-mac.zip",
     dmgFileName: "ScratchDesktopCompanion-with-key-mac.dmg"
   });
 });

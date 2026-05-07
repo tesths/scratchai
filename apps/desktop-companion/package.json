@@ -3,7 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "author": "Ju",
-  "description": "Desktop companion app for the Scratch AI Coach workspace",
+  "description": "Electron desktop companion app for Scratch AI Coach",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/tesths/scratchai#readme",
+  "bugs": {
+    "url": "https://github.com/tesths/scratchai/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tesths/scratchai.git"
+  },
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
@@ -30,6 +39,9 @@
     "package:mac:app": "node scripts/package-mac.mjs --target=dir",
     "package:mac:app:no-key": "node scripts/package-mac.mjs --target=dir --variant=no-key",
     "package:mac:app:with-key": "node scripts/package-mac.mjs --target=dir --variant=with-key",
+    "package:mac:zip": "node scripts/package-mac.mjs --target=zip",
+    "package:mac:zip:no-key": "node scripts/package-mac.mjs --target=zip --variant=no-key",
+    "package:mac:zip:with-key": "node scripts/package-mac.mjs --target=zip --variant=with-key",
     "package:mac:dmg": "node scripts/package-mac.mjs --target=dmg",
     "package:mac:dmg:no-key": "node scripts/package-mac.mjs --target=dmg --variant=no-key",
     "package:mac:dmg:with-key": "node scripts/package-mac.mjs --target=dmg --variant=with-key"

@@ -105,7 +105,7 @@
 - 本地 `.sb3` 读取验证
 - 便携版 `portable.exe` 打包
 - NSIS 安装包 `ScratchDesktopCompanion-setup.exe` 打包
-- macOS `.app` / `.dmg` 内测包打包
+- macOS `.app` / `.zip` / `.dmg` 内测包打包
 - 推荐积木 opcode 白名单与坏 opcode 自动降级
 
 ## 4. 当前界面和状态口径
@@ -252,6 +252,7 @@ npm run test:windows-ui
 npm run package:win:single
 npm run package:win:installer
 npm run package:mac:app
+npm run package:mac:zip
 npm run package:mac:dmg
 ```
 

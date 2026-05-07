@@ -15,4 +15,8 @@ test("desktop companion start scripts use the repo-local Electron CLI", async ()
     packageJson.scripts.dev,
     "node build.mjs && node ../../node_modules/electron/cli.js dist/main.js"
   );
+  assert.equal(
+    packageJson.scripts["package:mac:zip"],
+    "node scripts/package-mac.mjs --target=zip"
+  );
 });

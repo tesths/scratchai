@@ -6,6 +6,7 @@
 
 ## 已完成
 
+- 2026-05-07：按开源项目标准整理仓库：补齐 AGPL-3.0 许可证、双语 README 与贡献治理文档，完善 GitHub issue/PR 模板，统一发布、路线图与项目结构说明；同时为 macOS 打包链路补上 zip 目标，并让 `Desktop Release Artifacts` workflow 明确产出 macOS `zip + dmg`、Windows `portable + installer` 对外口径。已补仓库开源基线测试、macOS zip 打包测试，并通过根级 `npm run test`。
 - 2026-05-07：确认当前产品与文档主口径：只做本地基础版，定位为更通用的 `Scratch AI 教练桌面工具`，默认交互为“自动刷新”，仅保留 Windows / macOS 版本；不再继续推进“服务器版 + 单机版并存”方案。
 - 2026-05-07：维护桌面端 CI / 出包 / Release 文档口径：明确 `CI` 只做构建和测试、不上传产物；`Desktop Release Artifacts` 会把 `installers/**` 作为 GitHub Actions artifact 上传，Windows / macOS 对应 artifact 名称分别为 `scratch-desktop-companion-windows` 和 `scratch-desktop-companion-macos`，默认保留 7 天；同时注明当前仓库还没有自动发布 GitHub Releases，避免把 Actions artifact 和 Release asset 混淆。
 - 2026-05-07：将 GitHub Actions Windows runner 从 `windows-2025` 调整为 `windows-2022`：在保留 `actions/checkout` / `actions/setup-node` 的 Node 24 runtime 升级基础上，把 `CI` 与 `Desktop Release Artifacts` 的 Windows job 改回稳定的 `windows-2022`，避开 `windows-2025` 重定向 notice；同步将 workflow 回归测试口径改到 `windows-2022`。已按 TDD 先让 workflow 测试失败，再完成修复，并通过根级 `npm run test`。

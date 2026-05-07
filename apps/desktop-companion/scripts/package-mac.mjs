@@ -24,7 +24,7 @@ const appDir = path.resolve(__dirname, "..");
 const rootInstallersDir = path.resolve(appDir, "..", "..", "installers");
 const currentArch = process.arch === "arm64" ? "arm64" : "x64";
 
-const VALID_MAC_PACKAGE_TARGETS = new Set(["dir", "dmg"]);
+const VALID_MAC_PACKAGE_TARGETS = new Set(["dir", "dmg", "zip"]);
 export const MAC_SIGN_IDENTITY_ENV_NAME = "SCRATCH_AI_MAC_SIGN_IDENTITY";
 
 export function resolveMacBuildCacheEnv(env = process.env, tempDir = os.tmpdir()) {
@@ -44,7 +44,7 @@ export function parseMacPackageTargetArg(argv, defaultTarget = "dir") {
   const target = rawArg ? rawArg.slice("--target=".length).trim() : defaultTarget;
 
   if (!VALID_MAC_PACKAGE_TARGETS.has(target)) {
-    throw new Error(`Unsupported macOS package target "${target}". Expected one of: dir, dmg.`);
+    throw new Error(`Unsupported macOS package target "${target}". Expected one of: dir, dmg, zip.`);
   }
 
   return target;
@@ -59,6 +59,16 @@ export function getMacPackageArtifactInfo(variant, target) {
       outputDirName: `release-mac${variantMeta.outputDirSuffix}`,
       bundleFileName: "ScratchDesktopCompanion.app",
       distributionBundleFileName: distributionInfo.appBundleName
+    };
+  }
+
+  if (target === "zip") {
+    return {
+      target,
+      outputDirName: `release-zip${variantMeta.outputDirSuffix}`,
+      artifactFileName: `${variantMeta.artifactBaseName}.zip`,
+      distributionFileName: distributionInfo.zipFileName,
+      bundleFileName: "ScratchDesktopCompanion.app"
     };
   }
 
@@ -153,7 +163,7 @@ async function main() {
     env: process.env
   });
 
-  if (target === "dmg") {
+  if (target === "dmg" || target === "zip") {
     config.mac.artifactName = `${variantMeta.artifactBaseName}.\${ext}`;
   }
 
@@ -189,7 +199,7 @@ async function main() {
       );
     } else {
       process.stdout.write(
-        `macOS dmg copied to root installers folder: ${path.join(rootInstallersDir, artifactInfo.distributionFileName)}\n`
+        `macOS ${target} copied to root installers folder: ${path.join(rootInstallersDir, artifactInfo.distributionFileName)}\n`
       );
     }
   }

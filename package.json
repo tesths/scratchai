@@ -1,8 +1,16 @@
 {
   "name": "scratch-ai-coach-workspace",
   "private": true,
-  "description": "Workspace entry for the Scratch AI Coach desktop and verification tooling",
-  "license": "UNLICENSED",
+  "description": "Open source workspace for Scratch AI Coach desktop and verification tooling",
+  "license": "AGPL-3.0",
+  "homepage": "https://github.com/tesths/scratchai#readme",
+  "bugs": {
+    "url": "https://github.com/tesths/scratchai/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tesths/scratchai.git"
+  },
   "workspaces": [
     "packages/shared",
     "tools/verification",
@@ -23,12 +31,14 @@
     "desktop:package:installer": "npm run package:win:installer --workspace=@scratch-ai/desktop-companion",
     "desktop:package:bundle": "npm run package:win:bundle --workspace=@scratch-ai/desktop-companion",
     "desktop:package:mac:app": "npm run package:mac:app --workspace=@scratch-ai/desktop-companion",
+    "desktop:package:mac:zip": "npm run package:mac:zip --workspace=@scratch-ai/desktop-companion",
     "desktop:package:mac:dmg": "npm run package:mac:dmg --workspace=@scratch-ai/desktop-companion",
     "package:win": "npm run package:win --workspace=@scratch-ai/desktop-companion",
     "package:win:portable": "npm run package:win:portable --workspace=@scratch-ai/desktop-companion",
     "package:win:installer": "npm run package:win:installer --workspace=@scratch-ai/desktop-companion",
     "package:win:bundle": "npm run package:win:bundle --workspace=@scratch-ai/desktop-companion",
     "package:mac": "npm run package:mac:app --workspace=@scratch-ai/desktop-companion",
+    "package:mac:zip": "npm run package:mac:zip --workspace=@scratch-ai/desktop-companion",
     "package:mac:dmg": "npm run package:mac:dmg --workspace=@scratch-ai/desktop-companion",
     "workspace:clean": "npm run clean",
     "workspace:clean:dry-run": "npm run clean:dry-run"

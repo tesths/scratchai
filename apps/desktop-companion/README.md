@@ -157,6 +157,7 @@ npm run package:win:single
 npm run package:win:installer
 npm run package:win:bundle
 npm run package:mac:app
+npm run package:mac:zip
 npm run package:mac:dmg
 ```
 
@@ -192,6 +193,8 @@ npm run package:mac:dmg
 - 这两个 artifact 默认保留 `7` 天。
 - 下载入口在仓库 `Actions` 页里对应 run 的 `Artifacts` 区域。
 - 当前 workflow 使用 `windows-2022` 和 `macos-latest` runner。
+- Windows artifact 当前收口 `portable.exe + setup.exe + win-unpacked`
+- macOS artifact 当前收口 `zip + dmg`
 - 当前仓库还没有把安装包自动同步到 GitHub Releases；如果看到 Release 页面为空，这是当前预期，不是出包失败。
 
 ## 真实 Scratch 联调命令

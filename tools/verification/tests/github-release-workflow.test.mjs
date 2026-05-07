@@ -21,7 +21,7 @@ test("desktop release workflow packages Windows and macOS artifacts for PRs and 
   assert.match(workflow, /windows:\s*\n[\s\S]*name:\s*scratch-desktop-companion-windows/);
 
   assert.match(workflow, /macos:\s*\n[\s\S]*runs-on:\s*macos-latest/);
-  assert.match(workflow, /macos:\s*\n[\s\S]*npm run package:mac/);
+  assert.match(workflow, /macos:\s*\n[\s\S]*npm run package:mac:zip/);
   assert.match(workflow, /macos:\s*\n[\s\S]*npm run package:mac:dmg/);
   assert.match(workflow, /macos:\s*\n[\s\S]*name:\s*scratch-desktop-companion-macos/);
 });

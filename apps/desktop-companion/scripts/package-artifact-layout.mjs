@@ -31,6 +31,10 @@ export function getMacDistributionArtifactInfo(variant) {
       variant === "no-key"
         ? "ScratchDesktopCompanion-mac.app"
         : `${variantMeta.artifactBaseName}-mac.app`,
+    zipFileName:
+      variant === "no-key"
+        ? "ScratchDesktopCompanion-mac.zip"
+        : `${variantMeta.artifactBaseName}-mac.zip`,
     dmgFileName:
       variant === "no-key"
         ? "ScratchDesktopCompanion-mac.dmg"

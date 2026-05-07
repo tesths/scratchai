@@ -44,12 +44,26 @@ test("parseMacPackageTargetArg defaults to dir", () => {
   assert.equal(parseMacPackageTargetArg(["node", "package-mac.mjs"]), "dir");
 });
 
+test("parseMacPackageTargetArg accepts zip as a supported archive target", () => {
+  assert.equal(parseMacPackageTargetArg(["node", "package-mac.mjs", "--target=zip"]), "zip");
+});
+
 test("getMacPackageArtifactInfo builds dmg names without colliding with Windows artifacts", () => {
   assert.deepEqual(getMacPackageArtifactInfo("no-key", "dmg"), {
     target: "dmg",
     outputDirName: "release-dmg-no-key",
     artifactFileName: "ScratchDesktopCompanion-no-key.dmg",
     distributionFileName: "ScratchDesktopCompanion-mac.dmg",
+    bundleFileName: "ScratchDesktopCompanion.app"
+  });
+});
+
+test("getMacPackageArtifactInfo builds zip names for GitHub artifact distribution", () => {
+  assert.deepEqual(getMacPackageArtifactInfo("no-key", "zip"), {
+    target: "zip",
+    outputDirName: "release-zip-no-key",
+    artifactFileName: "ScratchDesktopCompanion-no-key.zip",
+    distributionFileName: "ScratchDesktopCompanion-mac.zip",
     bundleFileName: "ScratchDesktopCompanion.app"
   });
 });
