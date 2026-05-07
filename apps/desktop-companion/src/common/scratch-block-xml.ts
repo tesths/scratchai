@@ -494,47 +494,315 @@ function wrapWorkspaceXml(blockXml: string, variablesXml = "") {
   return `<xml xmlns="${XML_NAMESPACE}">${variablesXml}${blockXml}</xml>`;
 }
 
+const DEFAULT_BROADCAST_ATTRIBUTES = {
+  id: "broadcast-message-1",
+  variabletype: BROADCAST_VARIABLE_TYPE
+};
+const DEFAULT_VARIABLE_ATTRIBUTES = {
+  id: "variable-score",
+  variabletype: SCALAR_VARIABLE_TYPE
+};
+const DEFAULT_LIST_ATTRIBUTES = {
+  id: "list-items",
+  variabletype: LIST_VARIABLE_TYPE
+};
+
+function buildValueElementXml(inputName: string, elementXml: string) {
+  return `<value name="${escapeXml(inputName)}">${elementXml}</value>`;
+}
+
+function buildShadowFieldBlockXml(
+  blockType: string,
+  fieldName: string,
+  fieldValue: unknown,
+  fieldAttributes: Record<string, string> = {}
+) {
+  return buildElementXml("shadow", blockType, buildFieldXml(fieldName, fieldValue, fieldAttributes));
+}
+
+function buildTextShadowValueXml(inputName: string, text: string) {
+  return buildValueShadowXml(inputName, "text", "TEXT", text);
+}
+
+function buildNumberShadowValueXml(inputName: string, value: string) {
+  return buildValueShadowXml(inputName, "math_number", "NUM", value);
+}
+
+function buildWholeNumberShadowValueXml(inputName: string, value: string) {
+  return buildValueShadowXml(inputName, "math_whole_number", "NUM", value);
+}
+
+function buildPositiveNumberShadowValueXml(inputName: string, value: string) {
+  return buildValueShadowXml(inputName, "math_positive_number", "NUM", value);
+}
+
+function buildAngleShadowValueXml(inputName: string, value: string) {
+  return buildValueShadowXml(inputName, "math_angle", "NUM", value);
+}
+
+function buildColourShadowValueXml(inputName: string, value: string) {
+  return buildValueShadowXml(inputName, "colour_picker", "COLOUR", value);
+}
+
+function buildMenuShadowValueXml(
+  inputName: string,
+  menuBlockType: string,
+  fieldName: string,
+  fieldValue: string,
+  fieldAttributes: Record<string, string> = {}
+) {
+  return buildValueElementXml(
+    inputName,
+    buildShadowFieldBlockXml(menuBlockType, fieldName, fieldValue, fieldAttributes)
+  );
+}
+
+function buildMoveStepsStatementXml() {
+  return `<statement name="SUBSTACK">${buildElementXml(
+    "block",
+    "motion_movesteps",
+    buildNumberShadowValueXml("STEPS", "10")
+  )}</statement>`;
+}
+
+function buildLooksSayStatementXml() {
+  return `<statement name="SUBSTACK2">${buildElementXml(
+    "block",
+    "looks_sayforsecs",
+    `${buildTextShadowValueXml("MESSAGE", "再试试另一种效果")}${buildNumberShadowValueXml("SECS", "2")}`
+  )}</statement>`;
+}
+
+function buildMouseDownConditionValueXml() {
+  return buildValueElementXml("CONDITION", buildElementXml("block", "sensing_mousedown", ""));
+}
+
+function buildOperatorComparisonXml(opcode: string, left: string, right: string) {
+  return buildElementXml(
+    "block",
+    opcode,
+    `${buildTextShadowValueXml("OPERAND1", left)}${buildTextShadowValueXml("OPERAND2", right)}`
+  );
+}
+
+function buildOperatorMathXml(opcode: string, left: string, right: string) {
+  return buildElementXml(
+    "block",
+    opcode,
+    `${buildNumberShadowValueXml("NUM1", left)}${buildNumberShadowValueXml("NUM2", right)}`
+  );
+}
+
 function buildRecommendedBlockBody(block: RecommendedBlock) {
   const messageText = block.example || "开始吧";
 
   switch (block.opcode) {
+    case "event_whenflagclicked":
+      return buildElementXml("block", block.opcode, "");
+    case "event_whenkeypressed":
+      return buildElementXml("block", block.opcode, buildFieldXml("KEY_OPTION", "space"));
+    case "event_whenbroadcastreceived":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildFieldXml("BROADCAST_OPTION", "消息1", DEFAULT_BROADCAST_ATTRIBUTES)
+      );
+    case "event_broadcast":
+    case "event_broadcastandwait":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml(
+          "BROADCAST_INPUT",
+          "event_broadcast_menu",
+          "BROADCAST_OPTION",
+          "消息1",
+          DEFAULT_BROADCAST_ATTRIBUTES
+        )
+      );
     case "motion_movesteps":
-      return buildElementXml("block", block.opcode, buildValueShadowXml("STEPS", "math_number", "NUM", "10"));
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("STEPS", "10"));
     case "motion_turnright":
     case "motion_turnleft":
-      return buildElementXml("block", block.opcode, buildValueShadowXml("DEGREES", "math_angle", "NUM", "15"));
+      return buildElementXml("block", block.opcode, buildAngleShadowValueXml("DEGREES", "15"));
     case "motion_pointindirection":
-      return buildElementXml("block", block.opcode, buildValueShadowXml("DIRECTION", "math_angle", "NUM", "90"));
+      return buildElementXml("block", block.opcode, buildAngleShadowValueXml("DIRECTION", "90"));
+    case "motion_pointtowards":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml("TOWARDS", "motion_pointtowards_menu", "TOWARDS", "鼠标指针")
+      );
     case "motion_gotoxy":
       return buildElementXml(
         "block",
         block.opcode,
-        `${buildValueShadowXml("X", "math_number", "NUM", "0")}${buildValueShadowXml("Y", "math_number", "NUM", "0")}`
+        `${buildNumberShadowValueXml("X", "0")}${buildNumberShadowValueXml("Y", "0")}`
+      );
+    case "motion_glideto":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildPositiveNumberShadowValueXml("SECS", "1")}${buildMenuShadowValueXml(
+          "TO",
+          "motion_glideto_menu",
+          "TO",
+          "鼠标指针"
+        )}`
+      );
+    case "motion_changexby":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("DX", "10"));
+    case "motion_setx":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("X", "0"));
+    case "motion_changeyby":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("DY", "10"));
+    case "motion_sety":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("Y", "0"));
+    case "motion_ifonedgebounce":
+      return buildElementXml("block", block.opcode, "");
+    case "looks_show":
+    case "looks_hide":
+    case "looks_nextcostume":
+    case "looks_cleargraphiceffects":
+    case "sound_stopallsounds":
+    case "sensing_answer":
+    case "sensing_mousedown":
+    case "pen_clear":
+    case "pen_penDown":
+    case "pen_penUp":
+      return buildElementXml("block", block.opcode, "");
+    case "looks_switchcostumeto":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml("COSTUME", "looks_costume", "COSTUME", "造型1")
+      );
+    case "looks_switchbackdropto":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml("BACKDROP", "looks_backdrops", "BACKDROP", "背景1")
+      );
+    case "looks_changeeffectby":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildFieldXml("EFFECT", "COLOR")}${buildNumberShadowValueXml("CHANGE", "25")}`
+      );
+    case "looks_seteffectto":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildFieldXml("EFFECT", "COLOR")}${buildNumberShadowValueXml("VALUE", "25")}`
+      );
+    case "looks_changesizeby":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("CHANGE", "10"));
+    case "looks_setsizeto":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("SIZE", "100"));
+    case "sound_play":
+    case "sound_playuntildone":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml("SOUND_MENU", "sound_sounds_menu", "SOUND_MENU", "pop")
       );
     case "looks_say":
     case "looks_think":
-      return buildElementXml("block", block.opcode, buildValueShadowXml("MESSAGE", "text", "TEXT", messageText));
+      return buildElementXml("block", block.opcode, buildTextShadowValueXml("MESSAGE", messageText));
     case "looks_sayforsecs":
     case "looks_thinkforsecs":
       return buildElementXml(
         "block",
         block.opcode,
-        `${buildValueShadowXml("MESSAGE", "text", "TEXT", messageText)}${buildValueShadowXml("SECS", "math_number", "NUM", "2")}`
+        `${buildTextShadowValueXml("MESSAGE", messageText)}${buildNumberShadowValueXml("SECS", "2")}`
       );
     case "control_wait":
-      return buildElementXml("block", block.opcode, buildValueShadowXml("DURATION", "math_positive_number", "NUM", "1"));
+      return buildElementXml("block", block.opcode, buildPositiveNumberShadowValueXml("DURATION", "1"));
     case "control_repeat":
       return buildElementXml(
         "block",
         block.opcode,
-        `${buildValueShadowXml("TIMES", "math_whole_number", "NUM", "10")}<statement name="SUBSTACK">${buildElementXml("block", "motion_movesteps", buildValueShadowXml("STEPS", "math_number", "NUM", "10"))}</statement>`
+        `${buildWholeNumberShadowValueXml("TIMES", "10")}${buildMoveStepsStatementXml()}`
       );
     case "control_forever":
+      return buildElementXml("block", block.opcode, buildMoveStepsStatementXml());
+    case "control_if":
       return buildElementXml(
         "block",
         block.opcode,
-        `<statement name="SUBSTACK">${buildElementXml("block", "motion_movesteps", buildValueShadowXml("STEPS", "math_number", "NUM", "10"))}</statement>`
+        `${buildMouseDownConditionValueXml()}${buildMoveStepsStatementXml()}`
       );
+    case "control_if_else":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildMouseDownConditionValueXml()}${buildMoveStepsStatementXml()}${buildLooksSayStatementXml()}`
+      );
+    case "control_repeat_until":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildMouseDownConditionValueXml()}${buildMoveStepsStatementXml()}`
+      );
+    case "control_stop":
+      return buildElementXml("block", block.opcode, buildFieldXml("STOP_OPTION", "all"));
+    case "sensing_touchingobject":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml(
+          "TOUCHINGOBJECTMENU",
+          "sensing_touchingobjectmenu",
+          "TOUCHINGOBJECTMENU",
+          "边缘"
+        )
+      );
+    case "sensing_keypressed":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml("KEY_OPTION", "sensing_keyoptions", "KEY_OPTION", "space")
+      );
+    case "sensing_askandwait":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildTextShadowValueXml("QUESTION", "准备好了吗？")
+      );
+    case "operator_equals":
+    case "operator_lt":
+    case "operator_gt":
+      return buildOperatorComparisonXml(block.opcode, "1", "2");
+    case "operator_add":
+    case "operator_subtract":
+    case "operator_multiply":
+    case "operator_divide":
+      return buildOperatorMathXml(block.opcode, "1", "2");
+    case "data_setvariableto":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildFieldXml("VARIABLE", "分数", DEFAULT_VARIABLE_ATTRIBUTES)}${buildNumberShadowValueXml("VALUE", "0")}`
+      );
+    case "data_changevariableby":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildFieldXml("VARIABLE", "分数", DEFAULT_VARIABLE_ATTRIBUTES)}${buildNumberShadowValueXml("VALUE", "1")}`
+      );
+    case "data_showvariable":
+    case "data_hidevariable":
+      return buildElementXml("block", block.opcode, buildFieldXml("VARIABLE", "分数", DEFAULT_VARIABLE_ATTRIBUTES));
+    case "data_addtolist":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildTextShadowValueXml("ITEM", "项目")}${buildFieldXml("LIST", "清单", DEFAULT_LIST_ATTRIBUTES)}`
+      );
+    case "pen_setPenColorToColor":
+      return buildElementXml("block", block.opcode, buildColourShadowValueXml("COLOR", "#ff4d6a"));
+    case "pen_changePenSizeBy":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("SIZE", "1"));
     default:
       return buildElementXml("block", block.opcode, "");
   }

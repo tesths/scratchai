@@ -70,6 +70,11 @@ const OPCODE_DISPLAY_LABELS = {
   looks_switchcostumeto: "切换造型",
   looks_nextcostume: "下一个造型",
   looks_switchbackdropto: "切换背景",
+  looks_changeeffectby: "将特效增加",
+  looks_seteffectto: "将特效设为",
+  looks_cleargraphiceffects: "清除图形特效",
+  looks_changesizeby: "将大小增加",
+  looks_setsizeto: "将大小设为",
   sound_play: "播放声音",
   sound_playuntildone: "播放声音直到播完",
   sound_stopallsounds: "停止所有声音",
@@ -222,6 +227,32 @@ function getLocalizedKeyName(value) {
   return normalized.length === 1 ? `${normalized.toUpperCase()} 键` : `${normalized} 键`;
 }
 
+function getLocalizedLooksEffectName(value) {
+  const normalized = normalizeString(value).toUpperCase();
+  if (!normalized) {
+    return "特效";
+  }
+
+  switch (normalized) {
+    case "COLOR":
+      return "颜色特效";
+    case "FISHEYE":
+      return "鱼眼特效";
+    case "WHIRL":
+      return "旋涡特效";
+    case "PIXELATE":
+      return "像素化特效";
+    case "MOSAIC":
+      return "马赛克特效";
+    case "BRIGHTNESS":
+      return "亮度特效";
+    case "GHOST":
+      return "虚像特效";
+    default:
+      return `${normalized.toLowerCase()} 特效`;
+  }
+}
+
 function getDisplayLabelForOpcode(opcode, fields) {
   const normalizedOpcode = normalizeString(opcode);
   if (!normalizedOpcode) {
@@ -265,6 +296,14 @@ function getDisplayLabelForOpcode(opcode, fields) {
   if (normalizedOpcode === "looks_switchbackdropto") {
     const backdropName = getFieldText(fields, "BACKDROP");
     return backdropName ? `切换背景到${backdropName}` : OPCODE_DISPLAY_LABELS[normalizedOpcode];
+  }
+
+  if (normalizedOpcode === "looks_changeeffectby") {
+    return `将${getLocalizedLooksEffectName(getFieldText(fields, "EFFECT"))}增加`;
+  }
+
+  if (normalizedOpcode === "looks_seteffectto") {
+    return `将${getLocalizedLooksEffectName(getFieldText(fields, "EFFECT"))}设为`;
   }
 
   if (normalizedOpcode === "sensing_touchingobject") {

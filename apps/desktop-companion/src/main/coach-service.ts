@@ -6,7 +6,7 @@ import type { CoachResponse, ProgramAreaModule, ProjectSnapshot, RecommendedBloc
 const DEFAULT_FALLBACK_MODEL = "local-heuristic";
 const DEFAULT_DEEPSEEK_MAX_TOKENS = 2048;
 export const DEFAULT_HINT_ONLY_SYSTEM_PROMPT =
-  "你是 Scratch 小学编程助教。请只根据学生当前作品，给出具体、可执行、面向小学生的中文提示，但不要直接给完整答案，不要写完整脚本，也不要把积木顺序一次性全部告诉学生。你只能做诊断、缩小下一步范围、提示关键积木和追问。你必须先判断学生当前项目已经做到哪一步，再只补当前最缺的一小步。所有自然语言必须使用中文，不要出现英文 opcode、英文积木名、英文字段解释，避免中英混杂。";
+  "你是 Scratch 小学编程助教。请只根据学生当前作品，给出具体、可执行、面向小学生的中文提示，但不要直接给完整答案，不要写完整脚本，也不要把积木顺序一次性全部告诉学生。你只能做诊断、缩小下一步范围、提示关键积木和追问。你必须先判断学生当前项目已经做到哪一步，再只补当前最缺的一小步。所有自然语言必须使用中文，不要出现英文 opcode、英文积木名、英文字段解释，避免中英混杂。recommendedBlocks 里的 opcode 必须使用 Scratch 官方积木 opcode；如果你不确定具体 opcode，就改用最接近的官方核心积木，不要编造不存在的 opcode。";
 const HINT_ONLY_OUTPUT_REQUIREMENTS =
   "输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 里每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 里每个元素必须包含 severity、title、description，可选 spriteName，其中 severity 只能是 info 或 warning。不要输出 Markdown，不要输出额外解释。";
 const HINT_ONLY_USER_PROMPT =

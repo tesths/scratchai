@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  getDisplayLabelForOpcode,
   getExtensionIdForOpcode,
   getModuleIdForOpcode,
   getUsedExtensionsFromProject,
@@ -188,4 +189,20 @@ test("builds a project snapshot with nested stack blocks inside control blocks",
     "重复执行",
     "移动 10 步"
   ]);
+});
+
+test("localizes effect and size related Scratch opcodes with field values", () => {
+  assert.equal(
+    getDisplayLabelForOpcode("looks_changeeffectby", {
+      EFFECT: ["COLOR", null]
+    }),
+    "将颜色特效增加"
+  );
+  assert.equal(
+    getDisplayLabelForOpcode("looks_seteffectto", {
+      EFFECT: ["GHOST", null]
+    }),
+    "将虚像特效设为"
+  );
+  assert.equal(getDisplayLabelForOpcode("looks_cleargraphiceffects"), "清除图形特效");
 });

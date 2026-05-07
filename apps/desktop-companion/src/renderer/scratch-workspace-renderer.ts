@@ -123,6 +123,28 @@ function registerReadonlyStatementBlock(
   };
 }
 
+function registerReadonlyValueBlock(
+  blockType: string,
+  message0: string,
+  inputName: string,
+  extensions: string[]
+) {
+  ScratchBlocks.Blocks[blockType] = {
+    init: function initReadonlyValueBlock(this: ScratchBlocks.Block) {
+      this.jsonInit({
+        message0,
+        args0: [
+          {
+            type: "input_value",
+            name: inputName
+          }
+        ],
+        extensions
+      });
+    }
+  };
+}
+
 function ensureScratchBlocksInitialized() {
   if (scratchBlocksInitialized) {
     return;
@@ -164,6 +186,14 @@ function ensureScratchBlocksInitialized() {
   registerReadonlyStatementBlock("pen_clear", "清空", ["colours_pen", "shape_statement"]);
   registerReadonlyStatementBlock("pen_penDown", "落笔", ["colours_pen", "shape_statement"]);
   registerReadonlyStatementBlock("pen_penUp", "抬笔", ["colours_pen", "shape_statement"]);
+  registerReadonlyValueBlock("pen_setPenColorToColor", "将画笔颜色设为 %1", "COLOR", [
+    "colours_pen",
+    "shape_statement"
+  ]);
+  registerReadonlyValueBlock("pen_changePenSizeBy", "将画笔粗细增加 %1", "SIZE", [
+    "colours_pen",
+    "shape_statement"
+  ]);
 
   ScratchBlocks.Blocks.event_whenbackdropswitchesto = {
     init: function initBackdropSwitchBlock(this: ScratchBlocks.Block) {

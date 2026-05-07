@@ -90,3 +90,93 @@ test("buildRecommendedBlockXml creates official block XML with default inputs", 
   assert.match(waitXml, /<value name="DURATION">/);
   assert.match(waitXml, /<field name="NUM">1<\/field>/);
 });
+
+test("buildRecommendedBlockXml fills fields and values for effect, menu and variable blocks", () => {
+  const effectXml = buildRecommendedBlockXml({
+    opcode: "looks_changeeffectby",
+    category: "外观",
+    label: "将颜色特效增加 25",
+    reason: "先调一下颜色。"
+  });
+  const pointTowardsXml = buildRecommendedBlockXml({
+    opcode: "motion_pointtowards",
+    category: "运动",
+    label: "面向...",
+    reason: "先让方向正确。"
+  });
+  const setVariableXml = buildRecommendedBlockXml({
+    opcode: "data_setvariableto",
+    category: "变量",
+    label: "将变量设为",
+    reason: "先初始化变量。"
+  });
+
+  assert.match(effectXml, /<block[^>]+type="looks_changeeffectby"/);
+  assert.match(effectXml, /<field name="EFFECT">COLOR<\/field>/);
+  assert.match(effectXml, /<value name="CHANGE">/);
+  assert.match(effectXml, /<field name="NUM">25<\/field>/);
+
+  assert.match(pointTowardsXml, /<block[^>]+type="motion_pointtowards"/);
+  assert.match(pointTowardsXml, /<value name="TOWARDS">/);
+  assert.match(pointTowardsXml, /<shadow type="motion_pointtowards_menu">/);
+  assert.match(pointTowardsXml, /<field name="TOWARDS">鼠标指针<\/field>/);
+
+  assert.match(setVariableXml, /<block[^>]+type="data_setvariableto"/);
+  assert.match(setVariableXml, /<field name="VARIABLE"[^>]*>分数<\/field>/);
+  assert.match(setVariableXml, /<value name="VALUE">/);
+  assert.match(setVariableXml, /<field name="NUM">0<\/field>/);
+});
+
+test("buildRecommendedBlockXml does not leave common input blocks as empty shells", () => {
+  const opcodes = [
+    "event_whenkeypressed",
+    "event_whenbroadcastreceived",
+    "event_broadcast",
+    "event_broadcastandwait",
+    "motion_glideto",
+    "motion_pointtowards",
+    "motion_changexby",
+    "motion_setx",
+    "motion_changeyby",
+    "motion_sety",
+    "looks_switchcostumeto",
+    "looks_switchbackdropto",
+    "looks_changeeffectby",
+    "looks_seteffectto",
+    "looks_changesizeby",
+    "looks_setsizeto",
+    "sound_play",
+    "sound_playuntildone",
+    "control_if",
+    "control_if_else",
+    "control_repeat_until",
+    "control_stop",
+    "sensing_touchingobject",
+    "sensing_keypressed",
+    "sensing_askandwait",
+    "operator_equals",
+    "operator_add",
+    "data_setvariableto",
+    "data_changevariableby",
+    "data_showvariable",
+    "data_hidevariable",
+    "data_addtolist",
+    "pen_setPenColorToColor",
+    "pen_changePenSizeBy"
+  ];
+
+  for (const opcode of opcodes) {
+    const xml = buildRecommendedBlockXml({
+      opcode,
+      category: "测试",
+      label: opcode,
+      reason: "测试"
+    });
+
+    assert.doesNotMatch(
+      xml,
+      new RegExp(`<block type="${opcode}"><\\/block>`),
+      `${opcode} should not be rendered as an empty shell`
+    );
+  }
+});
