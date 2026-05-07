@@ -6,6 +6,7 @@
 
 ## 已完成
 
+- 2026-05-07：维护桌面伴随程序启动与环境文档：将 `npm start` / `npm run dev` 固定到仓库本地 Electron，新增脚本回归测试，并把 npm workspace 依赖位置、全局旧版 Electron 误用风险、以及 `Node.js v22.16.0` 下 npm 兼容性 warning 的排障结论同步到 README 与开发交接文档；已完成源码启动验证与 desktop-companion 全量单测。
 - 2026-05-07：修复桌面伴随程序“推荐积木”补位逻辑：当 DeepSeek 仅返回 1-2 条时，服务层会按 opcode 去重并用现有 fallback 推荐自动补满 3 步；已补定向单测并完成 desktop-companion 全量单测。
 - 2026-05-07：桌面伴随程序将“推荐积木”统一收敛为 3 步：新增共享上限常量，把 DeepSeek/fallback 推荐积木都裁到 3 条，并同步将主界面展示上限从 4 调到 3。已完成桌面端定向单测与 desktop-companion 全量单测。
 - 2026-05-07：为真实联调脚本 `verify-desktop-companion-real-e2e.mjs` 补充“自动刷新 / 手动点击”提示触发方式的 E2E 校验：新增设置窗口快照 helper 与测试，验证默认 `auto`、切换并保存 `manual`、配置文件落盘，以及真实 Scratch 重连后主窗口文案切到手动模式。已完成 verification 单测与真实 E2E 冒烟。

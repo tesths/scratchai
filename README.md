@@ -39,6 +39,10 @@ npm run package:mac:dmg
 
 说明：
 
+- 这是一个 npm workspace；依赖安装在仓库根目录，`apps/desktop-companion` 不单独维护自己的 `node_modules`
+- 桌面伴随程序本地启动请优先使用 `cd apps/desktop-companion && npm start` 或 `npm run dev`，脚本已固定走仓库根目录的本地 Electron
+- 不要手工执行裸命令 `electron dist/main.js`；如果系统里刚好装着全局旧版 Electron，可能会报 `Unexpected token {` 或 `node:fs/promises` 相关启动错误
+- 当前这台机器上的 `npm` 会对 `Node.js v22.16.0` 打兼容性 warning；只要命令最终退出码为 `0`，可先按告警处理，不是这次桌面端启动问题的根因
 - 本地默认只保证“当前平台可开发、可测试、可出包”
 - 正式双平台产物由 GitHub Actions 分别在 Windows 和 macOS runner 生成
 - `installers/` 只作为本地产物收口目录，不纳入 git

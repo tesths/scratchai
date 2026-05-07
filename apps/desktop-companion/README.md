@@ -162,9 +162,13 @@ npm run package:mac:dmg
 
 说明：
 
+- `apps/desktop-companion` 是 npm workspace 子包；Electron 依赖安装在仓库根目录，平时先在根目录执行 `npm ci`
+- `npm run dev` / `npm start` 现在会显式走仓库根目录的本地 Electron，避免误用系统里的全局旧版 Electron
 - `npm run dev` / `npm start` 默认应当作为**正常联调启动**使用，不要额外带 `DESKTOP_COMPANION_MOCK_STATE_FILE`、`DESKTOP_COMPANION_AUTOMATION_ACTIONS`、`DESKTOP_COMPANION_AUTOMATION_SCRATCH_PATH` 这 3 个环境变量。
 - 如果之前为了 UI 冒烟或演示手动带过这些环境变量，下一次做真实 Scratch 联调前，先清掉它们；否则主窗口会读取 mock 状态，路径可能显示成测试用的 `C:\...`，而且“选择 Scratch 软件”等交互不会落到真实会话。
 - `DESKTOP_COMPANION_MOCK_STATE_FILE` 只用于自动化或纯界面演示，不作为人工验收、路径选择或真实 Scratch 联调入口。
+- 不要在终端里直接敲 `electron dist/main.js`；如果 PATH 中存在全局旧版 Electron，可能会因为不支持当前 ESM / Node 语法而启动失败
+- 当前机器上的 `npm` 若提示 `does not support Node.js v22.16.0`，先看命令是否仍然成功退出；这条 warning 不会阻止当前源码版 `build / test / start`
 - `npm run test:desktop-ui` 可在 Windows 和 macOS 跑源码版 UI 自动化
 - `npm run test:windows-ui` 这个脚本名沿用历史命名，但当前源码版 UI 自动化已可在 Windows 和 macOS 跑
 - `tools/verification/scripts/verify-scratch-local.mjs`、`tools/verification/scripts/verify-scratch-bridge.mjs` 和 `tools/verification/scripts/verify-desktop-companion-real-e2e.mjs` 现在都按当前平台自动选择默认二进制路径；需要复现时仍建议显式传 `--exe` / `--scratch-exe` / `--companion-exe`

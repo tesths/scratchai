@@ -235,6 +235,7 @@ cd apps\desktop-companion
 npm run icons:generate
 npm run build
 npm test
+npm run dev
 npm run test:desktop-ui
 npm run test:windows-ui
 npm run package:win:single
@@ -258,5 +259,8 @@ node tools/verification\scripts\verify-desktop-companion-real-e2e.mjs
 - 真实 Scratch 联调深度目前仍以 Windows 为主
 - macOS 现在更接近“开发可用 + UI 冒烟可用 + 内测包可出”
 - 当前主路线仍然是“受控启动 Scratch + CDP 注入”，不是“用户手工打开 Scratch 后再附着”
+- `apps/desktop-companion` 是 npm workspace 子包，Electron 安装在仓库根目录；源码启动请走 `npm start` / `npm run dev`，不要手工执行裸命令 `electron dist/main.js`
+- 如果本机 PATH 里混入了全局旧版 Electron，直接敲 `electron dist/main.js` 可能会报 `Unexpected token {` 或 `node:fs/promises` 相关错误；当前脚本已固定走仓库本地 Electron
+- 当前这台开发机上的 `npm` 在 `Node.js v22.16.0` 下会打印兼容性 warning，但不影响 `npm run build`、`npm test`、`npm start` 成功；排障时不要把它误判成主故障
 - 推荐积木链路当前主要风险已收敛到“白名单外的新 opcode”；扩推荐范围时，优先同步 `src/common/scratch-block-xml.ts` 里的白名单与默认模板
 - 如果真实作品里出现新的动态菜单块、扩展块或特殊 mutation，而只读渲染不完整，优先检查 `src/common/scratch-block-xml.ts` 和 `src/renderer/scratch-workspace-renderer.ts`
