@@ -1,12 +1,18 @@
 # Project Structure
 
-This repository is an npm workspace monorepo. The maintained mainline is intentionally limited to three active units.
+This repository is now a mixed-language monorepo. The JavaScript side still uses npm workspaces, while the teaching server API is maintained as a parallel Python app.
 
 ## Top-Level Directories
 
 - `apps/desktop-companion`
   - the Electron desktop app
   - handles Scratch launching, bridging, AI calls, and the main UI
+- `apps/server-api`
+  - the Python FastAPI backend
+  - handles teacher/student auth, releases, progress reporting, AI hints, and dashboard APIs
+- `apps/server-web`
+  - the Vue teacher dashboard
+  - handles teacher login, student management, release management, and the live classroom view
 - `packages/shared`
   - shared schemas, project snapshots, and Scratch parsing logic
 - `tools/verification`
@@ -18,9 +24,9 @@ This repository is an npm workspace monorepo. The maintained mainline is intenti
 
 ## Product Boundary
 
-- the maintained product is the local desktop edition of `Scratch AI Coach`
-- there is no server code in the mainline today
-- the future server edition is planned separately rather than mixed into the current branch
+- the maintained product now includes the local desktop edition and the server teaching edition of `Scratch AI Coach`
+- the server track currently uses `Python FastAPI + Vue`
+- the desktop app still works independently, while the server track serves classroom workflows
 
 ## Where to Read Next
 

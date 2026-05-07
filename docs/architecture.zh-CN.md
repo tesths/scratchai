@@ -2,20 +2,25 @@
 
 本文只描述当前主线里真正维护的工程：
 
+- `apps/server-api`
+- `apps/server-web`
 - `apps/desktop-companion`
 - `packages/shared`
 - `tools/verification`
 
 ## 1. 工作区边界
 
-当前仓库已经整理成标准 npm workspace，`apps/server` 已移出主线，不再保留空壳目录。
+当前仓库是混合语言 monorepo：
 
-主线目标只有两个：
+- `apps/server-web`、`apps/desktop-companion`、`packages/shared`、`tools/verification` 继续走 npm workspace
+- `apps/server-api` 作为独立 Python 工程并行维护
+
+主线目标有两条：
 
 1. 持续维护 Windows + macOS 的 `Scratch AI 教练桌面工具`
-2. 保持一套可在新电脑直接 clone、安装、测试和本机出包的验证型工作区
+2. 启动面向课堂的服务器端教学工作流，并保持仓库可 clone、安装、测试和联调
 
-当前产品形态固定为 **本地基础版**，不再继续推进“服务器版 + 单机版并存”路线。
+当前产品形态变为 **桌面端本地基础版 + 服务器端教学版并行维护**。
 
 ## 2. 组件职责
 
@@ -40,6 +45,25 @@ Electron 桌面工具，源码拆成三层：
 - 推荐积木链路会先做官方 opcode 白名单归一化，AI 给出未支持或编造的 opcode 时会自动降级到安全、可渲染的官方积木
 - 直接调用 DeepSeek 生成“下一步提示”
 
+### `apps/server-api`
+
+Python FastAPI 服务端，负责：
+
+- 老师注册/登录、学生账号登录验证
+- 老师创建学生账号与发布 `sb3` 地址
+- 保存学生进度与 AI 提示日志
+- 聚合教师实时看板数据
+- 以服务端 provider 方式调用 AI，向学生客户端返回提示
+
+### `apps/server-web`
+
+Vue 教师后台，负责：
+
+- 老师登录
+- 学生账号管理
+- `sb3` 发布单管理
+- 按发布单轮询查看学生最新进度与 AI 提示
+
 ### `packages/shared`
 
 共享领域包，负责：
@@ -63,7 +87,9 @@ Electron 桌面工具，源码拆成三层：
 
 ## 3. 主数据流
 
-当前最重要的主链路全部发生在桌面端内部：
+当前主线存在两条核心链路。
+
+### 桌面端本地链路
 
 1. Electron 主进程启动 `SessionManager`
 2. `SessionManager` 启动本地 bridge server
@@ -79,11 +105,23 @@ Electron 桌面工具，源码拆成三层：
 12. 用户请求 AI 提示时，桌面端直接调用 DeepSeek 或本地 fallback
 13. `CoachService` 会先把 DeepSeek 返回的 `recommendedBlocks` 归一化，超出白名单的 opcode 会自动映射到可渲染的官方积木
 
+### 服务器端教学链路
+
+1. 老师在 `apps/server-web` 登录教师后台
+2. 教师后台调用 `apps/server-api` 创建学生账号与项目发布单
+3. 发布单保存 `sb3` 地址、目标说明和分配关系
+4. 学生客户端使用老师发放的账号密码登录服务端
+5. 学生客户端读取发布单，并在创作过程中持续上报当前完成情况
+6. 服务端保存最近进度快照，并在请求提示时调用 AI provider
+7. AI 返回的提示和推荐动作写入提示日志
+8. 教师后台按发布单轮询教师看板接口，展示每个学生最近进度和最近 AI 提示
+
 关键约束：
 
 - 不修改 Scratch 官方源码
-- 运行时只读注入是当前唯一主路线
-- 当前不支持“附着到用户手工启动的 Scratch”
+- 桌面端运行时只读注入仍是本地版唯一主路线
+- 服务器端第一阶段只做“老师 / 学生 / 发布单”三类核心对象
+- 服务器端第一阶段实时能力统一采用轮询，不上 WebSocket/SSE
 
 ## 4. 原版积木渲染链路
 
@@ -110,3 +148,5 @@ Electron 桌面工具，源码拆成三层：
 - `tools/verification/artifacts/` 不再进 git，需要通过文档和 CI artifact 回看验证结果
 - 推荐积木白名单外的新 opcode，先扩 `src/common/scratch-block-xml.ts` 的默认模板，再决定是否放行到 AI 输出
 - 新出现的扩展块、动态菜单块或特殊 mutation，可能还需要在只读渲染层补兜底定义
+- Python 服务端与现有 JS 共享逻辑存在跨语言边界，第一阶段先以独立领域层实现为主
+- 服务器端当前用 SQLite 起步，后续若转线上部署还要补迁移和更完整的运维策略

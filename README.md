@@ -1,7 +1,7 @@
 # Scratch AI 教练 / Scratch AI Coach
 
-面向 `Scratch Desktop` 的开源 AI 伴随工具，帮助学生在本机创作时获得下一步提示、角色脚本可视化和更清晰的编程反馈。
-An open source AI companion for `Scratch Desktop`, designed to help learners read their current scripts, get next-step hints, and stay in the flow while creating.
+面向 Scratch 教学场景的开源工作区，当前同时维护 `Scratch Desktop` 本地伴随工具，以及基于 `FastAPI + Vue` 的服务器端教学链路。
+An open source Scratch teaching workspace that now maintains both the local `Scratch Desktop` companion and a `FastAPI + Vue` server track for classroom workflows.
 
 ## Language / 语言
 
@@ -10,12 +10,12 @@ An open source AI companion for `Scratch Desktop`, designed to help learners rea
 
 ## Current Scope
 
-- 当前主线是 **桌面端本地基础版**
+- 当前主线同时维护 **桌面端本地基础版** 和 **服务器端教学版**
 - 支持 **Windows** 和 **macOS**
 - Windows CI 产物：`portable .exe`、`installer .exe`
 - macOS CI 产物：`zip`、`dmg`
 - 当前正式分发通过 **GitHub Actions artifacts**，暂未自动发布到 GitHub Releases
-- 未来计划包含教学导向的服务器版，详见路线图
+- 服务器端技术栈为 `Python FastAPI + Vue`
 
 ## Quick Links
 

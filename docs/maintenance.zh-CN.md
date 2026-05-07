@@ -10,6 +10,8 @@
 - `SECURITY*.md`
 - `SUPPORT*.md`
 - `docs/*.md`
+- `apps/server-api/*.md`
+- `apps/server-web/*.md`
 - `apps/desktop-companion/*.md`
 - `tools/verification/*.md`
 - `tools/verification/workflows/deepseek-teaching/*.md`
@@ -25,8 +27,9 @@
 5. `docs/project-structure*` / `docs/releasing*` / `docs/roadmap*`
 6. `docs/architecture.zh-CN.md`
 7. `docs/maintenance.zh-CN.md`
-8. `apps/desktop-companion` 下的 README / 状态文档 / SOP
-9. `tools/verification` 下的验证说明与工作流文档
+8. `apps/server-api` / `apps/server-web` 下的服务端开发文档
+9. `apps/desktop-companion` 下的 README / 状态文档 / SOP
+10. `tools/verification` 下的验证说明与工作流文档
 
 ## 2. 每份文档负责什么
 
@@ -99,9 +102,22 @@
 这些变化后必须更新：
 
 - `desktop-companion` 内部分层变化
+- `server-api` / `server-web` 结构变化
 - `packages/shared` 职责变化
 - `tools/verification` 目录或定位变化
 - AI 调用链路变化
+
+### `apps/server-api/*.md` / `apps/server-web/*.md`
+
+负责：
+
+- 服务器 API、教师后台的开发、联调和部署说明
+
+这些变化后必须更新：
+
+- 鉴权或接口契约变化
+- 本地启动命令变化
+- 前后端目录结构变化
 
 ### `apps/desktop-companion/*.md`
 
@@ -137,5 +153,5 @@
 - 文档里的路径与真实目录一致
 - 文档里的 artifact 名称、workflow 名称与当前配置一致
 - 验证脚本示例是否已经带上 `tools/verification/scripts/`
-- 文档是否还提到 `apps/server`、`Windows-Test` 这类已退出主线的路径
+- 文档是否还提到 `apps/server`、`Windows-Test` 这类过时路径
 - `npm run clean:dry-run` 的描述是否和脚本输出一致

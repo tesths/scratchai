@@ -14,6 +14,12 @@ const EXACT_PATHS = [
   "apps/desktop-companion/release-single",
   "apps/desktop-companion/release-installer",
   "apps/desktop-companion/release-bundles",
+  "apps/server-web/node_modules",
+  "apps/server-web/dist",
+  "apps/server-web/coverage",
+  "apps/server-api/.venv",
+  "apps/server-api/.pytest_cache",
+  "apps/server-api/.coverage",
   "tools/verification/artifacts",
   "tools/verification/generated"
 ];

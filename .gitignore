@@ -15,12 +15,16 @@ Thumbs.db
 # Dependencies
 node_modules/
 .npm/
+.venv/
 
 # Build and test output
 dist/
 coverage/
 .nyc_output/
 out/
+.pytest_cache/
+__pycache__/
+.coverage
 .worktrees/
 *.tsbuildinfo
 *.log
@@ -36,6 +40,7 @@ installers/*
 !installers/.gitkeep
 apps/desktop-companion/release*/
 apps/desktop-companion/release-bundles/
+apps/server-web/dist/
 
 # Local test artifacts
 current-ui-*.png

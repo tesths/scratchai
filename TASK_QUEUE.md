@@ -2,6 +2,7 @@
 
 ## 待确认
 
+- 2026-05-07：启动 Python FastAPI + Vue 的服务器端第一阶段；目标是完成老师注册登录、学生账号管理、sb3 发布单、学生进度上报、AI 提示、教师实时看板的最小闭环；当前在独立 worktree `feat/server-python-vue` 中实施。
 - 2026-05-07：为桌面伴随程序整理 GitHub CI 与跨平台出包链路；目标是让 Windows / macOS runner 能稳定构建、测试、打包并上传产物；本轮先在独立 worktree 里核实现状、补测试与 workflow。
 
 ## 已完成

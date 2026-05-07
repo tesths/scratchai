@@ -1,6 +1,6 @@
 # Scratch AI Coach
 
-`Scratch AI Coach` is an open source companion app for `Scratch Desktop`. It does not modify the upstream Scratch source code. Instead, it launches Scratch in a controlled way, injects a read-only bridge, renders real Scratch-style blocks, and generates next-step hints from the learner's current project.
+`Scratch AI Coach` is now an open source Scratch teaching workspace. It still ships the local `Scratch Desktop` companion app, and it now also carries a classroom server track built with `FastAPI + Vue`.
 
 ## Why This Project Exists
 
@@ -8,10 +8,10 @@ Scratch helped many people fall in love with computers for the first time. Since
 
 ## Current Scope
 
-- The maintained product line is the **local desktop edition**
+- The maintained product line now includes both the **local desktop edition** and the **server teaching edition**
 - Supported platforms: **Windows** and **macOS**
 - The current workflow is “launch Scratch Desktop from the companion app, then attach a read-only bridge”
-- No server code is included in the mainline yet; the teaching-oriented server edition is a future roadmap item
+- The server track is implemented with `Python FastAPI + Vue`
 - Chinese is the primary product language today, while the core open source docs are bilingual
 
 ## What It Does Today
@@ -22,6 +22,7 @@ Scratch helped many people fall in love with computers for the first time. Since
 - Renders the current scripts and recommended blocks with real `scratch-blocks`
 - Generates AI next-step hints with an opcode allowlist for block safety
 - Falls back to local hints when no online API key is configured
+- Adds a server-side teaching workflow for teacher auth, student accounts, sb3 releases, progress reporting, and live classroom dashboards
 
 ## Downloads and Release Flow
 
@@ -50,6 +51,8 @@ Common commands:
 ```bash
 npm run build
 npm run test
+npm run server:web:test
+npm run server:api:test
 npm run package:win:bundle
 npm run package:mac:zip
 npm run package:mac:dmg
@@ -68,6 +71,8 @@ npm run dev
 - Releasing: [`docs/releasing.en.md`](docs/releasing.en.md)
 - Roadmap: [`docs/roadmap.en.md`](docs/roadmap.en.md)
 - Engineering docs index: [`docs/README.zh-CN.md`](docs/README.zh-CN.md)
+- Server API: `apps/server-api`
+- Teacher dashboard: `apps/server-web`
 - Desktop app docs: [`apps/desktop-companion/README.md`](apps/desktop-companion/README.md)
 - Verification tooling docs: [`tools/verification/README.zh-CN.md`](tools/verification/README.zh-CN.md)
 
@@ -82,10 +87,10 @@ Contributions are welcome through issues, pull requests, docs improvements, and 
 
 ## Future Direction
 
-The long-term direction includes:
+The direction from here includes:
 
 - a stronger desktop release and community workflow
-- a teaching-oriented open source server edition
+- a fuller server-side classroom workflow
 - tighter links between the app, verification tooling, and example teaching projects
 
 See [`docs/roadmap.en.md`](docs/roadmap.en.md) for the current direction.

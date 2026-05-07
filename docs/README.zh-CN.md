@@ -18,6 +18,8 @@
 
 - 架构说明：[`./architecture.zh-CN.md`](./architecture.zh-CN.md)
 - 文档维护约定：[`./maintenance.zh-CN.md`](./maintenance.zh-CN.md)
+- 服务器 API：`../apps/server-api`
+- 教师后台：`../apps/server-web`
 - 桌面端说明：[`../apps/desktop-companion/README.md`](../apps/desktop-companion/README.md)
 - 验证工具说明：[`../tools/verification/README.zh-CN.md`](../tools/verification/README.zh-CN.md)
 

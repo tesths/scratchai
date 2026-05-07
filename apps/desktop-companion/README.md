@@ -93,7 +93,7 @@
 
 ## DeepSeek 配置
 
-当前这版不依赖 `apps/server`，而是直接由桌面端请求 DeepSeek。  
+当前这个桌面端本地版不依赖 `apps/server-api`，而是直接由桌面端请求 DeepSeek。  
 调用方式对齐官方文档：`POST https://api.deepseek.com/chat/completions`。
 
 打包前可在：

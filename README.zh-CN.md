@@ -1,6 +1,6 @@
 # Scratch AI 教练
 
-`Scratch AI 教练` 是一个面向 `Scratch Desktop` 的开源桌面伴随工具。它不会改动 Scratch 官方源码，而是通过受控启动、只读桥接和原版积木渲染，帮助学生在本机创作时看清“当前角色程序”，并获得 AI 生成的下一步提示。
+`Scratch AI 教练` 现在是一个面向 Scratch 教学场景的开源工作区：既维护不改动 Scratch 官方源码的桌面伴随工具，也开始维护基于 `Python FastAPI + Vue` 的服务器端教学链路。
 
 ## 为什么做这个项目
 
@@ -8,10 +8,10 @@ Scratch 帮很多人第一次真正喜欢上电脑、理解程序和创作。Scr
 
 ## 当前支持范围
 
-- 当前主线只维护 **桌面端本地基础版**
+- 当前主线同时维护 **桌面端本地基础版** 和 **服务器端教学版**
 - 支持 **Windows** 和 **macOS**
 - 当前主流程是“由伴随程序启动 Scratch Desktop，再建立只读连接”
-- 当前不提供服务器端代码；服务器版属于未来路线图
+- 服务器端当前技术栈为 `Python FastAPI + Vue`
 - 当前默认面向中文用户，但开源核心文档已提供英文版本
 
 ## 当前能力
@@ -22,6 +22,7 @@ Scratch 帮很多人第一次真正喜欢上电脑、理解程序和创作。Scr
 - 使用 `scratch-blocks` 以 Scratch 原版风格只读渲染“当前角色程序”和“推荐积木”
 - 生成 AI 下一步提示，并对推荐积木做 opcode 白名单约束
 - 在无线上 Key 或上游失败时回退到本地提示逻辑
+- 提供服务器端老师登录、学生账号、`sb3` 发布单、进度上报与教师实时看板的开发主线
 
 ## 下载与发布
 
@@ -50,6 +51,8 @@ npm run test
 ```bash
 npm run build
 npm run test
+npm run server:web:test
+npm run server:api:test
 npm run package:win:bundle
 npm run package:mac:zip
 npm run package:mac:dmg
@@ -68,6 +71,8 @@ npm run dev
 - 发布与出包：[`docs/releasing.zh-CN.md`](docs/releasing.zh-CN.md)
 - 路线图：[`docs/roadmap.zh-CN.md`](docs/roadmap.zh-CN.md)
 - 工程文档索引：[`docs/README.zh-CN.md`](docs/README.zh-CN.md)
+- 服务器 API：`apps/server-api`
+- 教师后台：`apps/server-web`
 - 桌面端说明：[`apps/desktop-companion/README.md`](apps/desktop-companion/README.md)
 - 验证工具说明：[`tools/verification/README.zh-CN.md`](tools/verification/README.zh-CN.md)
 
@@ -82,10 +87,10 @@ npm run dev
 
 ## 未来方向
 
-未来希望在这个项目基础上继续开源：
+未来希望在这个项目基础上继续推进：
 
 - 更稳定的桌面端发行与社区协作流程
-- 更适合教学场景的服务器版
+- 更完整的服务器端课堂工作流
 - 与课程、验证工具、示例工程更紧密的开源工作流
 
 具体节奏见 [`docs/roadmap.zh-CN.md`](docs/roadmap.zh-CN.md)。
