@@ -102,7 +102,7 @@ function getReleaseSummaryLines({ generatedAt, bundleDir, artifacts }) {
     "",
     `- Generated at: ${generatedAt}`,
     `- Bundle directory: \`${bundleDir}\``,
-    `- Classroom flow: 选择 Scratch 软件 -> 打开已选 Scratch -> 填入教师 sb3 地址 -> 编写程序，学生跟着做`,
+    `- Current flow: 选择 Scratch 软件 -> 打开已选 Scratch -> 连接当前作品 -> 生成下一步提示`,
     "",
     "## Included artifacts",
     ...artifacts.map(

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "author": "Ju",
-  "description": "Windows companion app for monitoring Scratch Desktop extensions in computer labs",
+  "description": "Desktop companion app for the Scratch AI Coach workspace",
   "type": "module",
   "main": "dist/main.js",
   "scripts": {
