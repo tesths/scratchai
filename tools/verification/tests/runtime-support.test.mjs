@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -72,4 +75,23 @@ test("probeMacDmgSupport rejects older Darwin runtimes before invoking dmg tooli
 
   assert.equal(result.supported, false);
   assert.equal(result.reason.includes("Darwin 22"), true);
+});
+
+test("probeMacDmgSupport falls back to the host temp directory when the requested temp dir is missing", () => {
+  const missingTempDir = path.join(os.tmpdir(), "scratchai-nonexistent-probe-parent");
+  fs.rmSync(missingTempDir, { recursive: true, force: true });
+
+  const result = probeMacDmgSupport({
+    platform: "darwin",
+    osRelease: "22.6.0",
+    tempDir: missingTempDir,
+    spawnSyncImpl: () => ({
+      status: 0,
+      signal: null,
+      stdout: "",
+      stderr: ""
+    })
+  });
+
+  assert.deepEqual(result, { supported: true });
 });

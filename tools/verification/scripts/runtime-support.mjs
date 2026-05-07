@@ -66,7 +66,19 @@ export function probeMacDmgSupport({
     };
   }
 
-  const probeDir = fs.mkdtempSync(path.join(tempDir, "scratchai-dmg-probe-"));
+  const preferredTempDir = normalizeText(tempDir) || os.tmpdir();
+  const probeTempRoot =
+    [preferredTempDir, os.tmpdir()].find((candidate) => normalizeText(candidate) && fs.existsSync(candidate)) ??
+    null;
+
+  if (!probeTempRoot) {
+    return {
+      supported: false,
+      reason: `No usable temporary directory is available for the DMG probe (requested: ${preferredTempDir}).`
+    };
+  }
+
+  const probeDir = fs.mkdtempSync(path.join(probeTempRoot, "scratchai-dmg-probe-"));
   const sourceDir = path.join(probeDir, "src");
   const dmgPath = path.join(probeDir, "probe.dmg");
 
