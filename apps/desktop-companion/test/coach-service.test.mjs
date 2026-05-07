@@ -214,6 +214,7 @@ test("CoachService sends DeepSeek V4 chat completions requests in JSON non-think
   assert.deepEqual(capturedRequest.body.response_format, { type: "json_object" });
   assert.equal(capturedRequest.body.messages.length, 2);
   assert.equal(capturedRequest.body.messages[0].content.includes("不要直接给完整答案"), true);
+  assert.equal(capturedRequest.body.messages[0].content.includes("只允许从以下 Scratch 官方 opcode 白名单中选择"), true);
   assert.equal(capturedRequest.body.messages[1].content.includes("不要直接泄露完整答案"), true);
 });
 
@@ -392,6 +393,53 @@ test("CoachService normalizes non-schema severity values from DeepSeek", async (
       title: "缺少得分逻辑",
       description: "碰到奶酪后还没有加分。",
       spriteName: "Cat 2"
+    }
+  ]);
+});
+
+test("CoachService normalizes unsupported recommended opcodes to safe supported blocks", async () => {
+  const service = new CoachService(async () =>
+    createDeepSeekResponse(
+      JSON.stringify({
+        answerText: "先加一个更容易看见的外观反馈。",
+        recommendedBlocks: [
+          {
+            opcode: "looks_magicflash",
+            category: "外观",
+            label: "神奇闪光",
+            reason: "先让学生明显看到触发结果。"
+          }
+        ],
+        nextStep: "先运行一次看看有没有反馈。",
+        detectedIssues: [],
+        followUpQuestion: "你想让角色说一句话还是切换造型？"
+      })
+    )
+  );
+
+  const result = await service.generateHint({
+    snapshot: createSnapshot(),
+    currentTargetPrograms: ["event_whenflagclicked -> motion_movesteps"],
+    programAreaModules: [
+      {
+        id: "looks",
+        label: "外观",
+        blockCount: 1
+      }
+    ],
+    usedExtensions: [],
+    loadedExtensions: [],
+    goal: "让角色有更明显的反馈",
+    aiConfig: createAiConfig()
+  });
+
+  assert.equal(result.source, "deepseek");
+  assert.deepEqual(result.coachResponse.recommendedBlocks, [
+    {
+      opcode: "looks_sayforsecs",
+      category: "外观",
+      label: "说 2 秒",
+      reason: "先让学生明显看到触发结果。"
     }
   ]);
 });

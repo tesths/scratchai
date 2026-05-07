@@ -180,3 +180,88 @@ test("buildRecommendedBlockXml does not leave common input blocks as empty shell
     );
   }
 });
+
+test("buildRecommendedBlockXml covers more common official recommendation opcodes with concrete fields and inputs", () => {
+  const expectations = [
+    {
+      opcode: "motion_goto",
+      patterns: [
+        /<block[^>]+type="motion_goto"/,
+        /<value name="TO">/,
+        /<shadow type="motion_goto_menu">/,
+        /<field name="TO">鼠标指针<\/field>/
+      ]
+    },
+    {
+      opcode: "motion_glidesecstoxy",
+      patterns: [
+        /<block[^>]+type="motion_glidesecstoxy"/,
+        /<value name="SECS">/,
+        /<value name="X">/,
+        /<value name="Y">/
+      ]
+    },
+    {
+      opcode: "looks_goforwardbackwardlayers",
+      patterns: [
+        /<block[^>]+type="looks_goforwardbackwardlayers"/,
+        /<field name="FORWARD_BACKWARD">forward<\/field>/,
+        /<value name="NUM">/
+      ]
+    },
+    {
+      opcode: "sound_changeeffectby",
+      patterns: [
+        /<block[^>]+type="sound_changeeffectby"/,
+        /<field name="EFFECT">PITCH<\/field>/,
+        /<value name="VALUE">/
+      ]
+    },
+    {
+      opcode: "sensing_distanceto",
+      patterns: [
+        /<block[^>]+type="sensing_distanceto"/,
+        /<value name="DISTANCETOMENU">/,
+        /<shadow type="sensing_distancetomenu">/
+      ]
+    },
+    {
+      opcode: "operator_mathop",
+      patterns: [
+        /<block[^>]+type="operator_mathop"/,
+        /<field name="OPERATOR">abs<\/field>/,
+        /<value name="NUM">/
+      ]
+    },
+    {
+      opcode: "data_insertatlist",
+      patterns: [
+        /<block[^>]+type="data_insertatlist"/,
+        /<value name="ITEM">/,
+        /<value name="INDEX">/,
+        /<field name="LIST"[^>]*>清单<\/field>/
+      ]
+    },
+    {
+      opcode: "data_listcontainsitem",
+      patterns: [
+        /<block[^>]+type="data_listcontainsitem"/,
+        /<field name="LIST"[^>]*>清单<\/field>/,
+        /<value name="ITEM">/
+      ]
+    }
+  ];
+
+  for (const expectation of expectations) {
+    const xml = buildRecommendedBlockXml({
+      opcode: expectation.opcode,
+      category: "测试",
+      label: expectation.opcode,
+      reason: "测试"
+    });
+
+    for (const pattern of expectation.patterns) {
+      assert.match(xml, pattern, `${expectation.opcode} should include ${String(pattern)}`);
+    }
+  }
+});

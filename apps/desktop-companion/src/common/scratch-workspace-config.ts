@@ -1,5 +1,5 @@
 export const SCRATCH_WORKSPACE_MEDIA_PATH = "./assets/scratch-blocks-media/";
-export const READONLY_WORKSPACE_SCALE = 0.74;
+export const READONLY_WORKSPACE_SCALE = 0.68;
 const DEFAULT_WORKSPACE_FALLBACK_TEXT = "积木暂时无法渲染";
 
 interface ReadonlyWorkspaceOptionsArgs {

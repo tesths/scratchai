@@ -1,4 +1,14 @@
-import { coachResponseSchema, getDisplayLabelForOpcode, projectSnapshotSchema } from "@scratch-ai/shared";
+import {
+  coachResponseSchema,
+  getDisplayLabelForOpcode,
+  getModuleIdForOpcode,
+  projectSnapshotSchema
+} from "@scratch-ai/shared";
+import {
+  SUPPORTED_RECOMMENDED_BLOCK_OPCODES,
+  getDefaultSupportedRecommendedOpcode,
+  isSupportedRecommendedBlockOpcode
+} from "../common/scratch-block-xml";
 
 import type { LoadedDeepSeekConfig } from "./deepseek-config";
 import type { CoachResponse, ProgramAreaModule, ProjectSnapshot, RecommendedBlock, SpriteSnapshot } from "../common/types";
@@ -9,6 +19,8 @@ export const DEFAULT_HINT_ONLY_SYSTEM_PROMPT =
   "你是 Scratch 小学编程助教。请只根据学生当前作品，给出具体、可执行、面向小学生的中文提示，但不要直接给完整答案，不要写完整脚本，也不要把积木顺序一次性全部告诉学生。你只能做诊断、缩小下一步范围、提示关键积木和追问。你必须先判断学生当前项目已经做到哪一步，再只补当前最缺的一小步。所有自然语言必须使用中文，不要出现英文 opcode、英文积木名、英文字段解释，避免中英混杂。recommendedBlocks 里的 opcode 必须使用 Scratch 官方积木 opcode；如果你不确定具体 opcode，就改用最接近的官方核心积木，不要编造不存在的 opcode。";
 const HINT_ONLY_OUTPUT_REQUIREMENTS =
   "输出必须是一个 JSON 对象，字段只能包含 answerText、recommendedBlocks、nextStep、detectedIssues、followUpQuestion。recommendedBlocks 里每个元素必须包含 opcode、category、label、reason，可选 example。detectedIssues 里每个元素必须包含 severity、title、description，可选 spriteName，其中 severity 只能是 info 或 warning。不要输出 Markdown，不要输出额外解释。";
+const RECOMMENDED_OPCODE_WHITELIST_REQUIREMENTS =
+  `recommendedBlocks.opcode 只允许从以下 Scratch 官方 opcode 白名单中选择：${SUPPORTED_RECOMMENDED_BLOCK_OPCODES.join("、")}。如果你本来想用别的积木，请改写成这份白名单里最接近的一块。`;
 const HINT_ONLY_USER_PROMPT =
   "请根据下面的 Scratch 项目上下文，给出“下一步做什么”的提示。只根据当前学生作品判断已经完成了什么，再补最需要的一小步。优先基于学生已经使用过的模块继续推进，不要让学生一下子大改，也不要直接泄露完整答案。";
 
@@ -152,6 +164,77 @@ function buildBlockSuggestionFromOpcode(opcode: string) {
   }
 }
 
+const RECOMMENDED_OPCODE_FALLBACK_BY_MODULE_ID: Record<string, string> = {
+  event: "event_whenflagclicked",
+  motion: "motion_movesteps",
+  looks: "looks_sayforsecs",
+  sound: "sound_playuntildone",
+  control: "control_repeat",
+  sensing: "sensing_touchingobject",
+  operator: "operator_equals",
+  data: "data_setvariableto",
+  pen: "pen_clear"
+};
+
+function getFallbackOpcodeForCategory(category: string) {
+  const normalized = category.replace(/\s+/g, "");
+  if (!normalized) {
+    return null;
+  }
+  if (normalized.includes("事件")) {
+    return "event_whenflagclicked";
+  }
+  if (normalized.includes("运动")) {
+    return "motion_movesteps";
+  }
+  if (normalized.includes("外观")) {
+    return "looks_sayforsecs";
+  }
+  if (normalized.includes("声音")) {
+    return "sound_playuntildone";
+  }
+  if (normalized.includes("控制")) {
+    return "control_repeat";
+  }
+  if (normalized.includes("侦测")) {
+    return "sensing_touchingobject";
+  }
+  if (normalized.includes("运算")) {
+    return "operator_equals";
+  }
+  if (normalized.includes("画笔")) {
+    return "pen_clear";
+  }
+  if (normalized.includes("列表")) {
+    return "data_addtolist";
+  }
+  if (normalized.includes("变量")) {
+    return "data_setvariableto";
+  }
+  return null;
+}
+
+function normalizeRecommendedOpcode(rawOpcode: unknown, category: string) {
+  const opcode = normalizeTextValue(rawOpcode) ?? "";
+  if (isSupportedRecommendedBlockOpcode(opcode)) {
+    return {
+      opcode,
+      remapped: false
+    };
+  }
+
+  const moduleId = getModuleIdForOpcode(opcode) ?? "";
+  const fallbackOpcode =
+    RECOMMENDED_OPCODE_FALLBACK_BY_MODULE_ID[moduleId] ??
+    getFallbackOpcodeForCategory(category) ??
+    getDefaultSupportedRecommendedOpcode();
+
+  return {
+    opcode: fallbackOpcode,
+    remapped: true
+  };
+}
+
 function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): CoachResponse {
   const { snapshot, currentTargetPrograms, programAreaModules, goal } = options;
   const currentTarget = snapshot.currentTarget || "当前角色";
@@ -250,7 +333,7 @@ function buildGenericFallbackCoachResponse(options: GenerateCoachHintOptions): C
 
 function buildSystemPrompt(customSystemPrompt?: string) {
   const basePrompt = customSystemPrompt?.trim() || DEFAULT_HINT_ONLY_SYSTEM_PROMPT;
-  return `${basePrompt}\n\n${HINT_ONLY_OUTPUT_REQUIREMENTS}`;
+  return `${basePrompt}\n\n${HINT_ONLY_OUTPUT_REQUIREMENTS}\n${RECOMMENDED_OPCODE_WHITELIST_REQUIREMENTS}`;
 }
 
 function buildFallbackCoachResponse(options: GenerateCoachHintOptions): CoachResponse {
@@ -368,13 +451,14 @@ function normalizeCoachResponse(rawPayload: unknown) {
     ? candidate.recommendedBlocks
         .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === "object"))
         .map((item) => {
-          const opcode = normalizeTextValue(item.opcode) ?? "unknown_block";
           const category = normalizeTextValue(item.category) ?? "其他";
+          const normalizedOpcode = normalizeRecommendedOpcode(item.opcode, category);
+          const opcode = normalizedOpcode.opcode;
           const rawLabel =
             normalizeTextValue(item.label) ??
             normalizeTextValue(item.blockName);
           const label =
-            rawLabel && !/^[a-z0-9_]+$/i.test(rawLabel)
+            !normalizedOpcode.remapped && rawLabel && !/^[a-z0-9_]+$/i.test(rawLabel)
               ? rawLabel
               : getDisplayLabelForOpcode(opcode);
           const reason =

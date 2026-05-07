@@ -506,6 +506,113 @@ const DEFAULT_LIST_ATTRIBUTES = {
   id: "list-items",
   variabletype: LIST_VARIABLE_TYPE
 };
+const DEFAULT_SUPPORTED_RECOMMENDED_OPCODE = "looks_sayforsecs";
+
+export const SUPPORTED_RECOMMENDED_BLOCK_OPCODES = Object.freeze([
+  "event_whenflagclicked",
+  "event_whenkeypressed",
+  "event_whenbroadcastreceived",
+  "event_whenbackdropswitchesto",
+  "event_broadcast",
+  "event_broadcastandwait",
+  "motion_movesteps",
+  "motion_turnright",
+  "motion_turnleft",
+  "motion_gotoxy",
+  "motion_goto",
+  "motion_glidesecstoxy",
+  "motion_glideto",
+  "motion_pointindirection",
+  "motion_pointtowards",
+  "motion_changexby",
+  "motion_setx",
+  "motion_changeyby",
+  "motion_sety",
+  "motion_ifonedgebounce",
+  "looks_say",
+  "looks_sayforsecs",
+  "looks_think",
+  "looks_thinkforsecs",
+  "looks_show",
+  "looks_hide",
+  "looks_switchcostumeto",
+  "looks_nextcostume",
+  "looks_switchbackdropto",
+  "looks_changeeffectby",
+  "looks_seteffectto",
+  "looks_cleargraphiceffects",
+  "looks_changesizeby",
+  "looks_setsizeto",
+  "looks_gotofrontback",
+  "looks_goforwardbackwardlayers",
+  "sound_play",
+  "sound_playuntildone",
+  "sound_stopallsounds",
+  "sound_changeeffectby",
+  "sound_seteffectto",
+  "sound_cleareffects",
+  "sound_changevolumeby",
+  "sound_setvolumeto",
+  "control_wait",
+  "control_repeat",
+  "control_forever",
+  "control_if",
+  "control_if_else",
+  "control_repeat_until",
+  "control_stop",
+  "control_create_clone_of",
+  "control_delete_this_clone",
+  "sensing_touchingobject",
+  "sensing_keypressed",
+  "sensing_mousedown",
+  "sensing_askandwait",
+  "sensing_answer",
+  "sensing_distanceto",
+  "operator_equals",
+  "operator_gt",
+  "operator_lt",
+  "operator_add",
+  "operator_subtract",
+  "operator_multiply",
+  "operator_divide",
+  "operator_join",
+  "operator_letter_of",
+  "operator_length",
+  "operator_contains",
+  "operator_mod",
+  "operator_round",
+  "operator_mathop",
+  "data_setvariableto",
+  "data_changevariableby",
+  "data_showvariable",
+  "data_hidevariable",
+  "data_addtolist",
+  "data_deleteoflist",
+  "data_deletealloflist",
+  "data_insertatlist",
+  "data_replaceitemoflist",
+  "data_itemoflist",
+  "data_itemnumoflist",
+  "data_lengthoflist",
+  "data_listcontainsitem",
+  "data_showlist",
+  "data_hidelist",
+  "pen_clear",
+  "pen_penDown",
+  "pen_penUp",
+  "pen_setPenColorToColor",
+  "pen_changePenSizeBy"
+]);
+
+const SUPPORTED_RECOMMENDED_BLOCK_OPCODE_SET = new Set(SUPPORTED_RECOMMENDED_BLOCK_OPCODES);
+
+export function isSupportedRecommendedBlockOpcode(opcode: string) {
+  return SUPPORTED_RECOMMENDED_BLOCK_OPCODE_SET.has(normalizeString(opcode));
+}
+
+export function getDefaultSupportedRecommendedOpcode() {
+  return DEFAULT_SUPPORTED_RECOMMENDED_OPCODE;
+}
 
 function buildValueElementXml(inputName: string, elementXml: string) {
   return `<value name="${escapeXml(inputName)}">${elementXml}</value>`;
@@ -593,6 +700,10 @@ function buildOperatorMathXml(opcode: string, left: string, right: string) {
   );
 }
 
+function buildListFieldXml(name = "LIST", value = "清单") {
+  return buildFieldXml(name, value, DEFAULT_LIST_ATTRIBUTES);
+}
+
 function buildRecommendedBlockBody(block: RecommendedBlock) {
   const messageText = block.example || "开始吧";
 
@@ -607,6 +718,8 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
         block.opcode,
         buildFieldXml("BROADCAST_OPTION", "消息1", DEFAULT_BROADCAST_ATTRIBUTES)
       );
+    case "event_whenbackdropswitchesto":
+      return buildElementXml("block", block.opcode, buildFieldXml("BACKDROP", "背景1"));
     case "event_broadcast":
     case "event_broadcastandwait":
       return buildElementXml(
@@ -627,6 +740,12 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
       return buildElementXml("block", block.opcode, buildAngleShadowValueXml("DEGREES", "15"));
     case "motion_pointindirection":
       return buildElementXml("block", block.opcode, buildAngleShadowValueXml("DIRECTION", "90"));
+    case "motion_goto":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml("TO", "motion_goto_menu", "TO", "鼠标指针")
+      );
     case "motion_pointtowards":
       return buildElementXml(
         "block",
@@ -638,6 +757,15 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
         "block",
         block.opcode,
         `${buildNumberShadowValueXml("X", "0")}${buildNumberShadowValueXml("Y", "0")}`
+      );
+    case "motion_glidesecstoxy":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildPositiveNumberShadowValueXml("SECS", "1")}${buildNumberShadowValueXml(
+          "X",
+          "0"
+        )}${buildNumberShadowValueXml("Y", "0")}`
       );
     case "motion_glideto":
       return buildElementXml(
@@ -665,8 +793,10 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
     case "looks_nextcostume":
     case "looks_cleargraphiceffects":
     case "sound_stopallsounds":
+    case "sound_cleareffects":
     case "sensing_answer":
     case "sensing_mousedown":
+    case "control_delete_this_clone":
     case "pen_clear":
     case "pen_penDown":
     case "pen_penUp":
@@ -682,6 +812,17 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
         "block",
         block.opcode,
         buildMenuShadowValueXml("BACKDROP", "looks_backdrops", "BACKDROP", "背景1")
+      );
+    case "looks_gotofrontback":
+      return buildElementXml("block", block.opcode, buildFieldXml("FRONT_BACK", "front"));
+    case "looks_goforwardbackwardlayers":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildFieldXml("FORWARD_BACKWARD", "forward")}${buildWholeNumberShadowValueXml(
+          "NUM",
+          "1"
+        )}`
       );
     case "looks_changeeffectby":
       return buildElementXml(
@@ -706,6 +847,22 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
         block.opcode,
         buildMenuShadowValueXml("SOUND_MENU", "sound_sounds_menu", "SOUND_MENU", "pop")
       );
+    case "sound_changeeffectby":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildFieldXml("EFFECT", "PITCH")}${buildNumberShadowValueXml("VALUE", "10")}`
+      );
+    case "sound_seteffectto":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildFieldXml("EFFECT", "PITCH")}${buildNumberShadowValueXml("VALUE", "100")}`
+      );
+    case "sound_changevolumeby":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("VOLUME", "-10"));
+    case "sound_setvolumeto":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("VOLUME", "100"));
     case "looks_say":
     case "looks_think":
       return buildElementXml("block", block.opcode, buildTextShadowValueXml("MESSAGE", messageText));
@@ -746,6 +903,17 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
       );
     case "control_stop":
       return buildElementXml("block", block.opcode, buildFieldXml("STOP_OPTION", "all"));
+    case "control_create_clone_of":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml(
+          "CLONE_OPTION",
+          "control_create_clone_of_menu",
+          "CLONE_OPTION",
+          "自己"
+        )
+      );
     case "sensing_touchingobject":
       return buildElementXml(
         "block",
@@ -769,6 +937,17 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
         block.opcode,
         buildTextShadowValueXml("QUESTION", "准备好了吗？")
       );
+    case "sensing_distanceto":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildMenuShadowValueXml(
+          "DISTANCETOMENU",
+          "sensing_distancetomenu",
+          "DISTANCETOMENU",
+          "鼠标指针"
+        )
+      );
     case "operator_equals":
     case "operator_lt":
     case "operator_gt":
@@ -778,6 +957,46 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
     case "operator_multiply":
     case "operator_divide":
       return buildOperatorMathXml(block.opcode, "1", "2");
+    case "operator_join":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildTextShadowValueXml("STRING1", "你好")}${buildTextShadowValueXml("STRING2", "Scratch")}`
+      );
+    case "operator_letter_of":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildWholeNumberShadowValueXml("LETTER", "1")}${buildTextShadowValueXml(
+          "STRING",
+          "Scratch"
+        )}`
+      );
+    case "operator_length":
+      return buildElementXml("block", block.opcode, buildTextShadowValueXml("STRING", "Scratch"));
+    case "operator_contains":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildTextShadowValueXml("STRING1", "Scratch AI")}${buildTextShadowValueXml(
+          "STRING2",
+          "AI"
+        )}`
+      );
+    case "operator_mod":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildNumberShadowValueXml("NUM1", "10")}${buildNumberShadowValueXml("NUM2", "3")}`
+      );
+    case "operator_round":
+      return buildElementXml("block", block.opcode, buildNumberShadowValueXml("NUM", "3.6"));
+    case "operator_mathop":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildFieldXml("OPERATOR", "abs")}${buildNumberShadowValueXml("NUM", "-10")}`
+      );
     case "data_setvariableto":
       return buildElementXml(
         "block",
@@ -797,7 +1016,60 @@ function buildRecommendedBlockBody(block: RecommendedBlock) {
       return buildElementXml(
         "block",
         block.opcode,
-        `${buildTextShadowValueXml("ITEM", "项目")}${buildFieldXml("LIST", "清单", DEFAULT_LIST_ATTRIBUTES)}`
+        `${buildTextShadowValueXml("ITEM", "项目")}${buildListFieldXml()}`
+      );
+    case "data_deleteoflist":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildWholeNumberShadowValueXml("INDEX", "1")}${buildListFieldXml()}`
+      );
+    case "data_deletealloflist":
+      return buildElementXml("block", block.opcode, buildListFieldXml());
+    case "data_insertatlist":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildTextShadowValueXml("ITEM", "项目")}${buildWholeNumberShadowValueXml(
+          "INDEX",
+          "1"
+        )}${buildListFieldXml()}`
+      );
+    case "data_replaceitemoflist":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildWholeNumberShadowValueXml("INDEX", "1")}${buildListFieldXml()}${buildTextShadowValueXml(
+          "ITEM",
+          "新项目"
+        )}`
+      );
+    case "data_itemoflist":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildWholeNumberShadowValueXml("INDEX", "1")}${buildListFieldXml()}`
+      );
+    case "data_itemnumoflist":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildTextShadowValueXml("ITEM", "项目")}${buildListFieldXml()}`
+      );
+    case "data_lengthoflist":
+      return buildElementXml("block", block.opcode, buildListFieldXml());
+    case "data_listcontainsitem":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        `${buildListFieldXml()}${buildTextShadowValueXml("ITEM", "项目")}`
+      );
+    case "data_showlist":
+    case "data_hidelist":
+      return buildElementXml(
+        "block",
+        block.opcode,
+        buildListFieldXml()
       );
     case "pen_setPenColorToColor":
       return buildElementXml("block", block.opcode, buildColourShadowValueXml("COLOR", "#ff4d6a"));
