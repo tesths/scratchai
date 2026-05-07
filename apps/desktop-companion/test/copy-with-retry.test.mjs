@@ -60,3 +60,36 @@ test("copyPathWithRetry preserves relative symlink targets inside copied directo
     "A"
   );
 });
+
+test("copyPathWithRetry retries Windows directory copies without preserveTimestamps after EPERM", async () => {
+  const cpCalls = [];
+  const rmCalls = [];
+
+  await copyPathWithRetry("C:\\source", "C:\\target", {
+    attempts: 1,
+    delayMs: 0,
+    platform: "win32",
+    lstatImpl: async () => ({
+      isDirectory: () => true
+    }),
+    mkdirImpl: async () => {},
+    rmImpl: async (...args) => {
+      rmCalls.push(args);
+    },
+    cpImpl: async (_sourcePath, _targetPath, options) => {
+      cpCalls.push(options);
+      if (options.preserveTimestamps) {
+        const error = new Error("utime not permitted");
+        error.code = "EPERM";
+        throw error;
+      }
+    }
+  });
+
+  assert.equal(cpCalls.length, 2);
+  assert.equal(cpCalls[0].preserveTimestamps, true);
+  assert.equal(cpCalls[1].preserveTimestamps, false);
+  assert.equal(cpCalls[0].verbatimSymlinks, true);
+  assert.equal(cpCalls[1].verbatimSymlinks, true);
+  assert.equal(rmCalls.length, 2);
+});
