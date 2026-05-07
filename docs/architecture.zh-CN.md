@@ -35,6 +35,7 @@ Electron 桌面伴随程序，源码拆成三层：
 - 向 Scratch renderer 注入只读桥接脚本
 - 读取当前角色、项目数据、脚本序列、模块摘要
 - 把 `当前角色程序 / 推荐积木` 渲染成 Scratch 原版只读积木
+- 推荐积木链路会先做官方 opcode 白名单归一化，AI 给出未支持或编造的 opcode 时会自动降级到安全、可渲染的官方积木
 - 直接调用 DeepSeek 生成“下一步提示”
 
 ### `packages/shared`
@@ -74,6 +75,7 @@ Electron 桌面伴随程序，源码拆成三层：
 10. `StateStore` 更新状态，渲染层先生成 workspace 宿主节点
 11. `renderScratchWorkspaces(...)` 使用 `scratch-blocks` 把 XML 加载成只读 SVG
 12. 用户请求 AI 提示时，桌面端直接调用 DeepSeek 或本地 fallback
+13. `CoachService` 会先把 DeepSeek 返回的 `recommendedBlocks` 归一化，超出白名单的 opcode 会自动映射到可渲染的官方积木
 
 关键约束：
 
@@ -91,9 +93,10 @@ Electron 桌面伴随程序，源码拆成三层：
 对应实现位置：
 
 - `apps/desktop-companion/src/common/scratch-block-xml.ts`
-  - 负责顶层脚本排序、`next`、`SUBSTACK / SUBSTACK2`、shadow input、变量/列表/广播字段
+  - 负责顶层脚本排序、`next`、`SUBSTACK / SUBSTACK2`、shadow input、变量/列表/广播字段，以及推荐积木白名单和默认模板
 - `apps/desktop-companion/src/renderer/scratch-workspace-renderer.ts`
   - 负责初始化 `ScratchBlocks.inject(...)`、`clearWorkspaceAndLoadFromXml(...)`、尺寸自适应和只读动态菜单兜底
+  - 当前只读 workspace 统一使用本地 `scratch-blocks/media`，缩放比例也已下调得更紧凑
 - `apps/desktop-companion/build.mjs`
   - 负责复制 `scratch-blocks/media`
 
@@ -103,4 +106,5 @@ Electron 桌面伴随程序，源码拆成三层：
 - macOS 正式签名、公证和发版还没有自动化
 - CI 负责双平台正式产物；本地只承诺当前平台可出包
 - `tools/verification/artifacts/` 不再进 git，需要通过文档和 CI artifact 回看验证结果
+- 推荐积木白名单外的新 opcode，先扩 `src/common/scratch-block-xml.ts` 的默认模板，再决定是否放行到 AI 输出
 - 新出现的扩展块、动态菜单块或特殊 mutation，可能还需要在只读渲染层补兜底定义

@@ -1,7 +1,7 @@
 # Scratch Desktop Companion
 
 这是主工程里的 Windows + macOS 桌面伴随程序。  
-当前主线已经收敛为 **本地基础版**：连接本机 `Scratch Desktop`，读取当前角色和项目数据，把 `当前角色程序 / 推荐积木` 以 Scratch 原版 `scratch-blocks` 只读方式渲染出来，再基于学生当前作品生成 AI 下一步提示。
+当前主线已经收敛为 **本地基础版**：连接本机 `Scratch Desktop`，读取当前角色和项目数据，把 `当前角色程序 / 推荐积木` 以 Scratch 原版 `scratch-blocks` 只读方式渲染出来，再基于学生当前作品生成 AI 下一步提示。推荐积木现在额外受官方 opcode 白名单约束；如果 AI 给出未支持或编造的 opcode，会先自动映射到安全、可渲染的官方积木。
 
 ## 当前产品流程
 
@@ -80,6 +80,13 @@
 - `SUBSTACK / SUBSTACK2` 嵌套语句输入
 - 常见 primitive input 对应的 shadow block
 - 变量 / 列表 / 广播变量字段
+- 推荐积木白名单内常用官方 opcode 的默认字段、菜单和输入模板
+
+当前显示细节补充：
+
+- 只读 workspace 统一走本地 `scratch-blocks/media` 资源，不再依赖外部默认地址
+- 只读积木缩放已继续下调，当前固定比例为 `0.68`，主窗口里会比初版更紧凑
+- 推荐积木如果遇到未支持 opcode，会先在 `coach-service` 里做归一化，再进入 XML 渲染链路，避免直接出现“有推荐但渲染失败”
 
 这意味着像 `重复执行` 包裹 `移动 10 步`、`一直重复`、`如果` 这类结构，现在显示的是实际嵌套积木，而不是字符串或近似卡片。
 
@@ -113,10 +120,11 @@
 - `deepseek.config.json` 现在只保留 `baseUrl`、`timeoutMs` 和默认 `model` 这类非敏感默认项。
 - 如果不填 key，`生成下一步提示` 仍可用，但会自动走本地 fallback 提示，而不是线上 DeepSeek。
 - 桌面端当前显式使用 JSON Output，并把 `thinking` 设为 `disabled`，这样更适合 Scratch 教练提示这种低延迟、稳定 JSON 返回的场景。
+- 桌面端当前还会在系统提示里显式限制 `recommendedBlocks.opcode` 只能从官方白名单中选择，减少模型返回坏积木的概率。
 - 主窗口与设置窗口都提供鼠标右键菜单；设置页输入框支持复制、粘贴、全选。
 - DeepSeek 官方文档入口：<https://api-docs.deepseek.com/zh-cn/>
 
-## 2026-05-06 已验证结果
+## 2026-05-07 已验证结果
 
 当前已验证结果同时覆盖 Windows 和 macOS。
 
@@ -130,6 +138,7 @@ Windows / macOS 已验证通过：
 - 能生成桌面端 AI 提示，并在无 key 时回退到本地提示
 - Electron UI 自动化已覆盖当前本地版界面结构
 - 源码版和打包版 UI 冒烟可通过
+- 推荐积木白名单内 `93` 个常用官方 opcode 已做过一轮 Electron 真渲染 sweep，结果为 `0 fallback`
 
 ## 本地开发命令
 
@@ -235,6 +244,7 @@ C:\Users\<当前用户名>\AppData\Roaming\scratch-desktop-companion\desktop-com
 - 当前主路线仍然是“受控启动 Scratch + CDP 注入”，不是“用户手工打开 Scratch 后再附着”
 - 界面不再展示模块和扩展，但这些字段仍作为兼容状态保留
 - `tools/verification/scripts/verify-scratch-local.mjs` 更适合做 CDP 冒烟检查，不是最终产品验收结论
+- 推荐积木链路现在已经对白名单内常用官方 opcode 做了模板覆盖和自动降级；如果将来扩大推荐范围，优先同步 `src/common/scratch-block-xml.ts` 的白名单与默认模板
 - 如果真实项目里出现新的动态菜单块或扩展块，而 `scratch-blocks` 只读渲染还没有兜底定义，需要在 `src/renderer/scratch-workspace-renderer.ts` 继续补注册
 
 ## 文档入口

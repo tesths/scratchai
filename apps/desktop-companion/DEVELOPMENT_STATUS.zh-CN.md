@@ -1,6 +1,6 @@
 # Scratch Desktop Companion 开发交接文档
 
-最后更新：2026-05-06
+最后更新：2026-05-07
 
 这份文档给下一位继续维护 `apps/desktop-companion` 的人看。
 
@@ -36,7 +36,17 @@
 - 新增 `projectData -> Blockly XML -> ScratchBlocks workspace` 这条显示链路
 - 新增状态字段 `currentTargetScriptXmlList`
 - 原有 `currentTargetPrograms` 文本链路保留，继续给 AI、兼容层和排障使用
-- 这轮核心提交为 `f725ffe`，整体变更量为 `18 files changed, 1528 insertions(+), 291 deletions(-)`
+- `scratch-blocks` 图标资源已统一切到本地 `media` 目录，不再依赖默认外链
+- 推荐积木现在收敛到一份官方 opcode 白名单；如果 AI 返回未支持或编造的 opcode，会先自动映射到安全、可渲染的官方积木
+- 只读积木缩放已继续下调，当前固定比例为 `0.68`
+- 最初切换到官方 `scratch-blocks` 只读渲染的核心提交为 `f725ffe`，整体变更量为 `18 files changed, 1528 insertions(+), 291 deletions(-)`
+
+### 这轮显示收尾
+
+- 修复了 `当绿旗被点击`、`重复执行` 等图标资源断裂问题
+- 修复了 `将颜色特效增加 25` 一类推荐积木缺字段、缺输入导致的空壳渲染
+- 为一批常用运动、外观、声音、控制、侦测、运算、变量/列表、画笔积木补齐默认 XML 模板
+- 已完成一轮 `93` 个白名单 opcode 的 Electron 真渲染 sweep，结果为 `0 fallback`
 
 ### 界面与配置
 
@@ -61,7 +71,7 @@
 
 ## 3. 当前已完成能力
 
-截至 2026-05-06，已完成：
+截至 2026-05-07，已完成：
 
 - Electron 桌面伴随程序主链路
 - Windows + macOS 平台口径
@@ -84,6 +94,7 @@
 - 便携版 `portable.exe` 打包
 - NSIS 安装包 `ScratchDesktopCompanion-setup.exe` 打包
 - macOS `.app` / `.dmg` 内测包打包
+- 推荐积木 opcode 白名单与坏 opcode 自动降级
 
 ## 4. 当前界面和状态口径
 
@@ -101,6 +112,7 @@
 
 - `当前角色程序` 现在会继续展开 `重复执行 / 一直重复 / 如果` 这类控制积木里的嵌套子堆栈，不再只读取顶层 `next` 链。
 - 主窗口优先显示官方积木 SVG，文本序列现在退居为内部兼容链路。
+- 当前积木缩放比初版更紧凑，主窗口里更适合并排展示“当前角色程序 / 推荐积木”。
 - 最新截图：[current-ui-desktop-companion-scratch-blocks.png](../../docs/assets/screenshots/current-ui-desktop-companion-scratch-blocks.png)
 
 ### 当前常见状态文案
@@ -162,7 +174,9 @@
 
 - `packages/shared`
 - `apps/desktop-companion`
-- `apps/desktop-companion/test/scratch-block-xml.test.mjs` 已覆盖嵌套控制积木和推荐积木默认输入 XML
+- `apps/desktop-companion/test/scratch-block-xml.test.mjs` 已覆盖嵌套控制积木、推荐积木默认输入 XML 和一批常用官方 opcode 模板
+- `apps/desktop-companion/test/coach-service.test.mjs` 已覆盖推荐积木白名单提示词约束与坏 opcode 自动降级
+- `apps/desktop-companion/test/scratch-workspace-config.test.mjs` 已覆盖本地 media 路径和只读缩放比例
 
 ### UI 自动化
 
@@ -178,6 +192,14 @@
 - `打开已选 Scratch`
 - `重新连接`
 - `DeepSeek 设置` 独立窗口
+
+### 推荐积木真渲染抽检
+
+这轮额外做过一轮 Electron 真渲染 sweep：
+
+- 使用白名单内 `93` 个常用官方 opcode 构造只读脚本 XML
+- 在桌面端源码版窗口里统一挂载并实际渲染
+- 结果为 `93` 个宿主全部成功出图，`0 fallback`
 
 ### 真实 Scratch 联调
 
@@ -233,4 +255,5 @@ node tools/verification\scripts\verify-desktop-companion-real-e2e.mjs
 - 真实 Scratch 联调深度目前仍以 Windows 为主
 - macOS 现在更接近“开发可用 + UI 冒烟可用 + 内测包可出”
 - 当前主路线仍然是“受控启动 Scratch + CDP 注入”，不是“用户手工打开 Scratch 后再附着”
+- 推荐积木链路当前主要风险已收敛到“白名单外的新 opcode”；扩推荐范围时，优先同步 `src/common/scratch-block-xml.ts` 里的白名单与默认模板
 - 如果真实作品里出现新的动态菜单块、扩展块或特殊 mutation，而只读渲染不完整，优先检查 `src/common/scratch-block-xml.ts` 和 `src/renderer/scratch-workspace-renderer.ts`
