@@ -35,6 +35,7 @@ export function buildDesktopCompanionBuilderBaseConfig({
     appId: "com.scratchai.desktopcompanion",
     productName: "ScratchDesktopCompanion",
     compression: "maximum",
+    publish: "never",
     electronLanguages: ["zh-CN", "en-US"],
     directories: {
       output: outputDir
