@@ -109,6 +109,10 @@ test("resolveMacBuildCacheEnv provides writable temp cache defaults", () => {
 });
 
 test("copyMacDirBundleToInstallers preserves relative framework symlinks in the copied app bundle", async (t) => {
+  if (process.platform === "win32") {
+    return t.skip("Windows runner does not provide stable macOS app bundle symlink semantics.");
+  }
+
   const symlinkSupport = await detectRelativeSymlinkSupport("package-mac-symlink-check-");
   if (!symlinkSupport.supported) {
     return t.skip(`relative symlinks are unavailable in this environment: ${symlinkSupport.reason ?? "unsupported"}`);
@@ -134,11 +138,19 @@ test("copyMacDirBundleToInstallers preserves relative framework symlinks in the 
   });
 
   assert.equal(
-    await readlink(path.join(targetBundleDir, "Contents", "Frameworks", "Electron Framework.framework", "Electron Framework")),
+    String(
+      await readlink(
+        path.join(targetBundleDir, "Contents", "Frameworks", "Electron Framework.framework", "Electron Framework")
+      )
+    ).replace(/\\/g, "/"),
     "Versions/Current/payload.txt"
   );
   assert.equal(
-    await readlink(path.join(targetBundleDir, "Contents", "Frameworks", "Electron Framework.framework", "Versions", "Current")),
+    String(
+      await readlink(
+        path.join(targetBundleDir, "Contents", "Frameworks", "Electron Framework.framework", "Versions", "Current")
+      )
+    ).replace(/\\/g, "/"),
     "A"
   );
 });
