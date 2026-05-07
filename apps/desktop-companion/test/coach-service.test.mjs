@@ -444,7 +444,71 @@ test("CoachService normalizes unsupported recommended opcodes to safe supported 
   ]);
 });
 
-test("CoachService fallback recommends four blocks for an empty current target", async () => {
+test("CoachService keeps at most three recommended blocks from DeepSeek", async () => {
+  const service = new CoachService(async () =>
+    createDeepSeekResponse(
+      JSON.stringify({
+        answerText: "按顺序先补三小步。",
+        recommendedBlocks: [
+          {
+            opcode: "event_whenflagclicked",
+            category: "事件",
+            label: "当绿旗被点击",
+            reason: "1"
+          },
+          {
+            opcode: "motion_movesteps",
+            category: "运动",
+            label: "移动 10 步",
+            reason: "2"
+          },
+          {
+            opcode: "control_repeat",
+            category: "控制",
+            label: "重复执行",
+            reason: "3"
+          },
+          {
+            opcode: "looks_sayforsecs",
+            category: "外观",
+            label: "说 2 秒",
+            reason: "4"
+          }
+        ],
+        nextStep: "先把前三步补出来。",
+        detectedIssues: []
+      })
+    )
+  );
+
+  const result = await service.generateHint({
+    snapshot: createSnapshot(),
+    currentTargetPrograms: ["event_whenflagclicked -> motion_movesteps"],
+    programAreaModules: [
+      {
+        id: "motion",
+        label: "运动",
+        blockCount: 1
+      }
+    ],
+    usedExtensions: [],
+    loadedExtensions: [],
+    goal: "先做三步",
+    aiConfig: createAiConfig()
+  });
+
+  assert.equal(result.coachResponse.recommendedBlocks.length, 3);
+  assert.deepEqual(
+    result.coachResponse.recommendedBlocks.map((block) => block.opcode),
+    [
+      "event_whenflagclicked",
+      "motion_movesteps",
+      "control_repeat"
+    ]
+  );
+});
+
+test("CoachService fallback recommends three blocks for an empty current target", async () => {
   const service = new CoachService();
   const snapshot = createSnapshot();
   snapshot.sprites[0].blockCount = 0;
@@ -465,14 +529,13 @@ test("CoachService fallback recommends four blocks for an empty current target",
   });
 
   assert.equal(result.source, "fallback");
-  assert.equal(result.coachResponse.recommendedBlocks.length, 4);
+  assert.equal(result.coachResponse.recommendedBlocks.length, 3);
   assert.deepEqual(
     result.coachResponse.recommendedBlocks.map((block) => block.opcode),
     [
       "event_whenflagclicked",
       "motion_movesteps",
-      "looks_sayforsecs",
-      "control_repeat"
+      "looks_sayforsecs"
     ]
   );
 });

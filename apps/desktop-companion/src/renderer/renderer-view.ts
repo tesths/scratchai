@@ -3,8 +3,7 @@ import type {
   RecommendedBlock
 } from "../common/types";
 import { buildRecommendedBlockXml } from "../common/scratch-block-xml";
-
-const MAX_RECOMMENDED_BLOCKS = 4;
+import { MAX_RECOMMENDED_BLOCKS } from "../common/recommended-blocks";
 
 interface MinimalElement {
   textContent: string | null;

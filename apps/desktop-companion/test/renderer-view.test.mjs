@@ -80,7 +80,7 @@ test("formats recommended blocks without exposing English opcodes", () => {
   );
 });
 
-test("formats recommended blocks with at most four items", () => {
+test("formats recommended blocks with at most three items", () => {
   assert.deepEqual(
     formatRecommendedBlocks({
       aiCoachResponse: {
@@ -121,8 +121,7 @@ test("formats recommended blocks with at most four items", () => {
     [
       "事件 / 当绿旗被点击：1",
       "运动 / 移动 10 步：2",
-      "控制 / 重复执行：3",
-      "外观 / 说 2 秒：4"
+      "控制 / 重复执行：3"
     ]
   );
 });
