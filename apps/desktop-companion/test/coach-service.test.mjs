@@ -440,6 +440,18 @@ test("CoachService normalizes unsupported recommended opcodes to safe supported 
       category: "外观",
       label: "说 2 秒",
       reason: "先让学生明显看到触发结果。"
+    },
+    {
+      opcode: "control_repeat",
+      category: "控制",
+      label: "重复执行",
+      reason: "先做固定次数的循环测试。"
+    },
+    {
+      opcode: "control_forever",
+      category: "控制",
+      label: "一直重复",
+      reason: "适合持续移动、持续检测或持续绘制。"
     }
   ]);
 });
@@ -476,6 +488,58 @@ test("CoachService keeps at most three recommended blocks from DeepSeek", async 
           }
         ],
         nextStep: "先把前三步补出来。",
+        detectedIssues: []
+      })
+    )
+  );
+
+  const result = await service.generateHint({
+    snapshot: createSnapshot(),
+    currentTargetPrograms: ["event_whenflagclicked -> motion_movesteps"],
+    programAreaModules: [
+      {
+        id: "motion",
+        label: "运动",
+        blockCount: 1
+      }
+    ],
+    usedExtensions: [],
+    loadedExtensions: [],
+    goal: "先做三步",
+    aiConfig: createAiConfig()
+  });
+
+  assert.equal(result.coachResponse.recommendedBlocks.length, 3);
+  assert.deepEqual(
+    result.coachResponse.recommendedBlocks.map((block) => block.opcode),
+    [
+      "event_whenflagclicked",
+      "motion_movesteps",
+      "control_repeat"
+    ]
+  );
+});
+
+test("CoachService pads DeepSeek recommendations to three blocks with fallback suggestions", async () => {
+  const service = new CoachService(async () =>
+    createDeepSeekResponse(
+      JSON.stringify({
+        answerText: "先补成三步。",
+        recommendedBlocks: [
+          {
+            opcode: "event_whenflagclicked",
+            category: "事件",
+            label: "当绿旗被点击",
+            reason: "1"
+          },
+          {
+            opcode: "motion_movesteps",
+            category: "运动",
+            label: "移动 10 步",
+            reason: "2"
+          }
+        ],
+        nextStep: "先把第三步也补出来。",
         detectedIssues: []
       })
     )

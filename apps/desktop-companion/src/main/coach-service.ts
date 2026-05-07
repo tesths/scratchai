@@ -341,6 +341,31 @@ function buildFallbackCoachResponse(options: GenerateCoachHintOptions): CoachRes
   return buildGenericFallbackCoachResponse(options);
 }
 
+function ensureRecommendedBlockCount(
+  recommendedBlocks: RecommendedBlock[],
+  options: GenerateCoachHintOptions
+) {
+  const mergedBlocks: RecommendedBlock[] = [];
+  const seenOpcodes = new Set<string>();
+
+  const appendUniqueBlock = (block: RecommendedBlock) => {
+    if (mergedBlocks.length >= MAX_RECOMMENDED_BLOCKS || seenOpcodes.has(block.opcode)) {
+      return;
+    }
+
+    seenOpcodes.add(block.opcode);
+    mergedBlocks.push(block);
+  };
+
+  recommendedBlocks.forEach(appendUniqueBlock);
+
+  if (mergedBlocks.length < MAX_RECOMMENDED_BLOCKS) {
+    buildFallbackCoachResponse(options).recommendedBlocks.forEach(appendUniqueBlock);
+  }
+
+  return mergedBlocks.slice(0, MAX_RECOMMENDED_BLOCKS);
+}
+
 function buildPromptContext(options: GenerateCoachHintOptions) {
   const { snapshot, currentTargetPrograms, programAreaModules, usedExtensions, loadedExtensions, goal } = options;
   const currentTarget = getCurrentTargetSprite(snapshot);
@@ -429,7 +454,7 @@ function normalizeDetectedIssueSeverity(value: unknown): "info" | "warning" {
   return "info";
 }
 
-function normalizeCoachResponse(rawPayload: unknown) {
+function normalizeCoachResponse(rawPayload: unknown, options: GenerateCoachHintOptions) {
   if (!rawPayload || typeof rawPayload !== "object") {
     return rawPayload;
   }
@@ -476,7 +501,6 @@ function normalizeCoachResponse(rawPayload: unknown) {
             ...(example ? { example } : {})
           };
         })
-        .slice(0, MAX_RECOMMENDED_BLOCKS)
     : [];
 
   const detectedIssues = Array.isArray(candidate.detectedIssues)
@@ -506,7 +530,7 @@ function normalizeCoachResponse(rawPayload: unknown) {
 
   return {
     answerText,
-    recommendedBlocks,
+    recommendedBlocks: ensureRecommendedBlockCount(recommendedBlocks, options),
     nextStep,
     detectedIssues,
     ...(followUpQuestion ? { followUpQuestion } : {})
@@ -606,7 +630,7 @@ export class CoachService {
       const rawPayload = await response.json();
       const messageContent = extractMessageContent(rawPayload);
       const parsedJson = parseJsonObject(messageContent);
-      const normalizedJson = normalizeCoachResponse(parsedJson);
+      const normalizedJson = normalizeCoachResponse(parsedJson, options);
       return coachResponseSchema.parse(normalizedJson) as CoachResponse;
     } finally {
       clearTimeout(timer);
