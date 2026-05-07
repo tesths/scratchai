@@ -2,6 +2,8 @@
 
 `apps/server-web` 是服务器端第一阶段的 Vue 3 + Vite 教师后台 SPA。
 
+更完整的服务器端说明见 [`../../docs/server-development.zh-CN.md`](../../docs/server-development.zh-CN.md)。
+
 ## 运行
 
 ```bash

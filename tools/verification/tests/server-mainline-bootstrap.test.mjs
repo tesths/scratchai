@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 
 const REQUIRED_SERVER_FILES = [
+  "../../../docs/server-development.zh-CN.md",
   "../../../apps/server-api/README.md",
   "../../../apps/server-api/pyproject.toml",
   "../../../apps/server-web/README.md",
@@ -23,18 +24,21 @@ test("workspace scripts expose server api and web entrypoints", async () => {
 });
 
 test("core docs describe the new FastAPI and Vue server track", async () => {
-  const [rootReadmeZh, rootReadmeEn, structureZh, structureEn] = await Promise.all([
+  const [rootReadmeZh, rootReadmeEn, structureZh, structureEn, docsIndexZh] = await Promise.all([
     readFile(new URL("../../../README.zh-CN.md", import.meta.url), "utf8"),
     readFile(new URL("../../../README.en.md", import.meta.url), "utf8"),
     readFile(new URL("../../../docs/project-structure.zh-CN.md", import.meta.url), "utf8"),
-    readFile(new URL("../../../docs/project-structure.en.md", import.meta.url), "utf8")
+    readFile(new URL("../../../docs/project-structure.en.md", import.meta.url), "utf8"),
+    readFile(new URL("../../../docs/README.zh-CN.md", import.meta.url), "utf8")
   ]);
 
   assert.match(rootReadmeZh, /FastAPI/);
   assert.match(rootReadmeZh, /Vue/);
+  assert.match(rootReadmeZh, /server-development\.zh-CN\.md/);
   assert.match(rootReadmeEn, /FastAPI/);
   assert.match(rootReadmeEn, /Vue/);
   assert.match(structureZh, /apps\/server-api/);
   assert.match(structureZh, /apps\/server-web/);
   assert.match(structureEn, /apps\/server-web/);
+  assert.match(docsIndexZh, /server-development\.zh-CN\.md/);
 });

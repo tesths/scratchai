@@ -68,6 +68,7 @@ npm run dev
 ## 文档导航
 
 - 仓库结构：[`docs/project-structure.zh-CN.md`](docs/project-structure.zh-CN.md)
+- 服务器端开发说明：[`docs/server-development.zh-CN.md`](docs/server-development.zh-CN.md)
 - 发布与出包：[`docs/releasing.zh-CN.md`](docs/releasing.zh-CN.md)
 - 路线图：[`docs/roadmap.zh-CN.md`](docs/roadmap.zh-CN.md)
 - 工程文档索引：[`docs/README.zh-CN.md`](docs/README.zh-CN.md)

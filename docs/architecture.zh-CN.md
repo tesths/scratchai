@@ -8,6 +8,8 @@
 - `packages/shared`
 - `tools/verification`
 
+如果要单独看服务器端，优先阅读 [`./server-development.zh-CN.md`](./server-development.zh-CN.md)。
+
 ## 1. 工作区边界
 
 当前仓库是混合语言 monorepo：

@@ -68,6 +68,7 @@ npm run dev
 ## Documentation
 
 - Project structure: [`docs/project-structure.en.md`](docs/project-structure.en.md)
+- Server development doc (Chinese): [`docs/server-development.zh-CN.md`](docs/server-development.zh-CN.md)
 - Releasing: [`docs/releasing.en.md`](docs/releasing.en.md)
 - Roadmap: [`docs/roadmap.en.md`](docs/roadmap.en.md)
 - Engineering docs index: [`docs/README.zh-CN.md`](docs/README.zh-CN.md)

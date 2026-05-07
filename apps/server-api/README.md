@@ -3,6 +3,8 @@
 
 `apps/server-api` 是服务器端第一阶段的 FastAPI 后端，负责老师/学生认证、发布单、学生进度、AI 提示和教师实时看板接口。
 
+更完整的服务器端说明见 [`../../docs/server-development.zh-CN.md`](../../docs/server-development.zh-CN.md)。
+
 ## 本地开发
 
 优先从仓库根目录运行：
