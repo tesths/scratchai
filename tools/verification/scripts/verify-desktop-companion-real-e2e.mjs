@@ -5,6 +5,10 @@ import {spawn} from 'node:child_process';
 
 import {findDefaultAutomationScratchExecutablePath, parseLatestScratchLaunchInfo} from './automation-platform.mjs';
 import {getDefaultPackagedCompanionBinaryPath} from './electron-paths.mjs';
+import {
+    buildSettingsUiSnapshotExpression,
+    isSettingsUiReady
+} from './desktop-companion-real-e2e-settings.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const workspaceRoot = path.resolve(__dirname, '..', '..', '..');
@@ -325,27 +329,6 @@ async function waitForCompanionUi(target, predicate, errorMessage) {
     });
 }
 
-function buildSettingsUiSnapshotExpression() {
-    return `
-(() => ({
-  title: document.title,
-  href: window.location.href,
-  status: document.querySelector("#settings-status")?.textContent?.trim() ?? null,
-  modelValue: document.querySelector("#settings-custom-ai-model") instanceof HTMLSelectElement
-    ? document.querySelector("#settings-custom-ai-model").value
-    : null,
-  buttons: {
-    save: document.querySelector("#settings-save-custom-ai-api-key-button") instanceof HTMLButtonElement
-      ? document.querySelector("#settings-save-custom-ai-api-key-button").disabled
-      : null,
-    clear: document.querySelector("#settings-clear-custom-ai-api-key-button") instanceof HTMLButtonElement
-      ? document.querySelector("#settings-clear-custom-ai-api-key-button").disabled
-      : null
-  }
-}))()
-    `.trim();
-}
-
 async function readSettingsUiSnapshot(target) {
     const result = await evaluateExpressionInTarget(target, buildSettingsUiSnapshotExpression());
     if (!result.ok) {
@@ -383,6 +366,28 @@ async function clickButton(target, selector) {
         throw new Error(clickResult.error ?? `Failed to click ${selector}.`);
     }
     return clickResult.value ?? {};
+}
+
+async function setSelectValue(target, selector, value) {
+    const result = await evaluateExpressionInTarget(
+        target,
+        `
+(() => {
+  const select = document.querySelector(${JSON.stringify(selector)});
+  if (!(select instanceof HTMLSelectElement)) {
+    return { ok: false, error: "select-not-found" };
+  }
+  select.value = ${JSON.stringify(value)};
+  select.dispatchEvent(new Event("input", { bubbles: true }));
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+  return { ok: true, value: select.value };
+})()
+        `.trim()
+    );
+    if (!result.ok) {
+        throw new Error(result.error ?? `Failed to set ${selector}.`);
+    }
+    return result.value ?? {};
 }
 
 function buildLoadProjectExpression(projectFilePath, projectFileBase64) {
@@ -685,13 +690,71 @@ async function main() {
 
         const settingsUi = await waitForSettingsUi(
             settingsTargetResult.preferredTarget,
-            snapshot =>
-                snapshot.title === 'DeepSeek 设置' &&
-                snapshot.status !== '正在读取当前配置…' &&
-                typeof snapshot.modelValue === 'string' &&
-                snapshot.modelValue.length > 0 &&
-                snapshot.buttons?.save === false,
+            snapshot => isSettingsUiReady(snapshot),
             'Packaged DeepSeek settings window did not finish rendering.'
+        );
+
+        assert(
+            settingsUi.hintTriggerModeValue === 'auto',
+            `Expected the default hint trigger mode to be auto, got: ${JSON.stringify(settingsUi)}`
+        );
+
+        const hintModeChange = await setSelectValue(
+            settingsTargetResult.preferredTarget,
+            '#settings-ai-hint-trigger-mode',
+            'manual'
+        );
+        assert(
+            hintModeChange.ok === true,
+            `Hint trigger mode select did not accept manual. Actual: ${JSON.stringify(hintModeChange)}`
+        );
+
+        const hintModeSaveClick = await clickButton(
+            settingsTargetResult.preferredTarget,
+            '#settings-save-ai-hint-trigger-mode-button'
+        );
+        assert(
+            hintModeSaveClick.ok === true,
+            `Hint trigger mode save button did not click successfully. Actual: ${JSON.stringify(hintModeSaveClick)}`
+        );
+
+        const savedSettingsUi = await waitForSettingsUi(
+            settingsTargetResult.preferredTarget,
+            snapshot =>
+                snapshot.hintTriggerModeValue === 'manual' &&
+                typeof snapshot.feedbackText === 'string' &&
+                snapshot.feedbackText.includes('手动点击') &&
+                snapshot.buttons?.saveHintTriggerMode === false,
+            'Hint trigger mode did not persist to manual mode in the settings UI.'
+        );
+
+        const savedConfig = JSON.parse(
+            await readFile(getConfigFilePath(userDataDir), 'utf8')
+        );
+        assert(
+            savedConfig.aiHintTriggerMode === 'manual',
+            `Expected saved aiHintTriggerMode to be manual, got: ${JSON.stringify(savedConfig)}`
+        );
+
+        const manualRetryLogOffset = await getLogSize();
+        const manualRetryClick = await clickButton(companionTargetResult.preferredTarget, '#retry-button');
+        assert(
+            manualRetryClick.ok === true,
+            `Retry button did not click successfully after switching hint mode. Actual: ${JSON.stringify(manualRetryClick)}`
+        );
+
+        const manualRetryLogContent = await waitForLogMarkers(
+            ['Preparing controlled injection', 'Bridge script injected via CDP'],
+            manualRetryLogOffset,
+            'Desktop companion log did not show a retry injection sequence after switching hint mode.'
+        );
+
+        const manualRetryUi = await waitForCompanionUi(
+            companionTargetResult.preferredTarget,
+            snapshot =>
+                snapshot.status === '已连接到 Scratch Desktop' &&
+                snapshot.detail?.includes('AI 会继续根据当前作品进度，给出下一步建议。'),
+            'Desktop companion did not switch the connected detail copy to manual hint mode.'
         );
 
         const output = {
@@ -722,9 +785,14 @@ async function main() {
             retryUi,
             settingsClick,
             settingsUi,
+            savedSettingsUi,
+            manualRetryClick,
+            manualRetryUi,
+            savedConfig,
             logChecks: {
                 launchMarkersPresent: launchLogContent.includes('Bridge script injected via CDP'),
-                retryMarkersPresent: retryLogContent.includes('Preparing controlled injection')
+                retryMarkersPresent: retryLogContent.includes('Preparing controlled injection'),
+                manualRetryMarkersPresent: manualRetryLogContent.includes('Preparing controlled injection')
             }
         };
 
