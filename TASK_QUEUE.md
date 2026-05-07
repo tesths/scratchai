@@ -7,6 +7,7 @@
 
 ## 已完成
 
+- 2026-05-07：修复 GitHub Actions Windows runner 上 `@scratch-ai/desktop-companion` 的 7 个测试回归：定位到两类跨平台测试脆弱点，一是 `electron-builder-config.test.mjs` 使用 `URL.pathname` 组本地路径，Windows 下会把 `C:` 盘符变成非法伪路径；二是 symlink / macOS 缓存目录相关测试默认假设 POSIX 分隔符和相对 symlink 能力。现已改为 `fileURLToPath(...)`、按当前平台路径规则断言，并为相对 symlink 用例先做能力探测后再执行或跳过；已完成 `desktop-companion` 全量单测与根级 `npm run test`。
 - 2026-05-07：修复 GitHub Actions 非 macOS runner 上的 `tools/verification` DMG 探测回归：定位到 `probeMacDmgSupport` 在 `/private/tmp` 不存在时会先于 mock `hdiutil` 调用抛出 `mkdtempSync ENOENT`；为缺失临时目录补回退到宿主 `os.tmpdir()` 的兜底，并新增回归测试覆盖缺失临时目录场景；已完成 `verification` 全量测试与根级 `npm run test`。
 - 2026-05-07：维护桌面伴随程序启动与环境文档：将 `npm start` / `npm run dev` 固定到仓库本地 Electron，新增脚本回归测试，并把 npm workspace 依赖位置、全局旧版 Electron 误用风险、以及 `Node.js v22.16.0` 下 npm 兼容性 warning 的排障结论同步到 README 与开发交接文档；已完成源码启动验证与 desktop-companion 全量单测。
 - 2026-05-07：修复桌面伴随程序“推荐积木”补位逻辑：当 DeepSeek 仅返回 1-2 条时，服务层会按 opcode 去重并用现有 fallback 推荐自动补满 3 步；已补定向单测并完成 desktop-companion 全量单测。

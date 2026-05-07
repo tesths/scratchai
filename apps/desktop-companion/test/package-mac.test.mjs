@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readlink, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readlink, rm, symlink, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
@@ -15,6 +15,30 @@ import {
 } from "../scripts/package-mac.mjs";
 
 const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+async function detectRelativeSymlinkSupport(prefix) {
+  const rootDir = await mkdtemp(path.join(os.tmpdir(), prefix));
+
+  try {
+    const targetDir = path.join(rootDir, "target");
+    const linkPath = path.join(rootDir, "link");
+
+    await mkdir(targetDir, { recursive: true });
+    await symlink("target", linkPath, "dir");
+    const target = await readlink(linkPath);
+
+    return {
+      supported: target === "target"
+    };
+  } catch (error) {
+    return {
+      supported: false,
+      reason: error instanceof Error ? error.message : String(error)
+    };
+  } finally {
+    await rm(rootDir, { recursive: true, force: true });
+  }
+}
 
 test("parseMacPackageTargetArg defaults to dir", () => {
   assert.equal(parseMacPackageTargetArg(["node", "package-mac.mjs"]), "dir");
@@ -80,11 +104,16 @@ test("buildMacBuilderConfig allows explicit signing identity overrides", () => {
 test("resolveMacBuildCacheEnv provides writable temp cache defaults", () => {
   const env = resolveMacBuildCacheEnv({}, "/private/tmp");
 
-  assert.equal(env.ELECTRON_CACHE, "/private/tmp/scratchai-electron-cache");
-  assert.equal(env.ELECTRON_BUILDER_CACHE, "/private/tmp/scratchai-electron-builder-cache");
+  assert.equal(env.ELECTRON_CACHE, path.join("/private/tmp", "scratchai-electron-cache"));
+  assert.equal(env.ELECTRON_BUILDER_CACHE, path.join("/private/tmp", "scratchai-electron-builder-cache"));
 });
 
-test("copyMacDirBundleToInstallers preserves relative framework symlinks in the copied app bundle", async () => {
+test("copyMacDirBundleToInstallers preserves relative framework symlinks in the copied app bundle", async (t) => {
+  const symlinkSupport = await detectRelativeSymlinkSupport("package-mac-symlink-check-");
+  if (!symlinkSupport.supported) {
+    return t.skip(`relative symlinks are unavailable in this environment: ${symlinkSupport.reason ?? "unsupported"}`);
+  }
+
   const rootDir = await mkdtemp(path.join(os.tmpdir(), "package-mac-copy-"));
   const outputDir = path.join(rootDir, "release-mac-no-key");
   const sourceBundleDir = path.join(outputDir, "mac-arm64", "ScratchDesktopCompanion.app");
@@ -93,8 +122,8 @@ test("copyMacDirBundleToInstallers preserves relative framework symlinks in the 
 
   await mkdir(path.join(frameworksDir, "Versions", "A"), { recursive: true });
   await writeFile(path.join(frameworksDir, "Versions", "A", "payload.txt"), "ok");
-  await symlink("Versions/Current/payload.txt", path.join(frameworksDir, "Electron Framework"));
-  await symlink("A", path.join(frameworksDir, "Versions", "Current"));
+  await symlink("Versions/Current/payload.txt", path.join(frameworksDir, "Electron Framework"), "file");
+  await symlink("A", path.join(frameworksDir, "Versions", "Current"), "dir");
 
   await copyMacDirBundleToInstallers({
     outputDir,

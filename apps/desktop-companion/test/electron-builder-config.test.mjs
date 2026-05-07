@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import {
   buildDesktopCompanionBuilderBaseConfig,
@@ -12,7 +13,7 @@ import { buildMacBuilderConfig } from "../scripts/package-mac.mjs";
 import { buildWindowsInstallerBuilderConfig } from "../scripts/package-win-installer.mjs";
 import { buildWindowsPortableBuilderConfig } from "../scripts/package-win-single.mjs";
 
-const appDir = path.resolve(new URL("..", import.meta.url).pathname);
+const appDir = fileURLToPath(new URL("..", import.meta.url));
 
 test("resolveElectronVersionFromPackageJson normalizes the workspace electron version", async () => {
   const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
@@ -33,7 +34,7 @@ test("desktop companion electron-builder base config pins electronVersion for wo
 test("resolveDesktopCompanionElectronDist points at the workspace root electron distribution", () => {
   assert.equal(
     resolveDesktopCompanionElectronDist("/repo/apps/desktop-companion"),
-    "/repo/node_modules/electron/dist"
+    path.resolve("/repo/apps/desktop-companion", "..", "..", "node_modules", "electron", "dist")
   );
 });
 
