@@ -13,7 +13,9 @@ test("desktop release workflow packages Windows and macOS artifacts for PRs and 
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /-\s*"tsconfig\.base\.json"/);
 
-  assert.match(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-latest/);
+  assert.match(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-2025/);
+  assert.doesNotMatch(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-latest/);
+  assert.doesNotMatch(workflow, /windows:\s*\n[\s\S]*runs-on:\s*windows-2025-vs2026/);
   assert.match(workflow, /windows:\s*\n[\s\S]*npm run package:win:bundle/);
   assert.match(workflow, /windows:\s*\n[\s\S]*name:\s*scratch-desktop-companion-windows/);
 
@@ -21,4 +23,18 @@ test("desktop release workflow packages Windows and macOS artifacts for PRs and 
   assert.match(workflow, /macos:\s*\n[\s\S]*npm run package:mac/);
   assert.match(workflow, /macos:\s*\n[\s\S]*npm run package:mac:dmg/);
   assert.match(workflow, /macos:\s*\n[\s\S]*name:\s*scratch-desktop-companion-macos/);
+});
+
+test("desktop release workflow uses Node 24-based GitHub actions runtimes", async () => {
+  const workflow = await readFile(
+    new URL("../../../.github/workflows/release-desktop.yml", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(workflow, /actions\/checkout@v6/);
+  assert.match(workflow, /actions\/setup-node@v6/);
+  assert.match(workflow, /actions\/upload-artifact@v7/);
+  assert.doesNotMatch(workflow, /actions\/checkout@v4/);
+  assert.doesNotMatch(workflow, /actions\/setup-node@v4/);
+  assert.doesNotMatch(workflow, /actions\/upload-artifact@v4/);
 });
