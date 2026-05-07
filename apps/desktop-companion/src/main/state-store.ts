@@ -7,7 +7,7 @@ export class StateStore {
 
   private state: DesktopCompanionState = {
     status: "starting",
-    statusText: "桌面伴随程序正在启动…",
+    statusText: "Scratch AI 教练正在启动…",
     toolboxCategories: [],
     usedExtensions: [],
     loadedExtensions: [],

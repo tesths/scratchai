@@ -13,7 +13,7 @@
 - 看 workspace 入口、安装方式和常用命令：`../README.md`
 - 看模块职责和数据流：`./architecture.zh-CN.md`
 - 看文档长期怎么维护：`./maintenance.zh-CN.md`
-- 看桌面端开发、打包和交接：`../apps/desktop-companion/README.md`
+- 看 `Scratch AI 教练桌面工具` 的开发、打包和交接：`../apps/desktop-companion/README.md`
 - 看真机验证、UI 自动化和教学工作流：`../tools/verification/README.zh-CN.md`
 - 看 Windows 现场部署与排查：`../apps/desktop-companion/SOP.zh-CN.md`
 

@@ -1,36 +1,36 @@
-# Scratch Desktop 机房部署 SOP
+# Scratch AI 教练桌面工具部署 SOP
 
 相关文档：
 
 - [根工作区总览](../README.md)
 - [验证与回归说明](README.zh-CN.md)
-- [桌面伴随程序说明](../apps/desktop-companion/README.md)
+- [Scratch AI 教练桌面工具说明](../apps/desktop-companion/README.md)
 - [开发接力文档](../apps/desktop-companion/DEVELOPMENT_STATUS.zh-CN.md)
 
 适用对象：
 
 - 机房管理员
 - 信息老师
-- 需要批量部署 `Scratch Desktop Companion` 的维护人员
+- 需要批量部署 `Scratch AI 教练桌面工具` 的维护人员
 
 适用范围：
 
-- Windows 机房电脑
-- 当前试验分支使用“伴随程序受控启动 Scratch”路线
+- Windows 电脑
+- 当前试验分支使用“桌面工具受控启动 Scratch”路线
 
 说明：
 
 - 项目现在已经支持 macOS 开发、源码版 UI 自动化和内测打包
-- 这份 SOP 只覆盖 Windows 机房现场部署，不负责 macOS 的分发和验收
+- 这份 SOP 只覆盖 Windows 现场部署，不负责 macOS 的分发和验收
 
 ## 1. 当前目标
 
 当前现场流程不是“学生直接双击 Scratch”，而是：
 
-1. 先启动伴随程序。
-2. 由伴随程序自动识别 Scratch 路径；如果之前已经选过，就继续使用上次保存的路径。
+1. 先启动桌面工具。
+2. 由桌面工具自动识别 Scratch 路径；如果之前已经选过，就继续使用上次保存的路径。
 3. 如果没识别到，手动选择 `Scratch.exe` 或 `Scratch 3.exe`。
-4. 从伴随程序里点击 `打开已选 Scratch`。
+4. 从桌面工具里点击 `打开已选 Scratch`。
 5. 连接成功后查看：
    - `已选 Scratch`
    - `当前角色`

@@ -1,11 +1,11 @@
 # Scratch AI Coach 工作区
 
-这是一个收口后的 npm workspace，当前只维护桌面端主应用、共享领域包和跨平台验证工具。
+这是一个收口后的 npm workspace，当前只维护 Windows / macOS 的 `Scratch AI 教练桌面工具`、共享领域包和跨平台验证工具。
 
 ## 当前结构
 
 - `apps/desktop-companion`
-  Windows + macOS Electron 桌面伴随程序
+  Windows + macOS Electron `Scratch AI 教练桌面工具`（本地基础版）
 - `packages/shared`
   共享 schema、项目快照和 Scratch 项目解析逻辑
 - `tools/verification`
@@ -40,7 +40,7 @@ npm run package:mac:dmg
 说明：
 
 - 这是一个 npm workspace；依赖安装在仓库根目录，`apps/desktop-companion` 不单独维护自己的 `node_modules`
-- 桌面伴随程序本地启动请优先使用 `cd apps/desktop-companion && npm start` 或 `npm run dev`，脚本已固定走仓库根目录的本地 Electron
+- 桌面工具本地启动请优先使用 `cd apps/desktop-companion && npm start` 或 `npm run dev`，脚本已固定走仓库根目录的本地 Electron
 - 不要手工执行裸命令 `electron dist/main.js`；如果系统里刚好装着全局旧版 Electron，可能会报 `Unexpected token {` 或 `node:fs/promises` 相关启动错误
 - 当前这台机器上的 `npm` 会对 `Node.js v22.16.0` 打兼容性 warning；只要命令最终退出码为 `0`，可先按告警处理，不是这次桌面端启动问题的根因
 - 本地默认只保证“当前平台可开发、可测试、可出包”
@@ -70,8 +70,8 @@ npm run package:mac:dmg
 - [主工程文档索引](docs/README.zh-CN.md)
 - [主工程架构说明](docs/architecture.zh-CN.md)
 - [文档维护约定](docs/maintenance.zh-CN.md)
-- [桌面伴随程序说明](apps/desktop-companion/README.md)
-- [桌面伴随程序开发交接](apps/desktop-companion/DEVELOPMENT_STATUS.zh-CN.md)
+- [Scratch AI 教练桌面工具说明](apps/desktop-companion/README.md)
+- [Scratch AI 教练桌面工具开发交接](apps/desktop-companion/DEVELOPMENT_STATUS.zh-CN.md)
 - [验证与回归说明](tools/verification/README.zh-CN.md)
 - [教学工作流说明](tools/verification/workflows/deepseek-teaching/README.zh-CN.md)
 - [Windows 部署 SOP](apps/desktop-companion/SOP.zh-CN.md)

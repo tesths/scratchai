@@ -7,7 +7,7 @@
 - `cat-and-mouse-flow-sample/`
   - 基于真实项目整理出的工作流输出样例，用来固定 `brief / plan / role pack / hints / debug pack` 的结构。
 - `desktop-companion-mock-state.json`
-  - 桌面伴随程序 UI 自动化测试使用的模拟状态。
+  - 桌面工具 UI 自动化测试使用的模拟状态。
 
 当前已入库的真实项目样本：
 

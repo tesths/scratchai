@@ -12,14 +12,16 @@
 
 主线目标只有两个：
 
-1. 持续维护 Windows + macOS 桌面伴随程序
+1. 持续维护 Windows + macOS 的 `Scratch AI 教练桌面工具`
 2. 保持一套可在新电脑直接 clone、安装、测试和本机出包的验证型工作区
+
+当前产品形态固定为 **本地基础版**，不再继续推进“服务器版 + 单机版并存”路线。
 
 ## 2. 组件职责
 
 ### `apps/desktop-companion`
 
-Electron 桌面伴随程序，源码拆成三层：
+Electron 桌面工具，源码拆成三层：
 
 - `src/main`
   主进程、Scratch 受控启动、CDP 注入、AI 请求、状态存储
@@ -66,7 +68,7 @@ Electron 桌面伴随程序，源码拆成三层：
 1. Electron 主进程启动 `SessionManager`
 2. `SessionManager` 启动本地 bridge server
 3. 自动探测 Scratch 可执行文件，必要时允许用户手动选择
-4. 伴随程序受控启动 Scratch Desktop
+4. 桌面工具受控启动 Scratch Desktop
 5. 通过 `http://127.0.0.1:<port>/json/list` 找到真实编辑页
 6. 通过 CDP 注入只读桥接脚本
 7. 桥接脚本回传 `projectData`、当前角色和模块信息

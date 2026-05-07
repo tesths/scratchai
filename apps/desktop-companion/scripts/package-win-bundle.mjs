@@ -98,7 +98,7 @@ async function getSha256(filePath) {
 
 function getReleaseSummaryLines({ generatedAt, bundleDir, artifacts }) {
   return [
-    "# Scratch Desktop Companion Release Notes",
+    "# Scratch AI 教练桌面工具 Release Notes",
     "",
     `- Generated at: ${generatedAt}`,
     `- Bundle directory: \`${bundleDir}\``,

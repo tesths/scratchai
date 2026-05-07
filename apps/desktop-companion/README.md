@@ -1,16 +1,16 @@
-# Scratch Desktop Companion
+# Scratch AI 教练桌面工具
 
-这是主工程里的 Windows + macOS 桌面伴随程序。  
-当前主线已经收敛为 **本地基础版**：连接本机 `Scratch Desktop`，读取当前角色和项目数据，把 `当前角色程序 / 推荐积木` 以 Scratch 原版 `scratch-blocks` 只读方式渲染出来，再基于学生当前作品生成 AI 下一步提示。推荐积木现在额外受官方 opcode 白名单约束；如果 AI 给出未支持或编造的 opcode，会先自动映射到安全、可渲染的官方积木。
+这是主工程里的 Windows + macOS `Scratch AI 教练桌面工具`。  
+当前主线已经收敛为 **本地基础版**，且只保留 Windows / macOS 版本：连接本机 `Scratch Desktop`，读取当前角色和项目数据，把 `当前角色程序 / 推荐积木` 以 Scratch 原版 `scratch-blocks` 只读方式渲染出来，再基于学生当前作品生成 AI 下一步提示。推荐积木现在额外受官方 opcode 白名单约束；如果 AI 给出未支持或编造的 opcode，会先自动映射到安全、可渲染的官方积木。
 
 ## 当前产品流程
 
 当前已经对齐并验证的流程是：
 
-1. 打开伴随程序，自动识别本机是否已安装 Scratch。
+1. 打开桌面工具，自动识别本机是否已安装 Scratch。
 2. 如果没有识别到路径，Windows 手动选择 `Scratch.exe`、`Scratch 3.exe` 或桌面快捷方式；macOS 手动选择 `Scratch.app`、`Scratch Desktop.app` 或应用包里的可执行文件。
-3. 点击 `打开已选 Scratch`，由伴随程序受控启动 Scratch。
-4. 伴随程序通过 CDP 注入只读桥接脚本并建立连接。
+3. 点击 `打开已选 Scratch`，由桌面工具受控启动 Scratch。
+4. 桌面工具通过 CDP 注入只读桥接脚本并建立连接。
 5. 读取当前角色、项目快照和当前角色脚本，并生成只读 Scratch 积木视图。
 6. 默认在连接成功后、以及后续积木状态变化时自动刷新下一步提示；如果在设置里切到手动模式，也可以继续点击 `生成下一步提示` 主动请求 DeepSeek，并返回下一步建议和推荐积木；推荐积木同样按 Scratch 原版样式展示。
 
@@ -48,7 +48,7 @@
 补充：
 
 - `currentTargetPrograms` 这条文本链路仍然保留，主要给 AI、兼容层和排障使用；UI 主显示优先使用官方积木 SVG。
-- `AI 下一步提示` 默认会随积木变化自动刷新；如果希望课堂上手动控制，也可以在设置里切回手动点击模式。
+- `AI 下一步提示` 默认会随积木变化自动刷新；如果确实需要人工控制，也可以在设置里切回手动点击模式。
 - 当前界面截图可参考：[current-ui-desktop-companion-scratch-blocks.png](../../docs/assets/screenshots/current-ui-desktop-companion-scratch-blocks.png)
 
 ## 当前实现要点

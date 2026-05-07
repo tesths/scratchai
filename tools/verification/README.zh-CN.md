@@ -1,6 +1,6 @@
 # Verification 说明
 
-`tools/verification` 是当前主线的跨平台验证工具包，统一放真机验证、UI 自动化、教学工作流和固定 fixtures。
+`tools/verification` 是当前主线的跨平台验证工具包，主要服务 Windows / macOS 的 `Scratch AI 教练桌面工具`，统一放真机验证、UI 自动化、教学工作流和固定 fixtures。
 
 ## 目录结构
 
